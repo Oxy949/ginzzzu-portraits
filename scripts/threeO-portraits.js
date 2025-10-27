@@ -156,7 +156,7 @@ Object.assign(root.style, {
       bottom: "0",
       display: "flex",
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "end",
       justifyContent: "center",        // центрируем ряд; отступы делаем через margin
       gap: "inherit",
       pointerEvents: "none",
@@ -404,7 +404,8 @@ Object.assign(root.style, {
       position: "relative",
       width: "auto",
       height: "auto",
-      objectFit: "contain", 
+      objectFit: "cover",
+      overflow: "visible", 
       borderRadius: "10px",
       filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
       transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
