@@ -152,15 +152,21 @@ Object.assign(root.style, {
       position: "absolute",
       left: "0",
       right: "0",
+      top: "0",
       bottom: "0",
       display: "flex",
       flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "center",
+      alignItems: "center",
+      justifyContent: "center",        // центрируем ряд; отступы делаем через margin
       gap: "inherit",
       pointerEvents: "none",
-      transform: "translateZ(0)", // Force GPU layer
-      backfaceVisibility: "hidden"
+      overflowX: "hidden",              // не скроллить — будем сжимать/перекрывать
+      overflowY: "hidden",
+      WebkitOverflowScrolling: "auto",
+       transform: "translateZ(0)", // Force GPU layer
+       backfaceVisibility: "hidden",
+      paddingLeft: `${FRAME.sidePadPx}px`,
+      paddingRight: `${FRAME.sidePadPx}px`
     });
     root.appendChild(rail);
 
@@ -187,43 +193,65 @@ Object.assign(root.style, {
 
   // Применить «жёсткую» геометрию рамки и общий зазор
   function applyGeometry(imgs, vw) {
-  // желаемая фиксированная ширина рамки (clamp по min/max)
-  const wantWpx = Math.min(
-    FRAME.maxWidthPx,
-    Math.max(FRAME.minWidthPx, Math.floor((FRAME.widthVw / 100) * vw))
-  );
+    // вычисляем базовую ширину рамки из процента и ограничений
+    const wantWpx = Math.min(FRAME.maxWidthPx, Math.max(FRAME.minWidthPx, Math.floor((FRAME.widthVw / 100) * vw)));
+    // доступная полоса: целевая доля минус боковые паддинги
+    const bandW = Math.floor(vw * FRAME.targetBand) - (2 * FRAME.sidePadPx);
 
-  // доступная ширина полосы (учитываем целевую долю и боковые паддинги)
-  const bandW = Math.floor(vw * FRAME.targetBand);
+    const n = imgs.length || 0;
+    let widthPx = wantWpx;
+    let gapPx = FRAME.gapBase;
 
-  // 1) сначала подбираем зазор
-  let gapPx = FRAME.gapBase;
-  if ((imgs.length * wantWpx) + (imgs.length - 1) * gapPx > bandW) {
-    const possible = Math.floor((bandW - imgs.length * wantWpx) / Math.max(1, (imgs.length - 1)));
-    gapPx = Math.max(FRAME.gapMin, isFinite(possible) ? possible : FRAME.gapMin);
+    if (n <= 1) {
+      gapPx = 0;
+    } else {
+      // если разрешено менять width, заранее ограничим его, чтобы не было слишком явного переползания
+      if (game.settings.get(NS, "resizeToFit")) {
+        const possibleAtMinGap = Math.floor((bandW - (n - 1) * FRAME.gapMin) / n);
+        widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, possibleAtMinGap));
+      }
+
+      // Попытка вместить ряд, регулируя gap. idealGap может быть отрицательным (перекрытие).
+      const idealGap = Math.floor((bandW - n * widthPx) / (n - 1));
+      // Максимальное допустимое перекрытие (процент ширины)
+      const maxOverlap = Math.max(0, Math.floor(widthPx)); // до 100% ширины
+      const minGapAllowed = -maxOverlap;
+
+      if (idealGap >= FRAME.gapMin) {
+        // поместилось с нормальным/положительным gap
+        gapPx = Math.min(idealGap, FRAME.gapBase);
+      } else if (idealGap >= minGapAllowed) {
+        // поместилось, но потребовалось перекрытие (отрицательный gap)
+        gapPx = idealGap;
+      } else {
+        // Даже при максимальном перекрытии не влазит -> уменьшаем widthPx так, чтобы влазило с максимально допустимым перекрытием
+        const widthFit = Math.floor((bandW - (n - 1) * minGapAllowed) / n);
+        // Не даём width падать ниже минимумов
+        widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, widthFit));
+        // Пересчитаем ограничения перекрытия для нового width
+        const maxOverlap2 = Math.max(0, Math.floor(widthPx * 0.6));
+        const minGapAllowed2 = -maxOverlap2;
+        const idealGap2 = Math.floor((bandW - n * widthPx) / (n - 1));
+        gapPx = Math.max(idealGap2, minGapAllowed2);
+      }
+    }
+
+    // Применяем стили (CSS gap используем только для положительного spacing, отрицательные — через margin-left)
+    const root = getDomHud();
+    const rail = root.querySelector("#threeo-portrait-rail") || root;
+    root.style.gap = `${Math.max(0, gapPx)}px`;
+    rail.style.gap = `${Math.max(0, gapPx)}px`;
+
+    imgs.forEach((el, i) => {
+      el.style.height    = `${FRAME.heightVh}vh`;
+      el.style.maxHeight = `${FRAME.heightVh}vh`;
+      el.style.width     = `${widthPx}px`;
+      el.style.maxWidth  = `${widthPx}px`;
+      el.style.flex      = "0 0 auto";
+      el.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
+      el.style.zIndex = String(100 + i);
+    });
   }
-
-  // 2) если упёрлись в минимальный зазор и всё ещё не влезаем — равномерно уменьшаем ширину рамки
-  let widthPx = wantWpx;
-  const totalWidthAtMinGap = (imgs.length * wantWpx) + (imgs.length - 1) * gapPx;
-  if (totalWidthAtMinGap > bandW) {
-    const maxPerItem = Math.floor((bandW - (imgs.length - 1) * gapPx) / imgs.length);
-    widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, maxPerItem));
-  }
-
-  // применяем геометрию
-  const root = getDomHud();
-  const rail = root.querySelector("#threeo-portrait-rail") || root;
-  root.style.gap = `${gapPx}px`;
-  rail.style.gap = `${gapPx}px`;
-
-  imgs.forEach(el => {
-    el.style.width     = `${widthPx}px`;            // одинаковая ширина рамки
-    el.style.maxWidth  = `${widthPx}px`;
-    el.style.height    = `${FRAME.heightVh}vh`;     // одинаковая высота рамки
-    el.style.maxHeight = `${FRAME.heightVh}vh`;
-  });
-}
 
 
   // FLIP-анимация сдвига через Web Animations API

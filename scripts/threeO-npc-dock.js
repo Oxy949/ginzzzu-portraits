@@ -36,25 +36,25 @@
     if (!game.user.isGM && game.settings.get(CONSTANTS.MODULE_ID, "gmOnly")) {
       return;
     }
-    const getActorData = /* @__PURE__ */ __name((target) => {
-      return game.actors.get($(target).data("entry-id"));
-    }, "getActorData");
-    menuItems.splice(
-      3,
-      0,
-      {
-        name: "Theatre.UI.Config.AddToStage",
-        condition: /* @__PURE__ */ __name((target) => !Theatre.isActorStaged(getActorData(target)), "condition"),
-        icon: '<i class="fas fa-theater-masks"></i>',
-        callback: /* @__PURE__ */ __name((target) => Theatre.addToNavBar(getActorData(target)), "callback")
-      },
-      {
-        name: "Theatre.UI.Config.RemoveFromStage",
-        condition: /* @__PURE__ */ __name((target) => Theatre.isActorStaged(getActorData(target)), "condition"),
-        icon: '<i class="fas fa-theater-masks"></i>',
-        callback: /* @__PURE__ */ __name((target) => Theatre.removeFromNavBar(getActorData(target)), "callback")
-      }
-    );
+    // const getActorData = /* @__PURE__ */ __name((target) => {
+    //   return game.actors.get($(target).data("entry-id"));
+    // }, "getActorData");
+    // menuItems.splice(
+    //   3,
+    //   0,
+    //   {
+    //     name: "Theatre.UI.Config.AddToStage",
+    //     condition: /* @__PURE__ */ __name((target) => !Theatre.isActorStaged(getActorData(target)), "condition"),
+    //     icon: '<i class="fas fa-theater-masks"></i>',
+    //     callback: /* @__PURE__ */ __name((target) => Theatre.addToNavBar(getActorData(target)), "callback")
+    //   },
+    //   {
+    //     name: "Theatre.UI.Config.RemoveFromStage",
+    //     condition: /* @__PURE__ */ __name((target) => Theatre.isActorStaged(getActorData(target)), "condition"),
+    //     icon: '<i class="fas fa-theater-masks"></i>',
+    //     callback: /* @__PURE__ */ __name((target) => Theatre.removeFromNavBar(getActorData(target)), "callback")
+    //   }
+    // );
   });
 
   const getSortMode   = () => { try { return game.settings.get(NS, "npcDockSort")   || "name-asc"; } catch { return "name-asc"; } };

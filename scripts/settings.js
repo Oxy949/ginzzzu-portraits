@@ -6,6 +6,15 @@ Hooks.once("init", () => {
   const reg = (key, data) => game.settings.register(MOD, key, data);
 
   // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
+  reg("resizeToFit", {
+    name: "Портреты: уменьшать размер, чтобы влезли все портреты",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+  
   reg("portraitToneEnabled", {
     name: "Портреты: подстраивать яркость/контраст под темноту сцены",
     scope: "world",
