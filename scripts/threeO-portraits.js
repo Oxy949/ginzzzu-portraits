@@ -139,8 +139,7 @@ Object.assign(root.style, {
   justifyContent: "center",
   gap: "24px",
   paddingBottom: `${FRAME.bottomPx}px`,
-  paddingLeft: `${FRAME.sidePadPx}px`,
-  paddingRight: `${FRAME.sidePadPx}px`,
+  // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
   transform: "translateZ(0)", // Force GPU layer
   backfaceVisibility: "hidden"
 });
@@ -165,13 +164,42 @@ Object.assign(root.style, {
       WebkitOverflowScrolling: "auto",
        transform: "translateZ(0)", // Force GPU layer
        backfaceVisibility: "hidden",
-      paddingLeft: `${FRAME.sidePadPx}px`,
-      paddingRight: `${FRAME.sidePadPx}px`
+      // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
     });
     root.appendChild(rail);
 
+    // Установить paddingLeft/paddingRight с учётом ширины #sidebar
+    syncSidePadding(root, rail);
+
     document.getElementById("interface").appendChild(root);
     return root;
+  }
+
+  // Получить ширину правой панели (если есть)
+  function getSidebarWidth() {
+    if (!game.settings.get(NS, "adjustForSidebar"))
+      return 0;
+    try {
+      const sb = document.getElementById("sidebar");
+      if (!sb) return 0;
+      const r = sb.getBoundingClientRect();
+      return Math.max(0, Math.round(r.width || 0));
+    } catch (e) { return 0; }
+  }
+
+  // Синхронизировать правый отступ root/rail с текущей шириной sideBar
+  function syncSidePadding(root, rail) {
+    const sidebarW = getSidebarWidth();
+    const leftPad = FRAME.sidePadPx;
+    const rightPad = FRAME.sidePadPx + sidebarW;
+    if (root) {
+      root.style.paddingLeft = `${leftPad}px`;
+      root.style.paddingRight = `${rightPad}px`;
+    }
+    if (rail) {
+      rail.style.paddingLeft = `${leftPad}px`;
+      rail.style.paddingRight = `${rightPad}px`;
+    }
   }
 
   // Кэш DOM-элементов: actorId -> <img>
@@ -195,8 +223,11 @@ Object.assign(root.style, {
   function applyGeometry(imgs, vw) {
     // вычисляем базовую ширину рамки из процента и ограничений
     const wantWpx = Math.min(FRAME.maxWidthPx, Math.max(FRAME.minWidthPx, Math.floor((FRAME.widthVw / 100) * vw)));
-    // доступная полоса: целевая доля минус боковые паддинги
-    const bandW = Math.floor(vw * FRAME.targetBand) - (2 * FRAME.sidePadPx);
+    // учёт левого и правого паддинга (правый включает текущую ширину #sidebar)
+    const sidebarW = getSidebarWidth();
+    const leftPad = FRAME.sidePadPx;
+    const rightPad = FRAME.sidePadPx + sidebarW;
+    const bandW = Math.floor(vw * FRAME.targetBand) - leftPad - rightPad;
 
     const n = imgs.length || 0;
     let widthPx = wantWpx;
@@ -239,12 +270,14 @@ Object.assign(root.style, {
     // Применяем стили (CSS gap используем только для положительного spacing, отрицательные — через margin-left)
     const root = getDomHud();
     const rail = root.querySelector("#threeo-portrait-rail") || root;
+    // Обновим padding с учётом возможной динамической ширины sidebar (на случай изменения)
+    syncSidePadding(root, rail);
     root.style.gap = `${Math.max(0, gapPx)}px`;
     rail.style.gap = `${Math.max(0, gapPx)}px`;
 
     imgs.forEach((el, i) => {
-      el.style.height    = `${FRAME.heightVh}vh`;
-      el.style.maxHeight = `${FRAME.heightVh}vh`;
+      el.style.height    = `${game.settings.get(NS, "portraitHeight") * 100}vh`;
+      el.style.maxHeight = `${game.settings.get(NS, "portraitHeight") * 100}vh`;
       el.style.width     = `${widthPx}px`;
       el.style.maxWidth  = `${widthPx}px`;
       el.style.flex      = "0 0 auto";
@@ -496,6 +529,9 @@ Object.assign(root.style, {
   // Перераскладка при изменении размера окна
   window.addEventListener("resize", () => relayoutDomHud());
   Hooks.on("canvasReady", () => relayoutDomHud());
+  Hooks.on("collapseSidebar", function(a, collapsed) {
+    setTimeout(() => relayoutDomHud(), 500);
+  });
 
   // ---- Тоггл из чарника ----
   async function togglePortrait(actor) {

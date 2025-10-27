@@ -5,9 +5,29 @@ Hooks.once("init", () => {
   // Helper to register
   const reg = (key, data) => game.settings.register(MOD, key, data);
 
+  reg("portraitHeight", {
+    name: "Портреты: высота",
+    hint: "0 — полоска, 1 — полная высота",
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 0.8,
+    range: { min: 0, max: 1, step: 0.01 },
+    requiresReload: true
+  });
+
   // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("resizeToFit", {
     name: "Портреты: уменьшать размер, чтобы влезли все портреты",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
+  reg("adjustForSidebar", {
+    name: "Портреты: учитывать ширину боковой панели",
     scope: "world",
     config: true,
     type: Boolean,
