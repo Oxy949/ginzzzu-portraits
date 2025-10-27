@@ -147,25 +147,47 @@ Object.assign(root.style, {
 
     const rail = document.createElement("div");
     rail.id = "threeo-portrait-rail";
-    Object.assign(rail.style, {
-      position: "absolute",
-      left: "0",
-      right: "0",
-      top: "0",
-      bottom: "0",
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "end",
-      justifyContent: "center",        // центрируем ряд; отступы делаем через margin
-      gap: "inherit",
-      pointerEvents: "none",
-      overflowX: "hidden",              // не скроллить — будем сжимать/перекрывать
-      overflowY: "hidden",
-      WebkitOverflowScrolling: "auto",
-       transform: "translateZ(0)", // Force GPU layer
-       backfaceVisibility: "hidden",
-      // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
-    });
+    if (game.settings.get(NS, "visualNovelMode")) {
+      Object.assign(rail.style, {
+        position: "absolute",
+        left: "0",
+        right: "0",
+        top: "0",
+        bottom: "0",
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "end",
+        justifyContent: "center",        // центрируем ряд; отступы делаем через margin
+        gap: "inherit",
+        pointerEvents: "none",
+        overflowX: "hidden",              // не скроллить — будем сжимать/перекрывать
+        overflowY: "hidden",
+        WebkitOverflowScrolling: "auto",
+        transform: "translateZ(0)", // Force GPU layer
+        backfaceVisibility: "hidden",
+        // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
+      });
+    } else {
+      Object.assign(rail.style, {
+        position: "absolute",
+        left: "0",
+        right: "0",
+        top: "0",
+        bottom: "0",
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",        // центрируем ряд; отступы делаем через margin
+        gap: "inherit",
+        pointerEvents: "none",
+        overflowX: "hidden",              // не скроллить — будем сжимать/перекрывать
+        overflowY: "hidden",
+        WebkitOverflowScrolling: "auto",
+        transform: "translateZ(0)", // Force GPU layer
+        backfaceVisibility: "hidden",
+        // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
+      });
+    }
     root.appendChild(rail);
 
     // Установить paddingLeft/paddingRight с учётом ширины #sidebar
@@ -433,22 +455,41 @@ Object.assign(root.style, {
     el.dataset.src = img;
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
-    Object.assign(el.style, {
-      position: "relative",
-      width: "auto",
-      height: "auto",
-      objectFit: "cover",
-      overflow: "visible", 
-      borderRadius: "10px",
-      filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
-      transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
-      pointerEvents: "none",
-      opacity: "0",
-      transform: "translate3d(0,12px,0)",
-      backfaceVisibility: "hidden",
-      transformStyle: "preserve-3d",
-      willChange: "transform, opacity"
-    });
+    if (game.settings.get(NS, "visualNovelMode")) {
+      Object.assign(el.style, {
+        position: "relative",
+        width: "auto",
+        height: "auto",
+        objectFit: "cover",
+        overflow: "visible", 
+        borderRadius: "10px",
+        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
+        transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
+        pointerEvents: "none",
+        opacity: "0",
+        transform: "translate3d(0,12px,0)",
+        backfaceVisibility: "hidden",
+        transformStyle: "preserve-3d",
+        willChange: "transform, opacity"
+      });
+    } else {
+      Object.assign(el.style, {
+        position: "relative",
+        width: "auto",
+        height: "auto",
+        objectFit: "contain",
+        borderRadius: "10px",
+        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
+        transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
+        pointerEvents: "none",
+        opacity: "0",
+        transform: "translate3d(0,12px,0)",
+        backfaceVisibility: "hidden",
+        transformStyle: "preserve-3d",
+        willChange: "transform, opacity"
+      });
+    }
+
 
     rail.appendChild(el);
     map.set(actorId, el);

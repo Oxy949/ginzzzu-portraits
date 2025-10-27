@@ -16,6 +16,17 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+    // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
+  reg("visualNovelMode", {
+    name: "Режим новеллы",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
+
   // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("resizeToFit", {
     name: "Портреты: уменьшать размер, чтобы влезли все портреты",
