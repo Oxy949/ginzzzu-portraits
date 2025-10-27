@@ -1,0 +1,37 @@
+{
+  "name": "Ginzzzu's Portraits & NPC Dock",
+  "id": "ginzzzu-portraits",
+  "title": "Ginzzzu's Portraits & NPC Dock",
+  "description": "Портреты актёров на экране и док NPC. Системо-независимый модуль.",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "12",
+    "verified": "13"
+  },
+  "authors": [
+    {
+      "name": "Ginzzzu"
+    },
+    {
+      "name": "Oxy949"
+    },
+    {
+      "name": "ChatGPT"
+    }
+  ],
+  "esmodules": [
+    "scripts/settings.js",
+    "scripts/threeO-portraits.js",
+    "scripts/threeO-npc-dock.js"
+  ],
+  "scripts": [],
+  "styles": [
+    "styles/threeO-portraits.css",
+    "styles/threeO-npc-dock.css"
+  ],
+  "packs": [],
+  "socket": false,
+  "url": "https://example.com/threeo-portraits-dock",
+  "license": "MIT",
+  "manifestPlusVersion": 2
+}

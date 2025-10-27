@@ -1,0 +1,533 @@
+// systems/ginzzzu-threeO/scripts/threeO-portraits.js
+(() => {
+  const MODULE_ID = "ginzzzu-portraits"; const NS = "ginzzzu-portraits";
+  const FLAG_PATH = `flags.${NS}.portraitShown`;
+  
+  // Preferable actor image property paths (configurable)
+  function _parsePathsCSV(v) {
+    return String(v ?? "").split(",").map(s => s.trim()).filter(Boolean);
+  }
+  function _getActorImage(actor) {
+    try {
+      const csv = game.settings.get(NS, "actorImagePaths"); // CSV of dot-paths
+      const paths = _parsePathsCSV(csv);
+      for (const path of paths) {
+        const v = foundry.utils.getProperty(actor, path);
+        if (typeof v === "string" && v) return v;
+      }
+    } catch {}
+    // Fallbacks
+    return actor.img || actor.prototypeToken?.texture?.src || actor?.texture?.src || "";
+  }
+const log = (...a) => console.log("%c[threeO-portraits]", "color:#7cf", ...a);
+
+  // ---- Adaptive tone (по темноте сцены) ----
+function _toneGetDarkness() {
+  // 0..1 — чем больше, тем темнее; поддержка V10..V12
+  try {
+    const scene = canvas?.scene;
+    if (!scene) return 0;
+    const d = (scene.environment?.darkness ?? scene.darkness ?? 0);
+    return Math.max(0, Math.min(1, Number(d) || 0));
+  } catch (e) { return 0; }
+}
+
+
+function _toneCompute(darkness, strength01) {
+  // strength01: 0..1
+  // Подбор “на глаз”: чуть приглушаем в темноте
+  const s = Math.min(1, Math.max(0, strength01));
+  const k  = darkness * s;
+
+  // коэффициенты (1 = без изменений)
+  const brightness = 1 - 0.35 * k;   // темнее
+  const contrast   = 1 + 0.18 * k;   // немного контраста
+  const saturate   = 1 - 0.20 * k;   // убрать “кислотность” в сумраке
+  // лёгкий сдвиг в более “холодные” тона к ночи
+  const hueDeg     = -10 * (k > 0.5 ? (k - 0.5) * 2 : 0); // от 0 до ~-10°
+
+  return { brightness, contrast, saturate, hueDeg };
+}
+
+function _toneApplyToRootVars() {
+  const enabled = game.settings.get(NS, "portraitToneEnabled");
+  const root = document.getElementById("threeo-portrait-layer");
+  if (!root) return;
+  if (!enabled) {
+    root.style.removeProperty("--tone-brightness");
+    root.style.removeProperty("--tone-contrast");
+    root.style.removeProperty("--tone-saturate");
+    root.style.removeProperty("--tone-hue");
+    return;
+  }
+  const strength = Math.max(0, Math.min(1, Number(game.settings.get(NS, "portraitToneStrength")) || 0));
+  const d = _toneGetDarkness();
+  const { brightness, contrast, saturate, hueDeg } = _toneCompute(d, strength);
+  root.style.setProperty("--tone-brightness", String(brightness));
+  root.style.setProperty("--tone-contrast",   String(contrast));
+  root.style.setProperty("--tone-saturate",   String(saturate));
+  root.style.setProperty("--tone-hue",        `${hueDeg}deg`);
+}
+
+  // ---- Геометрия «рамки» портретов и анимации ----
+const FRAME = {
+  heightVh: 80,     // фикс. высота рамки
+  widthVw: 50,      // желаемая ширина рамки
+  minWidthPx: 160,
+  maxWidthPx: 520,
+  targetBand: 0.98, // используем 98% ширины экрана (чтоб максимум места)
+  gapBase: 24,
+  gapMin: 8,
+
+  bottomPx: 4,      // ← отступ от нижней кромки ЭКРАНА (сделай 0–8px)
+  sidePadPx: 8      // ← небольшой боковой запас, чтобы точно не «липло» к краю
+};
+
+
+  const ANIM = {
+    get fadeMs() {
+      return game.settings.get(NS, "portraitFadeMs");
+    },
+    get moveMs() {
+      return game.settings.get(NS, "portraitMoveMs");
+    },
+    get easing() {
+      return game.settings.get(NS, "portraitEasing");
+    }
+  };
+
+  // Respect system "prefers-reduced-motion"
+  const REDUCE_MOTION = !!(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+  // Wrap ANIM getters so they respect reduced motion
+  const _ANIM = {
+    get fadeMs() { return REDUCE_MOTION ? 0 : ANIM.fadeMs; },
+    get moveMs() { return REDUCE_MOTION ? 0 : ANIM.moveMs; },
+    get easing()  { return ANIM.easing ?? "ease"; }
+  };
+
+  const isGM = () => !!game.user?.isGM;
+
+  // Для уважения системной настройки "уменьшение движения"
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    ANIM.fadeMs = 0;
+    ANIM.moveMs = 0;
+  }
+
+  // ---- DOM HUD внутри #interface ----
+  function getDomHud() {
+    let root = document.getElementById("threeo-portrait-layer");
+    if (root) return root;
+
+    const iface = document.getElementById("interface");
+    if (!iface) {
+      console.warn("[threeO-portraits] #interface not found; abort DOM HUD");
+      return null;
+    }
+
+    root = document.createElement("div");
+    root.id = "threeo-portrait-layer";
+
+    // слой на весь интерфейс; flex-ряд у низа по центру
+Object.assign(root.style, {
+  position: "absolute",
+  inset: "0",
+  zIndex: "1",
+  pointerEvents: "none",
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "flex-end",
+  justifyContent: "center",
+  gap: "24px",
+  paddingBottom: `${FRAME.bottomPx}px`,
+  paddingLeft: `${FRAME.sidePadPx}px`,
+  paddingRight: `${FRAME.sidePadPx}px`,
+  transform: "translateZ(0)", // Force GPU layer
+  backfaceVisibility: "hidden"
+});
+
+
+    const rail = document.createElement("div");
+    rail.id = "threeo-portrait-rail";
+    Object.assign(rail.style, {
+      position: "absolute",
+      left: "0",
+      right: "0",
+      bottom: "0",
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      gap: "inherit",
+      pointerEvents: "none",
+      transform: "translateZ(0)", // Force GPU layer
+      backfaceVisibility: "hidden"
+    });
+    root.appendChild(rail);
+
+    document.getElementById("interface").appendChild(root);
+    return root;
+  }
+
+  // Кэш DOM-элементов: actorId -> <img>
+  function domStore() {
+    if (!globalThis.__threeoDomPortraits) globalThis.__threeoDomPortraits = new Map();
+    return globalThis.__threeoDomPortraits;
+  }
+
+  // FIRST: текущие позиции всех портретов (для FLIP)
+  function collectFirstRects() {
+    const root = getDomHud();
+    if (!root) return new Map();
+    const rail = root.querySelector("#threeo-portrait-rail") || root;
+    const imgs = Array.from(rail.querySelectorAll("img.threeo-portrait"));
+    const m = new Map();
+    imgs.forEach(el => m.set(el, el.getBoundingClientRect()));
+    return m;
+  }
+
+  // Применить «жёсткую» геометрию рамки и общий зазор
+  function applyGeometry(imgs, vw) {
+  // желаемая фиксированная ширина рамки (clamp по min/max)
+  const wantWpx = Math.min(
+    FRAME.maxWidthPx,
+    Math.max(FRAME.minWidthPx, Math.floor((FRAME.widthVw / 100) * vw))
+  );
+
+  // доступная ширина полосы (учитываем целевую долю и боковые паддинги)
+  const bandW = Math.floor(vw * FRAME.targetBand);
+
+  // 1) сначала подбираем зазор
+  let gapPx = FRAME.gapBase;
+  if ((imgs.length * wantWpx) + (imgs.length - 1) * gapPx > bandW) {
+    const possible = Math.floor((bandW - imgs.length * wantWpx) / Math.max(1, (imgs.length - 1)));
+    gapPx = Math.max(FRAME.gapMin, isFinite(possible) ? possible : FRAME.gapMin);
+  }
+
+  // 2) если упёрлись в минимальный зазор и всё ещё не влезаем — равномерно уменьшаем ширину рамки
+  let widthPx = wantWpx;
+  const totalWidthAtMinGap = (imgs.length * wantWpx) + (imgs.length - 1) * gapPx;
+  if (totalWidthAtMinGap > bandW) {
+    const maxPerItem = Math.floor((bandW - (imgs.length - 1) * gapPx) / imgs.length);
+    widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, maxPerItem));
+  }
+
+  // применяем геометрию
+  const root = getDomHud();
+  const rail = root.querySelector("#threeo-portrait-rail") || root;
+  root.style.gap = `${gapPx}px`;
+  rail.style.gap = `${gapPx}px`;
+
+  imgs.forEach(el => {
+    el.style.width     = `${widthPx}px`;            // одинаковая ширина рамки
+    el.style.maxWidth  = `${widthPx}px`;
+    el.style.height    = `${FRAME.heightVh}vh`;     // одинаковая высота рамки
+    el.style.maxHeight = `${FRAME.heightVh}vh`;
+  });
+}
+
+
+  // FLIP-анимация сдвига через Web Animations API
+  function animateFlip(imgs, firstRects, lastRects) {
+    // Pre-calculate all transforms before starting animations
+    const animations = imgs.map(el => {
+      const first = firstRects.get(el);
+      const last = lastRects.get(el);
+      if (!first || !last) return null;
+
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      
+      // Get base transform
+      const base = getComputedStyle(el).transform;
+      const baseTransform = (base && base !== "none") ? base : "none";
+      
+      // Prepare transforms
+      const fromTransform = baseTransform === "none"
+        ? `translate3d(${dx}px, ${dy}px, 0)`
+        : `${baseTransform} translate3d(${dx}px, ${dy}px, 0)`;
+      const toTransform = baseTransform === "none" 
+        ? "translate3d(0,0,0)" 
+        : baseTransform;
+
+      return { el, fromTransform, toTransform };
+    }).filter(Boolean);
+
+    // Add will-change before animations
+    animations.forEach(({el}) => {
+      el.style.willChange = "transform";
+    });
+
+    // Start all animations
+    const promises = animations.map(({el, fromTransform, toTransform}) => {
+      const anim = el.animate(
+        [
+          { transform: fromTransform },
+          { transform: toTransform }
+        ],
+        {
+          duration: _ANIM.moveMs,
+          easing: _ANIM.easing,
+          fill: "both",
+          composite: "replace"
+        }
+      );
+      return anim.finished;
+    });
+
+    // Remove will-change after all animations complete
+    Promise.all(promises).then(() => {
+      animations.forEach(({el}) => {
+        el.style.willChange = "auto";
+      });
+    });
+  }
+
+  // Перераскладка ряда с FLIP
+  function relayoutDomHud(firstRects /* Map<Element, DOMRect> | undefined */) {
+    const root = getDomHud();
+    if (!root) return;
+    const rail = root.querySelector("#threeo-portrait-rail") || root;
+
+    const imgs = Array.from(rail.querySelectorAll("img.threeo-portrait"));
+    const n = imgs.length;
+    if (!n) return;
+
+    if (!firstRects) firstRects = collectFirstRects();
+
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+
+    // 1) применяем геометрию (это изменит layout)
+    applyGeometry(imgs, vw);
+
+    // 2) снимаем LAST
+    const lastRects = new Map();
+    imgs.forEach(el => lastRects.set(el, el.getBoundingClientRect()));
+
+    // 3) анимируем сдвиг
+    animateFlip(imgs, firstRects, lastRects);
+  }
+
+  // Показ одного портрета (создание/обновление DOM + FLIP других)
+  async function openLocalPortrait({ actorId, img, name }) {
+    if (!actorId || !img) return;
+
+    const root = getDomHud();
+    if (!root) return;
+    const rail = root.querySelector("#threeo-portrait-rail") || root;
+
+    const map = domStore();
+    const existing = map.get(actorId);
+
+    // Уже есть с тем же src — показать и переложить
+    if (existing && existing.dataset.src === img) {
+      existing.style.opacity = "1";
+      existing.style.transform = "translateY(0)";
+      relayoutDomHud();
+      return;
+    }
+
+    // FIRST до изменения DOM (для плавного сдвига остальных)
+    const firstRects = collectFirstRects();
+
+    if (existing) { try { existing.remove(); } catch {} ; map.delete(actorId); }
+
+    // Simple image preloader with timeout
+    function _preloadImage(src, timeoutMs = 6000) {
+      return new Promise((resolve, reject) => {
+        if (!src) return reject(new Error("No src"));
+        const img = new Image();
+        let done = false;
+        const onDone = (err) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          img.onload = img.onerror = null;
+          if (err) reject(err); else resolve(src);
+        };
+        img.onload = () => onDone();
+        img.onerror = (e) => onDone(new Error("Image load error"));
+        // try set crossOrigin to allow CORS'd images where possible
+        try { img.crossOrigin = "anonymous"; } catch {}
+        img.src = src;
+        const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
+      });
+    }
+
+    // Preload image before inserting into DOM to avoid flashing broken images
+    let finalSrc = img;
+    try {
+      await _preloadImage(img);
+    } catch (e) {
+      console.warn("[threeO-portraits] image preload failed for", img, " — using placeholder");
+      finalSrc = "icons/svg/mystery-man.svg";
+      // attempt to preload placeholder (best-effort)
+      try { await _preloadImage(finalSrc, 2000); } catch {}
+    }
+
+    const el = document.createElement("img");
+    el.className = "threeo-portrait";
+    el.alt = name || "Portrait";
+    el.src = finalSrc;
+    el.dataset.actorId = actorId;
+    el.dataset.src = img;
+
+    // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
+    Object.assign(el.style, {
+      position: "relative",
+      width: "auto",
+      height: "auto",
+      objectFit: "contain", 
+      borderRadius: "10px",
+      filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
+      transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
+      pointerEvents: "none",
+      opacity: "0",
+      transform: "translate3d(0,12px,0)",
+      backfaceVisibility: "hidden",
+      transformStyle: "preserve-3d",
+      willChange: "transform, opacity"
+    });
+
+    rail.appendChild(el);
+    map.set(actorId, el);
+
+    // Перераскладка с учётом нового (FLIP для остальных)
+    relayoutDomHud(firstRects);
+
+    // Собственное плавное появление
+    requestAnimationFrame(() => {
+      el.style.opacity = "1";
+      el.style.transform = "translateY(0)";
+    });
+  }
+
+  // Скрытие одного портрета (удаление DOM + FLIP остальных)
+  function closeLocalPortrait(actorId) {
+    const map = domStore();
+    const el = map.get(actorId);
+    if (!el) return;
+
+    // FIRST до изменения DOM (для плавного сдвига остальных)
+    const firstRects = collectFirstRects();
+
+    // Анимация удаляемого (CSS-transition)
+    el.style.transform = "translateY(12px)";
+    el.style.opacity = "0";
+
+    const timeout = Math.max(_ANIM.fadeMs, _ANIM.moveMs) + 80; // чуть больше — надёжнее
+    setTimeout(() => {
+      try { el.remove(); } catch {}
+      map.delete(actorId);
+
+      // Переложим оставшихся по снятому FIRST (FLIP через WAAPI)
+      relayoutDomHud(firstRects);
+    }, timeout);
+  }
+
+  // ---- Реакция всех клиентов на смену флага актёра ----
+  Hooks.on("updateActor", (actor, changes) => {
+    if (!foundry.utils.hasProperty(changes, FLAG_PATH)) return;
+    let shown = foundry.utils.getProperty(changes, FLAG_PATH);
+    if (typeof shown === "undefined") shown = foundry.utils.getProperty(actor, FLAG_PATH);
+    const actorId = actor.id;
+    const img = _getActorImage(actor);
+    const name = actor.name || "Portrait";
+
+    if (shown) openLocalPortrait({ actorId, img, name });
+    else       closeLocalPortrait(actorId);
+  });
+
+  Hooks.once("ready", () => {
+    log(`Ready. DOM portraits HUD (WAAPI FLIP). NS=${NS}`);
+    try {
+      // Поднимем уже отмеченные портреты (если есть)
+      for (const actor of game.actors ?? []) {
+        let shown = foundry.utils.getProperty(actor, FLAG_PATH);
+        if (typeof shown !== "undefined" && shown) {
+          const img = _getActorImage(actor);
+          const name = actor.name || "Portrait";
+          openLocalPortrait({ actorId: actor.id, img, name });
+        }
+      }
+      // Apply tone after initial population
+      _toneApplyToRootVars();
+      // первая раскладка
+      setTimeout(() => relayoutDomHud(), 0);
+    } catch (e) { console.error(e); }
+  });
+
+  // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
+  Hooks.on("canvasReady", () => _toneApplyToRootVars());
+  Hooks.on("updateScene", (scene, diff) => {
+    if (scene.id !== canvas?.scene?.id) return;
+    if ("darkness" in diff || "environment" in diff || "flags" in diff) _toneApplyToRootVars();
+  });
+  Hooks.on("lightingRefresh", () => _toneApplyToRootVars());
+
+  // Перераскладка при изменении размера окна
+  window.addEventListener("resize", () => relayoutDomHud());
+  Hooks.on("canvasReady", () => relayoutDomHud());
+
+  // ---- Тоггл из чарника ----
+  async function togglePortrait(actor) {
+    if (!isGM()) return;
+    const shown = !!foundry.utils.getProperty(actor, FLAG_PATH);
+    await actor.update({ [FLAG_PATH]: !shown });
+  }
+
+  function closeAllLocalPortraits() {
+    const ids = Array.from(domStore().keys());
+    ids.forEach(id => closeLocalPortrait(id));
+  }
+
+  Hooks.on("renderThreeOGMActorSheet", (app, html) => {
+    html.find(".toggle-portrait-btn")
+      .off("click.threeo")
+      .on("click.threeo", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
+
+    if (!html.find(".toggle-portrait-btn").length) {
+      const tokenBtn = html.find(".change-token-btn");
+      if (tokenBtn.length) {
+        const $btn = $(`<button type="button" class="toggle-portrait-btn" title="Показать/скрыть портрет">Портрет</button>`);
+        $btn.insertAfter(tokenBtn);
+        $btn.on("click", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
+      }
+    }
+  });
+
+  // Экспорт
+  globalThis.ThreeOPortraits = {
+  togglePortrait,
+  closeAllLocalPortraits,
+  };
+  
+// === System-agnostic UI controls (directory + token HUD) ===
+Hooks.on("getActorDirectoryEntryContext", (html, options) => {
+  options.push({
+    name: "Портрет: показать/скрыть",
+    icon: '<i class="fas fa-image"></i>',
+    condition: () => game.user?.isGM,
+    callback: (li) => {
+      try {
+        const actorId = li?.data("documentId") || li?.data("entityId");
+        const actor = game.actors?.get(actorId);
+        if (actor && globalThis.ThreeOPortraits?.togglePortrait) globalThis.ThreeOPortraits.togglePortrait(actor);
+      } catch (e) { console.error(e); }
+    }
+  });
+});
+
+Hooks.on("renderTokenHUD", (app, html) => {
+  try {
+    if (!game.user?.isGM) return;
+    const btn = $(`<div class="control-icon threeo-portrait" title="Портрет"><i class="fas fa-image"></i></div>`);
+    btn.on("click", async () => {
+      const actor = app?.object?.actor ?? app?.token?.actor ?? app?.document?.actor;
+      if (actor && globalThis.ThreeOPortraits?.togglePortrait) await globalThis.ThreeOPortraits.togglePortrait(actor);
+    });
+    // Prefer right column if exists, else append to left
+    const right = html.find(".col.right");
+    if (right.length) right.append(btn); else html.find(".col.left").append(btn);
+  } catch (e) { console.error(e); }
+});
+})();
