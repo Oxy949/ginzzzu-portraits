@@ -1,24 +1,34 @@
 {
-  "name": "Ginzzzu's Portraits & NPC Dock",
   "id": "ginzzzu-portraits",
   "title": "Ginzzzu's Portraits & NPC Dock",
-  "description": "Портреты актёров на экране и док NPC. Системо-независимый модуль.",
-  "version": "1.0.0",
+  "description": "System-agnostic actor's portraits and NPC dock.",
+  "version": "#{VERSION}#",
+  "library": "false",
+  "manifestPlusVersion": "1.2.0",
   "compatibility": {
-    "minimum": "12",
-    "verified": "13"
+    "minimum": 13,
+    "verified": 13
   },
-  "authors": [
+  "authors": [ 
     {
-      "name": "Ginzzzu"
+      "name": "Ginzzzu",
+      "email": "stepangrakov@gmail.com",
+      "url": "",
+      "discord": "ginzzzu",
+      "flags": {}
     },
     {
-      "name": "Oxy949"
-    },
-    {
-      "name": "ChatGPT"
+      "name": "Oxy949",
+      "email": "oxy949@gmail.com",
+      "url": "https://boosty.to/oxy949",
+      "discord": "oxy949",
+      "flags": {}
     }
   ],
+  "relationships": {
+    "systems": [],
+    "requires": []
+  },
   "esmodules": [
     "scripts/entry.js"
   ],
@@ -27,10 +37,6 @@
     "styles/threeO-portraits.css",
     "styles/threeO-npc-dock.css"
   ],
-  "packs": [],
-  "socket": false,
-  "url": "https://example.com/threeo-portraits-dock",
-  "license": "MIT",
   "languages": [
     {
       "lang": "en",
@@ -41,6 +47,17 @@
       "lang": "ru",
       "name": "Русский",
       "path": "lang/ru.json"
+    }
+  ],
+  "url": "#{URL}#",
+  "manifest": "#{MANIFEST}#",
+  "download": "#{DOWNLOAD}#",
+  "license": "MIT",
+  "readme": "README.md",
+  "media": [
+    {
+      "type": "icon",
+      "url": "https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4"
     }
   ]
 }
