@@ -1,9 +1,9 @@
-// Settings for ginzzzu-portraits
-Hooks.once("init", () => {
-  const MOD = "ginzzzu-portraits";
+import { MODULE_ID } from "./core/constants.js";
 
+// Settings for ginzzzu-portraits
+Hooks.once("init", () => { 
   // Helper to register
-  const reg = (key, data) => game.settings.register(MOD, key, data);
+  const reg = (key, data) => game.settings.register(MODULE_ID, key, data);
 
   reg("gmForcePortraitHeight", {
     name: "Перезаписывать высоту портретов у игроков",

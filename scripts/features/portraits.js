@@ -1,4 +1,4 @@
-import { MODULE_ID, NS, FLAG_PORTRAIT_SHOWN as FLAG_PATH } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_SHOWN as FLAG_PATH } from "../core/constants.js";
 
 (()=>{
   // Preferable actor image property paths (configurable)
@@ -7,7 +7,7 @@ import { MODULE_ID, NS, FLAG_PORTRAIT_SHOWN as FLAG_PATH } from "../core/constan
   }
   function _getActorImage(actor) {
     try {
-      const csv = game.settings.get(NS, "actorImagePaths"); // CSV of dot-paths
+      const csv = game.settings.get(MODULE_ID, "actorImagePaths"); // CSV of dot-paths
       const paths = _parsePathsCSV(csv);
       for (const path of paths) {
         const v = foundry.utils.getProperty(actor, path);
@@ -48,7 +48,7 @@ function _toneCompute(darkness, strength01) {
 }
 
 function _toneApplyToRootVars() {
-  const enabled = game.settings.get(NS, "portraitToneEnabled");
+  const enabled = game.settings.get(MODULE_ID, "portraitToneEnabled");
   const root = document.getElementById("threeo-portrait-layer");
   if (!root) return;
   if (!enabled) {
@@ -58,7 +58,7 @@ function _toneApplyToRootVars() {
     root.style.removeProperty("--tone-hue");
     return;
   }
-  const strength = Math.max(0, Math.min(1, Number(game.settings.get(NS, "portraitToneStrength")) || 0));
+  const strength = Math.max(0, Math.min(1, Number(game.settings.get(MODULE_ID, "portraitToneStrength")) || 0));
   const d = _toneGetDarkness();
   const { brightness, contrast, saturate, hueDeg } = _toneCompute(d, strength);
   root.style.setProperty("--tone-brightness", String(brightness));
@@ -84,13 +84,13 @@ const FRAME = {
 
   const ANIM = {
     get fadeMs() {
-      return game.settings.get(NS, "portraitFadeMs");
+      return game.settings.get(MODULE_ID, "portraitFadeMs");
     },
     get moveMs() {
-      return game.settings.get(NS, "portraitMoveMs");
+      return game.settings.get(MODULE_ID, "portraitMoveMs");
     },
     get easing() {
-      return game.settings.get(NS, "portraitEasing");
+      return game.settings.get(MODULE_ID, "portraitEasing");
     }
   };
 
@@ -145,7 +145,7 @@ Object.assign(root.style, {
 
     const rail = document.createElement("div");
     rail.id = "threeo-portrait-rail";
-    if (game.settings.get(NS, "visualNovelMode")) {
+    if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       Object.assign(rail.style, {
         position: "absolute",
         left: "0",
@@ -197,7 +197,7 @@ Object.assign(root.style, {
 
   // Получить ширину правой панели (если есть)
   function getSidebarWidth() {
-    if (!game.settings.get(NS, "adjustForSidebar"))
+    if (!game.settings.get(MODULE_ID, "adjustForSidebar"))
       return 0;
     try {
       const sb = document.getElementById("sidebar");
@@ -257,7 +257,7 @@ Object.assign(root.style, {
       gapPx = 0;
     } else {
       // если разрешено менять width, заранее ограничим его, чтобы не было слишком явного переползания
-      if (game.settings.get(NS, "resizeToFit")) {
+      if (game.settings.get(MODULE_ID, "resizeToFit")) {
         const possibleAtMinGap = Math.floor((bandW - (n - 1) * FRAME.gapMin) / n);
         widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, possibleAtMinGap));
       }
@@ -295,10 +295,10 @@ Object.assign(root.style, {
     root.style.gap = `${Math.max(0, gapPx)}px`;
     rail.style.gap = `${Math.max(0, gapPx)}px`;
 
-    let porHeight = game.settings.get(NS, "portraitHeight");
+    let porHeight = game.settings.get(MODULE_ID, "portraitHeight");
 
-    if (game.settings.get(NS, "gmForcePortraitHeight")) {
-      porHeight = game.settings.get(NS, "gmPortraitHeight");
+    if (game.settings.get(MODULE_ID, "gmForcePortraitHeight")) {
+      porHeight = game.settings.get(MODULE_ID, "gmPortraitHeight");
     }
 
     imgs.forEach((el, i) => {
@@ -459,7 +459,7 @@ Object.assign(root.style, {
     el.dataset.src = img;
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
-    if (game.settings.get(NS, "visualNovelMode")) {
+    if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       Object.assign(el.style, {
         position: "relative",
         width: "auto",
@@ -545,7 +545,7 @@ Object.assign(root.style, {
   });
 
   Hooks.once("ready", () => {
-    log(`Ready. DOM portraits HUD (WAAPI FLIP). NS=${NS}`);
+    log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
     try {
       // Поднимем уже отмеченные портреты (если есть)
       for (const actor of game.actors ?? []) {

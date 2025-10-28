@@ -1,4 +1,4 @@
-import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../core/constants.js";
+import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../core/constants.js";
 
 (()=>{
   // ── Actor type utilities (configurable) ─────────────────────────────────────
@@ -6,10 +6,10 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
     return new Set(String(v ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
   }
   function getNPCTypes() {
-    try { return parseCSVTypes(game.settings.get(NS, "npcActorTypes")); } catch { return parseCSVTypes("npc, adversary, creature, monster, minion"); }
+    try { return parseCSVTypes(game.settings.get(MODULE_ID, "npcActorTypes")); } catch { return parseCSVTypes("npc, adversary, creature, monster, minion"); }
   }
   function getPCTypes() {
-    try { return parseCSVTypes(game.settings.get(NS, "pcActorTypes")); } catch { return parseCSVTypes("character, pc, hero, player"); }
+    try { return parseCSVTypes(game.settings.get(MODULE_ID, "pcActorTypes")); } catch { return parseCSVTypes("character, pc, hero, player"); }
   }
   function isNPC(a) {
     const t = String(a?.type ?? "").toLowerCase();
@@ -25,15 +25,13 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
 
   // ── SETTINGS (client) ────────────────────────────────────────────────────────
   Hooks.once("init", () => {
-    game.settings.register(NS, "npcDockSort",    { scope: "client", config: false, type: String, default: "name-asc" });
-    game.settings.register(NS, "npcDockFolder",  { scope: "client", config: false, type: String, default: "all" });
-    game.settings.register(NS, "npcDockSearch",  { scope: "client", config: false, type: String, default: "" });
+    game.settings.register(MODULE_ID, "npcDockSort",    { scope: "client", config: false, type: String, default: "name-asc" });
+    game.settings.register(MODULE_ID, "npcDockFolder",  { scope: "client", config: false, type: String, default: "all" });
+    game.settings.register(MODULE_ID, "npcDockSearch",  { scope: "client", config: false, type: String, default: "" });
   });
 
   Hooks.on("getActorContextOptions", async (app, menuItems) => {
-    if (!game.user.isGM && game.settings.get(CONSTANTS.MODULE_ID, "gmOnly")) {
-      return;
-    }
+    return;
     // const getActorData = /* @__PURE__ */ __name((target) => {
     //   return game.actors.get($(target).data("entry-id"));
     // }, "getActorData");
@@ -55,12 +53,12 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
     // );
   });
 
-  const getSortMode   = () => { try { return game.settings.get(NS, "npcDockSort")   || "name-asc"; } catch { return "name-asc"; } };
-  const setSortMode   = (v) => { try { game.settings.set(NS, "npcDockSort",   v); } catch {} };
-  const getFolderSel  = () => { try { return game.settings.get(NS, "npcDockFolder") || "all"; } catch { return "all"; } };
-  const setFolderSel  = (v) => { try { game.settings.set(NS, "npcDockFolder", v); } catch {} };
-  const getSearchText = () => { try { return game.settings.get(NS, "npcDockSearch") || ""; } catch { return ""; } };
-  const setSearchText = (v) => { try { game.settings.set(NS, "npcDockSearch", v); } catch {} };
+  const getSortMode   = () => { try { return game.settings.get(MODULE_ID, "npcDockSort")   || "name-asc"; } catch { return "name-asc"; } };
+  const setSortMode   = (v) => { try { game.settings.set(MODULE_ID, "npcDockSort",   v); } catch {} };
+  const getFolderSel  = () => { try { return game.settings.get(MODULE_ID, "npcDockFolder") || "all"; } catch { return "all"; } };
+  const setFolderSel  = (v) => { try { game.settings.set(MODULE_ID, "npcDockFolder", v); } catch {} };
+  const getSearchText = () => { try { return game.settings.get(MODULE_ID, "npcDockSearch") || ""; } catch { return ""; } };
+  const setSearchText = (v) => { try { game.settings.set(MODULE_ID, "npcDockSearch", v); } catch {} };
 
   // ── COLORS (folder-based) ────────────────────────────────────────────────────
   function hexToRgb(hex) {
@@ -264,8 +262,8 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
     // порядок: сначала избранное, потом по имени
     pcs.sort((a, b) => {
       // сначала по избранному
-      const aFav = !!foundry.utils.getProperty(a, `flags.${NS}.pcFavorite`);
-      const bFav = !!foundry.utils.getProperty(b, `flags.${NS}.pcFavorite`);
+      const aFav = !!foundry.utils.getProperty(a, `flags.${MODULE_ID}.pcFavorite`);
+      const bFav = !!foundry.utils.getProperty(b, `flags.${MODULE_ID}.pcFavorite`);
       if (aFav !== bFav) return bFav ? 1 : -1;
       // затем по имени
       return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
@@ -276,7 +274,7 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
       btn.dataset.actorId = a.id;
       btn.title = makeTooltip(a);
       // PC favorite flag (middle click)
-      const FLAG_FAV_PC = `flags.${NS}.pcFavorite`;
+      const FLAG_FAV_PC = `flags.${MODULE_ID}.pcFavorite`;
 
       const img = document.createElement("img");
       img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
@@ -311,8 +309,8 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
         if (ev.button !== 1) return;
         ev.preventDefault();
         ev.stopPropagation();
-        const isFav = !!foundry.utils.getProperty(a, `flags.${NS}.pcFavorite`);
-        try { await a.update({ [`flags.${NS}.pcFavorite`]: !isFav }); scheduleRebuild(0); } catch (e) { console.error(e); }
+        const isFav = !!foundry.utils.getProperty(a, `flags.${MODULE_ID}.pcFavorite`);
+        try { await a.update({ [`flags.${MODULE_ID}.pcFavorite`]: !isFav }); scheduleRebuild(0); } catch (e) { console.error(e); }
       });
 
       container.appendChild(btn);
@@ -469,7 +467,7 @@ import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "
       if (rel.some(k => k in flat)) scheduleRebuild();
       // rebuild if favorite flags changed (npc or pc)
       if (foundry.utils.hasProperty(diff, FLAG_NPC_FAVORITE)) scheduleRebuild();
-      if (foundry.utils.hasProperty(diff, `flags.${NS}.pcFavorite`)) scheduleRebuild();
+      if (foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.pcFavorite`)) scheduleRebuild();
     });
 
     // папки
