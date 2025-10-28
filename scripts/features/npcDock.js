@@ -1,9 +1,6 @@
-// systems/ginzzzu-threeO/scripts/threeO-npc-dock.js
-(() => {
-  const MODULE_ID = "ginzzzu-portraits"; const NS = "ginzzzu-portraits";
-  const FLAG_KEY = `flags.${NS}.portraitShown`;
-  const FLAG_FAV = `flags.${NS}.npcFavorite`;
-  const DOCK_ID = "threeo-npc-dock";
+import { MODULE_ID, NS, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../core/constants.js";
+
+(()=>{
   // ── Actor type utilities (configurable) ─────────────────────────────────────
   function parseCSVTypes(v) {
     return new Set(String(v ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
@@ -117,121 +114,7 @@
     if (root) return root;
 
     // CSS
-    if (!document.getElementById(`${DOCK_ID}-style`)) {
-      const css = document.createElement("style");
-      css.id = `${DOCK_ID}-style`;
-      css.textContent = `
-#${DOCK_ID} {
-  position: fixed;
-  left: 50%; transform: translateX(-50%);
-  bottom: 80px;                 /* по ТЗ */
-  width: 40vw;                  /* по ТЗ */
-  z-index: 40;
-  pointer-events: auto;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(12, 8, 16, 0.35);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-  backdrop-filter: blur(2px);
-}
-#${DOCK_ID} .toolbar {
-  display:flex; align-items:center; gap:10px; justify-content:space-between;
-  margin-bottom:6px; opacity:.95; font-size:12px; color:#ddd;
-}
-#${DOCK_ID} .toolbar .left { display:flex; align-items:center; gap:8px; flex:1 1 auto; min-width:0; }
-#${DOCK_ID} .toolbar input[type="text"] {
-  flex:1 1 220px; min-width:140px; max-width:32vw;
-  background: rgba(0,0,0,0.35);
-  color:#eee; border:1px solid rgba(255,255,255,0.15);
-  border-radius:6px; padding:4px 8px; font-size:12px;
-}
-#${DOCK_ID} .toolbar .right { display:flex; align-items:center; gap:8px; flex:0 0 auto; white-space:nowrap; flex-wrap:nowrap; }
-#${DOCK_ID} .toolbar label { opacity:.8; white-space:nowrap; }
-#${DOCK_ID} .toolbar select {
-  display:inline-block; width:auto; max-width:18vw;
-  background: rgba(0,0,0,0.35);
-  color:#eee; border:1px solid rgba(255,255,255,0.15);
-  border-radius:6px; padding:2px 6px; font-size:12px;
-}
-#${DOCK_ID} .toolbar button.clear-all {
-  display:inline-flex; align-items:center; justify-content:center;
-  background:#742f2f; color:#fff; border:none; border-radius:6px;
-  padding:3px 8px; cursor:pointer; flex:0 0 auto;
-}
-
-/* Контент: слева players (до 25%), справа NPC-линия */
-#${DOCK_ID} .content { display:flex; align-items:flex-start; gap:10px; }
-
-/* Левая колонка: грид игроков, фикс. ячейки 50x50, без скролла */
-#${DOCK_ID} .players {
-  flex: 0 0 180px;                   /* фиксированная ширина, не сжимается */
-  width: 160px;                      /* ~3 колонки по 50px + зазоры */
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* ровно 3 столбца */
-  grid-auto-rows: 1fr;
-  gap: 6px;
-  align-content: start;
-  justify-items: stretch;
-  max-height: calc(50px * 2 + 6px);  /* 2 ряда по 50px + зазор */
-  overflow-y: auto;                  /* вертикальный скролл */
-  scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
-}
-
-/* Правая колонка: NPC-лента как раньше, со скроллом колёсиком */
-#${DOCK_ID} .npcs { flex:1 1 auto; overflow:hidden; }
-#${DOCK_ID} .npcs .rail { display:flex; flex-direction:row; align-items:center; gap:8px; overflow:hidden; }
-
-/* Карточки базовые */
-#${DOCK_ID} .item {
-  flex: 0 0 auto;
-  width: 100px; height: 100px;
-  border-radius: 10px; overflow: hidden; position: relative; cursor: pointer;
-  border: 2px solid var(--folder-color, rgba(255,255,255,0.12));
-  background: var(--folder-bg, #281d3a);
-  box-shadow: var(--folder-shadow, 0 6px 16px rgba(0,0,0,0.45));
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-}
-#${DOCK_ID} .item:hover { transform: translateY(-2px); box-shadow: 0 10px 10px rgba(0,0,0,0.55); transform: scale(0.98);}
-#${DOCK_ID} .item img { width:100%; height:100%; object-fit:cover; display:block; user-select:none; -webkit-user-drag:none; }
-
-/* Уменьшенные карточки для игроков */
-#${DOCK_ID} .players .item { width:50px; height:50px; border-radius:8px; }
-
-/* Активная подсветка (общая) */
-#${DOCK_ID} .item.is-on {
-  border-color: #cfa3ff;
-  box-shadow:
-    0 0 0 2px rgba(207,163,255,0.65),
-    0 0 18px rgba(155,108,255,0.45),
-    0 10px 22px rgba(0,0,0,0.55);
-  transform: translateY(-1px);
-}
-#${DOCK_ID} .item.is-on::after {
-  content: ""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-  box-shadow: 0 0 12px 2px rgba(200,150,255,0.6);
-  animation: threeoPulse 2.4s ease-in-out infinite alternate;
-}
-@keyframes threeoPulse { from { opacity:.6; } to { opacity:.05; }
-
-/* Избранные */
-#${DOCK_ID} .item.is-fav { border-color: #ffd76a; }
-#${DOCK_ID} .item .fav-star{
-  position:absolute; left:4px; top:4px;
-  width:18px; height:18px; border-radius:50%;
-  background: rgba(0,0,0,.55);
-  border:1px solid rgba(255,255,255,.35);
-  display:grid; place-items:center;
-  font-size:12px; color:#ffd76a;
-  text-shadow:0 1px 1px rgba(0,0,0,.5);
-  pointer-events:none;
-}
-
-#${DOCK_ID} .empty { color:#ccc; opacity:.7; font-size:12px; text-align:center; padding:8px 0; }
-`;
-      document.head.appendChild(css);
-    }
+    // CSS moved to /styles/threeO-npc-dock.css
 
     // Корень
     root = document.createElement("div");
@@ -344,8 +227,8 @@
     const btn = ev.currentTarget;
     const actor = game.actors.get(btn.dataset.actorId);
     if (!actor) return;
-    const isShown = !!foundry.utils.getProperty(actor, FLAG_KEY);
-    try { await actor.update({ [FLAG_KEY]: !isShown }); }
+    const isShown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
+    try { await actor.update({ [FLAG_PORTRAIT_SHOWN]: !isShown }); }
     catch (e) { console.error("[threeO-dock] toggle error:", e); }
   }
   // ПКМ по карточке: открыть лист
@@ -365,9 +248,9 @@
     const btn = ev.currentTarget;
     const actor = game.actors.get(btn.dataset.actorId);
     if (!actor) return;
-    const isFav = !!foundry.utils.getProperty(actor, FLAG_FAV);
+    const isFav = !!foundry.utils.getProperty(actor, FLAG_NPC_FAVORITE);
     try {
-      await actor.update({ [FLAG_FAV]: !isFav });
+      await actor.update({ [FLAG_NPC_FAVORITE]: !isFav });
       scheduleRebuild(0);
     } catch (e) {
       console.error("[threeO-dock] fav toggle error:", e);
@@ -400,7 +283,7 @@
       img.alt = a.name || "Player";
       btn.appendChild(img);
 
-      const shown = !!foundry.utils.getProperty(a, FLAG_KEY);
+      const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
       if (shown) btn.classList.add("is-on");
 
       // PC favorite visual
@@ -471,8 +354,8 @@
     const mode = getSortMode();
     npcs.sort((a, b) => {
       // сначала по избранному
-      const aFav = !!foundry.utils.getProperty(a, FLAG_FAV);
-      const bFav = !!foundry.utils.getProperty(b, FLAG_FAV);
+      const aFav = !!foundry.utils.getProperty(a, FLAG_NPC_FAVORITE);
+      const bFav = !!foundry.utils.getProperty(b, FLAG_NPC_FAVORITE);
       if (aFav !== bFav) return bFav ? 1 : -1;
 
       // затем по выбранному режиму
@@ -495,11 +378,11 @@
       img.alt = a.name || "NPC";
       btn.appendChild(img);
 
-      const shown = !!foundry.utils.getProperty(a, FLAG_KEY);
+      const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
       if (shown) btn.classList.add("is-on");
 
       // NPC favorite visual
-      if (foundry.utils.getProperty(a, FLAG_FAV)) {
+      if (foundry.utils.getProperty(a, FLAG_NPC_FAVORITE)) {
         btn.classList.add("is-fav");
         const star = document.createElement("div");
         star.className = "fav-star";
@@ -546,7 +429,7 @@
   // Подсветка карточки по изменению флага (и для NPC, и для PLAYER)
   function reflectActorFlag(actor) {
     if (!actor) return;
-    const shown = !!foundry.utils.getProperty(actor, FLAG_KEY);
+    const shown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
     for (const el of document.querySelectorAll(`#${DOCK_ID} .item[data-actor-id="${actor.id}"]`)) {
       el.classList.toggle("is-on", shown);
       el.title = makeTooltip(actor);
@@ -557,8 +440,8 @@
   async function hideAllPortraitsAllActors() {
     const actors = (game.actors?.contents ?? []).filter(a => a && (isNPC(a) || isPC(a)));
     for (const a of actors) {
-      if (foundry.utils.getProperty(a, FLAG_KEY)) {
-        try { await a.update({ [FLAG_KEY]: false }); } catch (e) { console.error(e); }
+      if (foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN)) {
+        try { await a.update({ [FLAG_PORTRAIT_SHOWN]: false }); } catch (e) { console.error(e); }
       }
     }
     if (globalThis.ThreeOPortraits?.closeAllLocalPortraits) {
@@ -580,12 +463,12 @@
     Hooks.on("createActor", (a) => { if (a?.type === "npc" || a?.type === "player") scheduleRebuild(); });
     Hooks.on("deleteActor", (a) => { if (a?.type === "npc" || a?.type === "player") scheduleRebuild(); });
     Hooks.on("updateActor", (actor, diff) => {
-      if (foundry.utils.hasProperty(diff, FLAG_KEY)) reflectActorFlag(actor);
+      if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN)) reflectActorFlag(actor);
       const flat = foundry.utils.flattenObject(diff);
       const rel = ["name", "img", "type", "prototypeToken.texture.src", "folder"];
       if (rel.some(k => k in flat)) scheduleRebuild();
       // rebuild if favorite flags changed (npc or pc)
-      if (foundry.utils.hasProperty(diff, FLAG_FAV)) scheduleRebuild();
+      if (foundry.utils.hasProperty(diff, FLAG_NPC_FAVORITE)) scheduleRebuild();
       if (foundry.utils.hasProperty(diff, `flags.${NS}.pcFavorite`)) scheduleRebuild();
     });
 

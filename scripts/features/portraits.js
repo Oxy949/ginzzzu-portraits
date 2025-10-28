@@ -1,8 +1,6 @@
-// systems/ginzzzu-threeO/scripts/threeO-portraits.js
-(() => {
-  const MODULE_ID = "ginzzzu-portraits"; const NS = "ginzzzu-portraits";
-  const FLAG_PATH = `flags.${NS}.portraitShown`;
-  
+import { MODULE_ID, NS, FLAG_PORTRAIT_SHOWN as FLAG_PATH } from "../core/constants.js";
+
+(()=>{
   // Preferable actor image property paths (configurable)
   function _parsePathsCSV(v) {
     return String(v ?? "").split(",").map(s => s.trim()).filter(Boolean);

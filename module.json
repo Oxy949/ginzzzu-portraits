@@ -20,9 +20,7 @@
     }
   ],
   "esmodules": [
-    "scripts/settings.js",
-    "scripts/threeO-portraits.js",
-    "scripts/threeO-npc-dock.js"
+    "scripts/entry.js"
   ],
   "scripts": [],
   "styles": [
