@@ -4,3 +4,26 @@
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   will-change: transform;
 }
+
+#threeo-npc-dock .item.is-fav {
+  border: 2px solid #ffd76a;
+  box-shadow: 0 0 8px rgba(255, 215, 106, 0.4);
+}
+
+#threeo-npc-dock .item .fav-star {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 215, 106, 0.6);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: #ffd76a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 1;
+}

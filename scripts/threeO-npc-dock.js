@@ -2,6 +2,7 @@
 (() => {
   const MODULE_ID = "ginzzzu-portraits"; const NS = "ginzzzu-portraits";
   const FLAG_KEY = `flags.${NS}.portraitShown`;
+  const FLAG_FAV = `flags.${NS}.npcFavorite`;
   const DOCK_ID = "threeo-npc-dock";
   // ── Actor type utilities (configurable) ─────────────────────────────────────
   function parseCSVTypes(v) {
@@ -163,10 +164,19 @@
 
 /* Левая колонка: грид игроков, фикс. ячейки 50x50, без скролла */
 #${DOCK_ID} .players {
-  flex: 0 1 25%;
-  max-width: 25%;
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-  gap:6px; align-content:flex-start; justify-items:stretch;
+  flex: 0 0 180px;                   /* фиксированная ширина, не сжимается */
+  width: 160px;                      /* ~3 колонки по 50px + зазоры */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* ровно 3 столбца */
+  grid-auto-rows: 1fr;
+  gap: 6px;
+  align-content: start;
+  justify-items: stretch;
+  max-height: calc(50px * 2 + 6px);  /* 2 ряда по 50px + зазор */
+  overflow-y: auto;                  /* вертикальный скролл */
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
 }
 
 /* Правая колонка: NPC-лента как раньше, со скроллом колёсиком */
@@ -203,7 +213,20 @@
   box-shadow: 0 0 12px 2px rgba(200,150,255,0.6);
   animation: threeoPulse 2.4s ease-in-out infinite alternate;
 }
-@keyframes threeoPulse { from { opacity:.6; } to { opacity:.05; } }
+@keyframes threeoPulse { from { opacity:.6; } to { opacity:.05; }
+
+/* Избранные */
+#${DOCK_ID} .item.is-fav { border-color: #ffd76a; }
+#${DOCK_ID} .item .fav-star{
+  position:absolute; left:4px; top:4px;
+  width:18px; height:18px; border-radius:50%;
+  background: rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.35);
+  display:grid; place-items:center;
+  font-size:12px; color:#ffd76a;
+  text-shadow:0 1px 1px rgba(0,0,0,.5);
+  pointer-events:none;
+}
 
 #${DOCK_ID} .empty { color:#ccc; opacity:.7; font-size:12px; text-align:center; padding:8px 0; }
 `;
@@ -248,11 +271,28 @@
     root.appendChild(content);
 
     // Прокрутка колёсиком — скроллим только NPC-ленту
+    // wheel: если над блоком игроков — крутим ВЕРТИКАЛЬНО players,
+    // иначе крутим ГОРИЗОНТАЛЬНО рельсу NPC
     root.addEventListener("wheel", (ev) => {
-      if (!ev.deltaY) return;
-      const rail = root.querySelector(".npcs .rail");
-      rail.scrollLeft += ev.deltaY;
-      ev.preventDefault();
+      const players = root.querySelector(".players");
+      const npcsRail = root.querySelector(".npcs .rail");
+      if (!players || !npcsRail) return;
+
+      const pRect = players.getBoundingClientRect();
+      const overPlayers =
+        ev.clientX >= pRect.left && ev.clientX <= pRect.right &&
+        ev.clientY >= pRect.top  && ev.clientY <= pRect.bottom;
+
+      if (overPlayers) {
+        // вертикальная прокрутка сетки игроков
+        ev.preventDefault();
+        players.scrollTop += ev.deltaY;
+      } else {
+        // горизонтальная прокрутка NPC-рельсы
+        if (!ev.deltaY) return;
+        ev.preventDefault();
+        npcsRail.scrollLeft += ev.deltaY;
+      }
     }, { passive: false });
 
     // Контекстное меню карточек отключаем (ПКМ — открыть лист)
@@ -317,17 +357,43 @@
     if (actor) setTimeout(() => actor.sheet?.render(true), 100);
   }
 
+  // СКМ (колёсико) по карточке NPC — пометить/снять избранное
+  async function onCardMiddleFav(ev) {
+    if (ev.button !== 1) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const btn = ev.currentTarget;
+    const actor = game.actors.get(btn.dataset.actorId);
+    if (!actor) return;
+    const isFav = !!foundry.utils.getProperty(actor, FLAG_FAV);
+    try {
+      await actor.update({ [FLAG_FAV]: !isFav });
+      scheduleRebuild(0);
+    } catch (e) {
+      console.error("[threeO-dock] fav toggle error:", e);
+    }
+  }
+
   // Построить карточки players (type "player")
   function buildPlayers(container) {
     container.innerHTML = "";
     const pcs = (game.actors?.contents ?? []).filter(a => isPC(a));
-    // порядок: как в списке актёров по имени
-    pcs.sort((a, b) => (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" }));
+    // порядок: сначала избранное, потом по имени
+    pcs.sort((a, b) => {
+      // сначала по избранному
+      const aFav = !!foundry.utils.getProperty(a, `flags.${NS}.pcFavorite`);
+      const bFav = !!foundry.utils.getProperty(b, `flags.${NS}.pcFavorite`);
+      if (aFav !== bFav) return bFav ? 1 : -1;
+      // затем по имени
+      return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+    });
     for (const a of pcs) {
       const btn = document.createElement("div");
       btn.className = "item";
       btn.dataset.actorId = a.id;
       btn.title = makeTooltip(a);
+      // PC favorite flag (middle click)
+      const FLAG_FAV_PC = `flags.${NS}.pcFavorite`;
 
       const img = document.createElement("img");
       img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
@@ -336,6 +402,15 @@
 
       const shown = !!foundry.utils.getProperty(a, FLAG_KEY);
       if (shown) btn.classList.add("is-on");
+
+      // PC favorite visual
+      if (foundry.utils.getProperty(a, FLAG_FAV_PC)) {
+        btn.classList.add("is-fav");
+        const star = document.createElement("div");
+        star.className = "fav-star";
+        star.textContent = "★";
+        btn.appendChild(star);
+      }
 
       const folderHex = getActorFolderColor(a);
       if (folderHex) {
@@ -348,6 +423,14 @@
 
       btn.addEventListener("click", onCardClickToggle);
       btn.addEventListener("mousedown", onCardRightMouse);
+      // middle-click to toggle pc favorite
+      btn.addEventListener("mousedown", async (ev) => {
+        if (ev.button !== 1) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const isFav = !!foundry.utils.getProperty(a, `flags.${NS}.pcFavorite`);
+        try { await a.update({ [`flags.${NS}.pcFavorite`]: !isFav }); scheduleRebuild(0); } catch (e) { console.error(e); }
+      });
 
       container.appendChild(btn);
     }
@@ -384,18 +467,22 @@
       return;
     }
 
-    // сортировка
+    // сортировка с учетом избранного
     const mode = getSortMode();
-    if (mode === "folder-asc") {
-      npcs.sort((a, b) => {
+    npcs.sort((a, b) => {
+      // сначала по избранному
+      const aFav = !!foundry.utils.getProperty(a, FLAG_FAV);
+      const bFav = !!foundry.utils.getProperty(b, FLAG_FAV);
+      if (aFav !== bFav) return bFav ? 1 : -1;
+
+      // затем по выбранному режиму
+      if (mode === "folder-asc") {
         const pa = getFolderPath(a), pb = getFolderPath(b);
         const byFolder = (pa||"").localeCompare(pb||"", game.i18n.lang || undefined, { sensitivity:"base" });
         if (byFolder !== 0) return byFolder;
-        return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
-      });
-    } else {
-      npcs.sort((a, b) => (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" }));
-    }
+      }
+      return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+    });
 
     for (const a of npcs) {
       const btn = document.createElement("div");
@@ -411,6 +498,15 @@
       const shown = !!foundry.utils.getProperty(a, FLAG_KEY);
       if (shown) btn.classList.add("is-on");
 
+      // NPC favorite visual
+      if (foundry.utils.getProperty(a, FLAG_FAV)) {
+        btn.classList.add("is-fav");
+        const star = document.createElement("div");
+        star.className = "fav-star";
+        star.textContent = "★";
+        btn.appendChild(star);
+      }
+
       const folderHex = getActorFolderColor(a);
       if (folderHex) {
         const rgb = hexToRgb(folderHex);
@@ -422,6 +518,8 @@
 
       btn.addEventListener("click", onCardClickToggle);
       btn.addEventListener("mouseup", onCardRightMouse);
+      // middle click toggle favorite
+      btn.addEventListener("mousedown", onCardMiddleFav);
 
       containerRail.appendChild(btn);
     }
@@ -486,6 +584,9 @@
       const flat = foundry.utils.flattenObject(diff);
       const rel = ["name", "img", "type", "prototypeToken.texture.src", "folder"];
       if (rel.some(k => k in flat)) scheduleRebuild();
+      // rebuild if favorite flags changed (npc or pc)
+      if (foundry.utils.hasProperty(diff, FLAG_FAV)) scheduleRebuild();
+      if (foundry.utils.hasProperty(diff, `flags.${NS}.pcFavorite`)) scheduleRebuild();
     });
 
     // папки

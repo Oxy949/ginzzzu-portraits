@@ -5,9 +5,29 @@ Hooks.once("init", () => {
   // Helper to register
   const reg = (key, data) => game.settings.register(MOD, key, data);
 
+  reg("gmForcePortraitHeight", {
+    name: "Перезаписывать высоту портретов у игроков",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
+  reg("gmPortraitHeight", {
+    name: "[мир] Портреты: высота",
+    hint: "0 — полоска снизу, 1 — полная высота",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0.8,
+    range: { min: 0, max: 1, step: 0.01 },
+    requiresReload: true
+  });
+
   reg("portraitHeight", {
     name: "Портреты: высота",
-    hint: "0 — полоска, 1 — полная высота",
+    hint: "0 — полоска снизу, 1 — полная высота. Если GM не задал принудительно, то используется это значение.",
     scope: "client",
     config: true,
     type: Number,
@@ -22,10 +42,9 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: Boolean,
-    default: false,
+    default: true,
     requiresReload: true
   });
-
 
   // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("resizeToFit", {
@@ -73,7 +92,7 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: String,
-    default: "img, prototypeToken.texture.src, system.image, system.img, system.details.biography.portrait",
+    default: "img, system.image, system.img, system.details.biography.portrait",
     requiresReload: true
   });
 

@@ -297,9 +297,15 @@ Object.assign(root.style, {
     root.style.gap = `${Math.max(0, gapPx)}px`;
     rail.style.gap = `${Math.max(0, gapPx)}px`;
 
+    let porHeight = game.settings.get(NS, "portraitHeight");
+
+    if (game.settings.get(NS, "gmForcePortraitHeight")) {
+      porHeight = game.settings.get(NS, "gmPortraitHeight");
+    }
+
     imgs.forEach((el, i) => {
-      el.style.height    = `${game.settings.get(NS, "portraitHeight") * 100}vh`;
-      el.style.maxHeight = `${game.settings.get(NS, "portraitHeight") * 100}vh`;
+      el.style.height    = `${porHeight * 100}vh`;
+      el.style.maxHeight = `${porHeight * 100}vh`;
       el.style.width     = `${widthPx}px`;
       el.style.maxWidth  = `${widthPx}px`;
       el.style.flex      = "0 0 auto";
