@@ -6,7 +6,8 @@ Hooks.once("init", () => {
   const reg = (key, data) => game.settings.register(MODULE_ID, key, data);
 
   reg("gmForcePortraitHeight", {
-    name: "Перезаписывать высоту портретов у игроков",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.gmForcePortraitHeight.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.gmForcePortraitHeight.hint"),
     scope: "world",
     config: true,
     type: Boolean,
@@ -15,8 +16,8 @@ Hooks.once("init", () => {
   });
 
   reg("gmPortraitHeight", {
-    name: "[мир] Портреты: высота",
-    hint: "0 — полоска снизу, 1 — полная высота",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.gmPortraitHeight.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.gmPortraitHeight.hint"),
     scope: "world",
     config: true,
     type: Number,
@@ -26,8 +27,8 @@ Hooks.once("init", () => {
   });
 
   reg("portraitHeight", {
-    name: "Портреты: высота",
-    hint: "0 — полоска снизу, 1 — полная высота. Если GM не задал принудительно, то используется это значение.",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitHeight.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitHeight.hint"),
     scope: "client",
     config: true,
     type: Number,
@@ -38,7 +39,8 @@ Hooks.once("init", () => {
 
     // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("visualNovelMode", {
-    name: "Режим новеллы",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.hint"),
     scope: "world",
     config: true,
     type: Boolean,
@@ -48,7 +50,8 @@ Hooks.once("init", () => {
 
   // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("resizeToFit", {
-    name: "Портреты: уменьшать размер, чтобы влезли все портреты",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.resizeToFit.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.resizeToFit.hint"),
     scope: "world",
     config: true,
     type: Boolean,
@@ -57,7 +60,8 @@ Hooks.once("init", () => {
   });
 
   reg("adjustForSidebar", {
-    name: "Портреты: учитывать ширину боковой панели",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.adjustForSidebar.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.adjustForSidebar.hint"),
     scope: "world",
     config: true,
     type: Boolean,
@@ -66,7 +70,8 @@ Hooks.once("init", () => {
   });
   
   reg("portraitToneEnabled", {
-    name: "Портреты: подстраивать яркость/контраст под темноту сцены",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.hint"),
     scope: "world",
     config: true,
     type: Boolean,
@@ -75,8 +80,8 @@ Hooks.once("init", () => {
   });
 
   reg("portraitToneStrength", {
-    name: "Портреты: сила подстройки (0..1)",
-    hint: "0 — без изменений, 1 — максимально заметная коррекция",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneStrength.hint"),
     scope: "world",
     config: true,
     type: Number,
@@ -87,8 +92,8 @@ Hooks.once("init", () => {
 
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
-    name: "Пути к изображению актёра (CSV)",
-    hint: "Список dot-path полей Actor через запятую, которые по порядку используются как источник изображения. Например: img, prototypeToken.texture.src, system.image",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.hint"),
     scope: "world",
     config: true,
     type: String,
@@ -98,8 +103,8 @@ Hooks.once("init", () => {
 
   // === Типы актёров (CSV) ===
   reg("pcActorTypes", {
-    name: "Типы актёров: Игроки (CSV)",
-    hint: "Список типов Actor через запятую, которые считать «игроками». Примеры: character, pc, hero, player",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.pcActorTypes.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.pcActorTypes.hint"),
     scope: "world",
     config: true,
     type: String,
@@ -108,8 +113,8 @@ Hooks.once("init", () => {
   });
 
   reg("npcActorTypes", {
-    name: "Типы актёров: NPC (CSV)",
-    hint: "Список типов Actor через запятую, которые считать NPC. Примеры: npc, adversary, creature, monster, minion",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcActorTypes.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcActorTypes.hint"),
     scope: "world",
     config: true,
     type: String,
@@ -119,8 +124,8 @@ Hooks.once("init", () => {
 
   // === Портреты: анимация (мир / World) ===
   reg("portraitFadeMs", {
-    name: "Портреты: длительность появления (мс)",
-    hint: "Сколько миллисекунд длится плавное появление портрета.",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFadeMs.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFadeMs.hint"),
     scope: "world",
     config: true,
     type: Number,
@@ -129,8 +134,8 @@ Hooks.once("init", () => {
   });
 
   reg("portraitMoveMs", {
-    name: "Портреты: длительность движения (мс)",
-    hint: "Сколько миллисекунд длится сдвиг/движение портрета.",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitMoveMs.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitMoveMs.hint"),
     scope: "world",
     config: true,
     type: Number,
@@ -139,8 +144,8 @@ Hooks.once("init", () => {
   });
 
   reg("portraitEasing", {
-    name: "Портреты: тип easing",
-    hint: "CSS timing-function: например, 'ease', 'ease-out', 'ease-in-out' или cubic-bezier(0.22,1,0.36,1).",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitEasing.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitEasing.hint"),
     scope: "world",
     config: true,
     type: String,
@@ -150,8 +155,8 @@ Hooks.once("init", () => {
 
   // === NPC Dock: предпочтения (клиент / Client) ===
   reg("npcDockFolder", {
-    name: "NPC Dock: фильтр папки по умолчанию",
-    hint: "Например: 'all'. Может переопределяться самим доком во время работы.",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockFolder.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockFolder.hint"),
     scope: "world",
     config: true,
     type: String,
@@ -160,7 +165,8 @@ Hooks.once("init", () => {
   });
 
   reg("npcDockSearch", {
-    name: "NPC Dock: поисковая строка по умолчанию",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockSearch.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockSearch.hint"),
     scope: "world",
     config: true,
     type: String,
@@ -169,8 +175,8 @@ Hooks.once("init", () => {
   });
 
   reg("npcDockSort", {
-    name: "NPC Dock: сортировка по умолчанию",
-    hint: "Например: 'name-asc' или 'name-desc'.",
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockSort.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockSort.hint"),
     scope: "world",
     config: true,
     type: String,

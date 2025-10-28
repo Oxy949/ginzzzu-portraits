@@ -122,19 +122,19 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     toolbar.className = "toolbar";
     toolbar.innerHTML = `
       <div class="left">
-        <input id="ginzzzu-npc-search" type="text" placeholder="Поиск NPC...">
+        <input id="ginzzzu-npc-search" type="text" placeholder="${game.i18n.localize("GINZZZUPORTRAITS.searchNPC")}">
       </div>
       <div class="right">
-        <label>Сортировка:</label>
+        <label>${game.i18n.localize("GINZZZUPORTRAITS.sorting")}</label>
         <select id="ginzzzu-npc-sort">
-          <option value="name-asc">по имени</option>
-          <option value="folder-asc">по папке</option>
+          <option value="name-asc">${game.i18n.localize("GINZZZUPORTRAITS.sortByName")}</option>
+          <option value="folder-asc">${game.i18n.localize("GINZZZUPORTRAITS.sortByFolder")}</option>
         </select>
-        <label>Папка:</label>
+        <label>${game.i18n.localize("GINZZZUPORTRAITS.folder")}</label>
         <select id="ginzzzu-npc-folder">
-          <option value="all">(все папки)</option>
+          <option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>
         </select>
-        <button class="clear-all" id="ginzzzu-npc-clear" title="Скрыть все портреты">🧹</button>
+        <button class="clear-all" id="ginzzzu-npc-clear" title="${game.i18n.localize("GINZZZUPORTRAITS.hideAllPortraits")}">🧹</button>
       </div>
     `;
     root.appendChild(toolbar);
@@ -204,7 +204,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     const sel = root.querySelector("#ginzzzu-npc-folder");
     if (!sel) return;
     const current = getFolderSel();
-    sel.innerHTML = `<option value="all">(все папки)</option>`;
+    sel.innerHTML = `<option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>`;
     const list = collectActorFoldersWithNPC();
     for (const f of list) {
       const opt = document.createElement("option");
@@ -341,7 +341,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     }
 
     if (!npcs.length) {
-      containerRail.innerHTML = `<div class="empty">Нет NPC по текущим фильтрам</div>`;
+      containerRail.innerHTML = `<div class="empty">${game.i18n.localize("GINZZZUPORTRAITS.noNPCFound")}</div>`;
       return;
     }
 

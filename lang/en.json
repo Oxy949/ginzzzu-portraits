@@ -1,0 +1,86 @@
+{
+  "I18N.LANGUAGE": "English",
+  "I18N.MAINTAINERS": "@tposney",
+
+  "GINZZZUPORTRAITS": {
+    "searchNPC": "Search NPC...",
+    "sorting": "Sort by:",
+    "sortByName": "name",
+    "sortByFolder": "folder",
+    "folder": "Folder:",
+    "allFolders": "(all folders)",
+    "hideAllPortraits": "Hide all portraits",
+    "noNPCFound": "No NPCs matching current filters",
+
+    "Settings": {
+      "gmForcePortraitHeight": {
+        "name": "Override player portrait height",
+        "hint": "If enabled, the GM can set a specific height for player portraits."
+      },
+      "gmPortraitHeight": {
+        "name": "[world] Portraits: height",
+        "hint": "0 - bottom strip, 1 - full height"
+      },
+      "portraitHeight": {
+        "name": "Portraits: height",
+        "hint": "0 - bottom strip, 1 - full height. Used if GM hasn't forced a value."
+      },
+      "visualNovelMode": {
+        "name": "Visual novel mode",
+        "hint": "If enabled, portrait tones will adjust based on scene darkness."
+      },
+      "resizeToFit": {
+        "name": "Portraits: resize to fit all portraits",
+        "hint": "If enabled, portraits will be resized to fit within their containers."
+      },
+      "adjustForSidebar": {
+        "name": "Portraits: account for sidebar width",
+        "hint": "If enabled, portrait layout will consider the sidebar width."
+      },
+      "portraitToneEnabled": {
+        "name": "Portraits: adjust brightness/contrast based on scene darkness",
+        "hint": "If enabled, portrait tones will adjust based on scene darkness."
+      },
+      "portraitToneStrength": {
+        "name": "Portraits: adjustment strength (0..1)",
+        "hint": "0 - no changes, 1 - maximum noticeable correction"
+      },
+      "actorImagePaths": {
+        "name": "Actor image paths (CSV)",
+        "hint": "List of Actor dot-path fields separated by commas, used in order as image source. Example: img, prototypeToken.texture.src, system.image"
+      },
+      "pcActorTypes": {
+        "name": "Actor Types: Players (CSV)",
+        "hint": "List of Actor types separated by commas to be considered as 'players'. Examples: character, pc, hero, player"
+      },
+      "npcActorTypes": {
+        "name": "Actor Types: NPCs (CSV)",
+        "hint": "List of Actor types separated by commas to be considered as NPCs. Examples: npc, adversary, creature, monster, minion"
+      },
+      "portraitFadeMs": {
+        "name": "Portraits: fade-in duration (ms)",
+        "hint": "Duration in milliseconds for portrait fade-in animation."
+      },
+      "portraitMoveMs": {
+        "name": "Portraits: movement duration (ms)",
+        "hint": "Duration in milliseconds for portrait movement animation."
+      },
+      "portraitEasing": {
+        "name": "Portraits: easing type",
+        "hint": "CSS timing-function: e.g., 'ease', 'ease-out', 'ease-in-out' or cubic-bezier(0.22,1,0.36,1)."
+      },
+      "npcDockFolder": {
+        "name": "NPC Dock: default folder filter",
+        "hint": "Example: 'all'. Can be overridden by the dock during operation."
+      },
+      "npcDockSearch": {
+        "name": "NPC Dock: default search string",
+        "hint": "Example: 'Goblin' or 'Merchant'."
+      },
+      "npcDockSort": {
+        "name": "NPC Dock: default sorting",
+        "hint": "Example: 'name-asc' or 'name-desc'."
+      }
+    }
+  }
+}
