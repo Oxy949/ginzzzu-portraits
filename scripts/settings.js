@@ -69,6 +69,16 @@ Hooks.once("init", () => {
     requiresReload: true
   });
   
+  reg("playerCharactersPanelEnabled", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerCharactersPanelEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerCharactersPanelEnabled.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
   reg("portraitToneEnabled", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.hint"),

@@ -17,6 +17,10 @@
         "name": "Override player portrait height",
         "hint": "If enabled, the GM can set a specific height for player portraits."
       },
+      "playerCharactersPanelEnabled": {
+        "name": "Enable Player Characters Panel",
+        "hint": "If enabled, a panel for player characters will be displayed."
+      },
       "gmPortraitHeight": {
         "name": "[world] Portraits: height",
         "hint": "0 - bottom strip, 1 - full height"

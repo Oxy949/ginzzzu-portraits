@@ -142,10 +142,18 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     // Контент: players + npcs
     const content = document.createElement("div");
     content.className = "content";
+    
+    if (game.settings.get(MODULE_ID, "playerCharactersPanelEnabled") ) {
     content.innerHTML = `
       <div class="players"></div>
       <div class="npcs"><div class="rail"></div></div>
     `;
+    } else {
+      content.innerHTML = `
+        <div class="players" style="display: none; visibility: hidden;"></div>
+        <div class="npcs"><div class="rail"></div></div>
+      `;
+    }
     root.appendChild(content);
 
     // Прокрутка колёсиком — скроллим только NPC-ленту
@@ -415,7 +423,9 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     const playersBox = root.querySelector(".players");
     const npcRail    = root.querySelector(".npcs .rail");
 
-    buildPlayers(playersBox);
+    if (game.settings.get(MODULE_ID, "playerCharactersPanelEnabled") ) {
+      buildPlayers(playersBox);
+    }
     buildNPCs(npcRail);
 
     root.style.display = "";
