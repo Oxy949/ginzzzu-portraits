@@ -1,5 +1,5 @@
 /* Extracted from threeO-npc-dock.js */
-#threeo-npc-dock {
+#ginzzzu-npc-dock {
   position: fixed;
   left: 50%; transform: translateX(-50%);
   bottom: 80px;                 /* по ТЗ */
@@ -12,36 +12,36 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.35);
   backdrop-filter: blur(2px);
 }
-#threeo-npc-dock .toolbar {
+#ginzzzu-npc-dock .toolbar {
   display:flex; align-items:center; gap:10px; justify-content:space-between;
   margin-bottom:6px; opacity:.95; font-size:12px; color:#ddd;
 }
-#threeo-npc-dock .toolbar .left { display:flex; align-items:center; gap:8px; flex:1 1 auto; min-width:0; }
-#threeo-npc-dock .toolbar input[type="text"] {
+#ginzzzu-npc-dock .toolbar .left { display:flex; align-items:center; gap:8px; flex:1 1 auto; min-width:0; }
+#ginzzzu-npc-dock .toolbar input[type="text"] {
   flex:1 1 220px; min-width:140px; max-width:32vw;
   background: rgba(0,0,0,0.35);
   color:#eee; border:1px solid rgba(255,255,255,0.15);
   border-radius:6px; padding:4px 8px; font-size:12px;
 }
-#threeo-npc-dock .toolbar .right { display:flex; align-items:center; gap:8px; flex:0 0 auto; white-space:nowrap; flex-wrap:nowrap; }
-#threeo-npc-dock .toolbar label { opacity:.8; white-space:nowrap; }
-#threeo-npc-dock .toolbar select {
+#ginzzzu-npc-dock .toolbar .right { display:flex; align-items:center; gap:8px; flex:0 0 auto; white-space:nowrap; flex-wrap:nowrap; }
+#ginzzzu-npc-dock .toolbar label { opacity:.8; white-space:nowrap; }
+#ginzzzu-npc-dock .toolbar select {
   display:inline-block; width:auto; max-width:18vw;
   background: rgba(0,0,0,0.35);
   color:#eee; border:1px solid rgba(255,255,255,0.15);
   border-radius:6px; padding:2px 6px; font-size:12px;
 }
-#threeo-npc-dock .toolbar button.clear-all {
+#ginzzzu-npc-dock .toolbar button.clear-all {
   display:inline-flex; align-items:center; justify-content:center;
   background:#742f2f; color:#fff; border:none; border-radius:6px;
   padding:3px 8px; cursor:pointer; flex:0 0 auto;
 }
 
 /* Контент: слева players (до 25%), справа NPC-линия */
-#threeo-npc-dock .content { display:flex; align-items:flex-start; gap:10px; }
+#ginzzzu-npc-dock .content { display:flex; align-items:flex-start; gap:10px; }
 
 /* Левая колонка: грид игроков, фикс. ячейки 50x50, без скролла */
-#threeo-npc-dock .players {
+#ginzzzu-npc-dock .players {
   flex: 0 0 180px;                   /* фиксированная ширина, не сжимается */
   width: 160px;                      /* ~3 колонки по 50px + зазоры */
   display: grid;
@@ -58,11 +58,11 @@
 }
 
 /* Правая колонка: NPC-лента как раньше, со скроллом колёсиком */
-#threeo-npc-dock .npcs { flex:1 1 auto; overflow:hidden; }
-#threeo-npc-dock .npcs .rail { display:flex; flex-direction:row; align-items:center; gap:8px; overflow:hidden; }
+#ginzzzu-npc-dock .npcs { flex:1 1 auto; overflow:hidden; }
+#ginzzzu-npc-dock .npcs .rail { display:flex; flex-direction:row; align-items:center; gap:8px; overflow:hidden; }
 
 /* Карточки базовые */
-#threeo-npc-dock .item {
+#ginzzzu-npc-dock .item {
   flex: 0 0 auto;
   width: 100px; height: 100px;
   border-radius: 10px; overflow: hidden; position: relative; cursor: pointer;
@@ -71,14 +71,23 @@
   box-shadow: var(--folder-shadow, 0 6px 16px rgba(0,0,0,0.45));
   transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 }
-#threeo-npc-dock .item:hover { transform: translateY(-2px); box-shadow: 0 10px 10px rgba(0,0,0,0.55); transform: scale(0.98);}
-#threeo-npc-dock .item img { width:100%; height:100%; object-fit:cover; display:block; user-select:none; -webkit-user-drag:none; }
+#ginzzzu-npc-dock .item:hover { transform: translateY(-2px); box-shadow: 0 10px 10px rgba(0,0,0,0.55); transform: scale(0.98);}
+
+#ginzzzu-npc-dock .item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+    object-position: center top;
+}
 
 /* Уменьшенные карточки для игроков */
-#threeo-npc-dock .players .item { width:50px; height:50px; border-radius:8px; }
+#ginzzzu-npc-dock .players .item { width:50px; height:50px; border-radius:8px; }
 
 /* Активная подсветка (общая) */
-#threeo-npc-dock .item.is-on {
+#ginzzzu-npc-dock .item.is-on {
   border-color: #cfa3ff;
   box-shadow:
     0 0 0 2px rgba(207,163,255,0.65),
@@ -86,14 +95,14 @@
     0 10px 22px rgba(0,0,0,0.55);
   transform: translateY(-1px);
 }
-#threeo-npc-dock .item.is-on::after {
+#ginzzzu-npc-dock .item.is-on::after {
   content: ""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
   box-shadow: 0 0 12px 2px rgba(200,150,255,0.6);
-  animation: threeoPulse 2.4s ease-in-out infinite alternate;
+  animation: ginzzzuPulse 2.4s ease-in-out infinite alternate;
 }
-@keyframes threeoPulse { from { opacity:.6; } to { opacity:.05; } }
+@keyframes ginzzzuPulse { from { opacity:.6; } to { opacity:.05; } }
 
-#threeo-npc-dock .item .fav-star{
+#ginzzzu-npc-dock .item .fav-star{
   position:absolute; left:4px; top:4px;
   width:18px; height:18px; border-radius:50%;
   background: rgba(0,0,0,.55);
@@ -104,17 +113,17 @@
   pointer-events:none;
 }
 
-#threeo-npc-dock .empty { color:#ccc; opacity:.7; font-size:12px; text-align:center; padding:8px 0; }
+#ginzzzu-npc-dock .empty { color:#ccc; opacity:.7; font-size:12px; text-align:center; padding:8px 0; }
 
-#threeo-npc-dock .item {
+#ginzzzu-npc-dock .item {
   transform: scale(0.94);
   transform-origin: center top;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   will-change: transform;
-}x-shadow: 0 0 8px rgba(255, 215, 106, 0.2);
+  box-shadow: 0 0 8px rgba(255, 215, 106, 0.2);
 }
 
-#threeo-npc-dock .item .fav-star {
+#ginzzzu-npc-dock .item .fav-star {
   position: absolute;
   left: 4px;
   top: 4px;

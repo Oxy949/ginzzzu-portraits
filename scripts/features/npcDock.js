@@ -1,4 +1,4 @@
-import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../core/constants.js";
+import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/constants.js";
 
 (()=>{
   // ── Actor type utilities (configurable) ─────────────────────────────────────
@@ -111,9 +111,6 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
     let root = document.getElementById(DOCK_ID);
     if (root) return root;
 
-    // CSS
-    // CSS moved to /styles/threeO-npc-dock.css
-
     // Корень
     root = document.createElement("div");
     root.id = DOCK_ID;
@@ -125,19 +122,19 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
     toolbar.className = "toolbar";
     toolbar.innerHTML = `
       <div class="left">
-        <input id="threeo-npc-search" type="text" placeholder="Поиск NPC...">
+        <input id="ginzzzu-npc-search" type="text" placeholder="Поиск NPC...">
       </div>
       <div class="right">
         <label>Сортировка:</label>
-        <select id="threeo-npc-sort">
+        <select id="ginzzzu-npc-sort">
           <option value="name-asc">по имени</option>
           <option value="folder-asc">по папке</option>
         </select>
         <label>Папка:</label>
-        <select id="threeo-npc-folder">
+        <select id="ginzzzu-npc-folder">
           <option value="all">(все папки)</option>
         </select>
-        <button class="clear-all" id="threeo-npc-clear" title="Скрыть все портреты">🧹</button>
+        <button class="clear-all" id="ginzzzu-npc-clear" title="Скрыть все портреты">🧹</button>
       </div>
     `;
     root.appendChild(toolbar);
@@ -184,10 +181,10 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
     });
 
     // Контролы
-    const searchEl = toolbar.querySelector("#threeo-npc-search");
-    const sortEl   = toolbar.querySelector("#threeo-npc-sort");
-    const folderEl = toolbar.querySelector("#threeo-npc-folder");
-    const clearBtn = toolbar.querySelector("#threeo-npc-clear");
+    const searchEl = toolbar.querySelector("#ginzzzu-npc-search");
+    const sortEl   = toolbar.querySelector("#ginzzzu-npc-sort");
+    const folderEl = toolbar.querySelector("#ginzzzu-npc-folder");
+    const clearBtn = toolbar.querySelector("#ginzzzu-npc-clear");
 
     searchEl.value = getSearchText();
     sortEl.value   = getSortMode();
@@ -204,7 +201,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
   // Обновить список опций папок
   function refreshFolderSelectOptions() {
     const root = ensureDock();
-    const sel = root.querySelector("#threeo-npc-folder");
+    const sel = root.querySelector("#ginzzzu-npc-folder");
     if (!sel) return;
     const current = getFolderSel();
     sel.innerHTML = `<option value="all">(все папки)</option>`;
@@ -246,9 +243,9 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
     const btn = ev.currentTarget;
     const actor = game.actors.get(btn.dataset.actorId);
     if (!actor) return;
-    const isFav = !!foundry.utils.getProperty(actor, FLAG_NPC_FAVORITE);
+    const isFav = !!foundry.utils.getProperty(actor, FLAG_FAVORITE);
     try {
-      await actor.update({ [FLAG_NPC_FAVORITE]: !isFav });
+      await actor.update({ [FLAG_FAVORITE]: !isFav });
       scheduleRebuild(0);
     } catch (e) {
       console.error("[threeO-dock] fav toggle error:", e);
@@ -352,8 +349,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
     const mode = getSortMode();
     npcs.sort((a, b) => {
       // сначала по избранному
-      const aFav = !!foundry.utils.getProperty(a, FLAG_NPC_FAVORITE);
-      const bFav = !!foundry.utils.getProperty(b, FLAG_NPC_FAVORITE);
+      const aFav = !!foundry.utils.getProperty(a, FLAG_FAVORITE);
+      const bFav = !!foundry.utils.getProperty(b, FLAG_FAVORITE);
       if (aFav !== bFav) return bFav ? 1 : -1;
 
       // затем по выбранному режиму
@@ -380,7 +377,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
       if (shown) btn.classList.add("is-on");
 
       // NPC favorite visual
-      if (foundry.utils.getProperty(a, FLAG_NPC_FAVORITE)) {
+      if (foundry.utils.getProperty(a, FLAG_FAVORITE)) {
         btn.classList.add("is-fav");
         const star = document.createElement("div");
         star.className = "fav-star";
@@ -442,8 +439,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
         try { await a.update({ [FLAG_PORTRAIT_SHOWN]: false }); } catch (e) { console.error(e); }
       }
     }
-    if (globalThis.ThreeOPortraits?.closeAllLocalPortraits) {
-      ThreeOPortraits.closeAllLocalPortraits();
+    if (globalThis.GinzzzuPortraits?.closeAllLocalPortraits) {
+      GinzzzuPortraits.closeAllLocalPortraits();
     }
   }
 
@@ -466,7 +463,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
       const rel = ["name", "img", "type", "prototypeToken.texture.src", "folder"];
       if (rel.some(k => k in flat)) scheduleRebuild();
       // rebuild if favorite flags changed (npc or pc)
-      if (foundry.utils.hasProperty(diff, FLAG_NPC_FAVORITE)) scheduleRebuild();
+      if (foundry.utils.hasProperty(diff, FLAG_FAVORITE)) scheduleRebuild();
       if (foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.pcFavorite`)) scheduleRebuild();
     });
 
@@ -479,7 +476,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_NPC_FAVORITE } from "../c
   });
 
   // Экспорт
-  globalThis.ThreeONPCDock = {
+  globalThis.GinzzzuNPCDock = {
     rebuild: buildDock,
     show: () => { const r = ensureDock(); r.style.display = ""; },
     hide: () => { const r = ensureDock(); r.style.display = "none"; }

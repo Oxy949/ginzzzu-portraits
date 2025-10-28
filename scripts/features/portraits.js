@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_SHOWN as FLAG_PATH } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
 
 (()=>{
   // Preferable actor image property paths (configurable)
@@ -49,7 +49,7 @@ function _toneCompute(darkness, strength01) {
 
 function _toneApplyToRootVars() {
   const enabled = game.settings.get(MODULE_ID, "portraitToneEnabled");
-  const root = document.getElementById("threeo-portrait-layer");
+  const root = document.getElementById("ginzzzu-portrait-layer");
   if (!root) return;
   if (!enabled) {
     root.style.removeProperty("--tone-brightness");
@@ -113,7 +113,7 @@ const FRAME = {
 
   // ---- DOM HUD внутри #interface ----
   function getDomHud() {
-    let root = document.getElementById("threeo-portrait-layer");
+    let root = document.getElementById("ginzzzu-portrait-layer");
     if (root) return root;
 
     const iface = document.getElementById("interface");
@@ -123,7 +123,7 @@ const FRAME = {
     }
 
     root = document.createElement("div");
-    root.id = "threeo-portrait-layer";
+    root.id = "ginzzzu-portrait-layer";
 
     // слой на весь интерфейс; flex-ряд у низа по центру
 Object.assign(root.style, {
@@ -144,7 +144,7 @@ Object.assign(root.style, {
 
 
     const rail = document.createElement("div");
-    rail.id = "threeo-portrait-rail";
+    rail.id = "ginzzzu-portrait-rail";
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       Object.assign(rail.style, {
         position: "absolute",
@@ -224,16 +224,16 @@ Object.assign(root.style, {
 
   // Кэш DOM-элементов: actorId -> <img>
   function domStore() {
-    if (!globalThis.__threeoDomPortraits) globalThis.__threeoDomPortraits = new Map();
-    return globalThis.__threeoDomPortraits;
+    if (!globalThis.__ginzzzuDomPortraits) globalThis.__ginzzzuDomPortraits = new Map();
+    return globalThis.__ginzzzuDomPortraits;
   }
 
   // FIRST: текущие позиции всех портретов (для FLIP)
   function collectFirstRects() {
     const root = getDomHud();
     if (!root) return new Map();
-    const rail = root.querySelector("#threeo-portrait-rail") || root;
-    const imgs = Array.from(rail.querySelectorAll("img.threeo-portrait"));
+    const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
+    const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
     const m = new Map();
     imgs.forEach(el => m.set(el, el.getBoundingClientRect()));
     return m;
@@ -289,7 +289,7 @@ Object.assign(root.style, {
 
     // Применяем стили (CSS gap используем только для положительного spacing, отрицательные — через margin-left)
     const root = getDomHud();
-    const rail = root.querySelector("#threeo-portrait-rail") || root;
+    const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
     // Обновим padding с учётом возможной динамической ширины sidebar (на случай изменения)
     syncSidePadding(root, rail);
     root.style.gap = `${Math.max(0, gapPx)}px`;
@@ -373,9 +373,9 @@ Object.assign(root.style, {
   function relayoutDomHud(firstRects /* Map<Element, DOMRect> | undefined */) {
     const root = getDomHud();
     if (!root) return;
-    const rail = root.querySelector("#threeo-portrait-rail") || root;
+    const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
 
-    const imgs = Array.from(rail.querySelectorAll("img.threeo-portrait"));
+    const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
     const n = imgs.length;
     if (!n) return;
 
@@ -400,7 +400,7 @@ Object.assign(root.style, {
 
     const root = getDomHud();
     if (!root) return;
-    const rail = root.querySelector("#threeo-portrait-rail") || root;
+    const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
 
     const map = domStore();
     const existing = map.get(actorId);
@@ -452,7 +452,7 @@ Object.assign(root.style, {
     }
 
     const el = document.createElement("img");
-    el.className = "threeo-portrait";
+    el.className = "ginzzzu-portrait";
     el.alt = name || "Portrait";
     el.src = finalSrc;
     el.dataset.actorId = actorId;
@@ -533,15 +533,21 @@ Object.assign(root.style, {
 
   // ---- Реакция всех клиентов на смену флага актёра ----
   Hooks.on("updateActor", (actor, changes) => {
-    if (!foundry.utils.hasProperty(changes, FLAG_PATH)) return;
-    let shown = foundry.utils.getProperty(changes, FLAG_PATH);
-    if (typeof shown === "undefined") shown = foundry.utils.getProperty(actor, FLAG_PATH);
+    if (!foundry.utils.hasProperty(changes, FLAG_PORTRAIT_SHOWN))
+      return;
+
+    let shown = foundry.utils.getProperty(changes, FLAG_PORTRAIT_SHOWN);
+    if (typeof shown === "undefined") 
+      shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
+
     const actorId = actor.id;
     const img = _getActorImage(actor);
     const name = actor.name || "Portrait";
 
-    if (shown) openLocalPortrait({ actorId, img, name });
-    else       closeLocalPortrait(actorId);
+    if (shown) 
+      openLocalPortrait({ actorId, img, name });
+    else       
+      closeLocalPortrait(actorId);
   });
 
   Hooks.once("ready", () => {
@@ -549,7 +555,7 @@ Object.assign(root.style, {
     try {
       // Поднимем уже отмеченные портреты (если есть)
       for (const actor of game.actors ?? []) {
-        let shown = foundry.utils.getProperty(actor, FLAG_PATH);
+        let shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
         if (typeof shown !== "undefined" && shown) {
           const img = _getActorImage(actor);
           const name = actor.name || "Portrait";
@@ -579,10 +585,32 @@ Object.assign(root.style, {
   });
 
   // ---- Тоггл из чарника ----
-  async function togglePortrait(actor) {
+  async function togglePortrait(actorOrId) {
+    // Accept either an Actor object or an actor id string (or a token-like wrapper)
     if (!isGM()) return;
-    const shown = !!foundry.utils.getProperty(actor, FLAG_PATH);
-    await actor.update({ [FLAG_PATH]: !shown });
+    let actor = actorOrId;
+    try {
+      if (typeof actor === "string") {
+        actor = game.actors?.get(actor);
+      } else if (actor && typeof actor === "object" && !actor.update && actor.id) {
+        // Could be a Token or some wrapper that contains an id
+        actor = game.actors?.get(actor.id);
+      }
+    } catch (e) {
+      // ignore and handle below
+    }
+
+    if (!actor || typeof actor.update !== "function") {
+      console.warn("[threeO-portraits] togglePortrait: actor not found or invalid:", actorOrId);
+      return;
+    }
+
+    const shown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
+    try {
+      await actor.update({ [FLAG_PORTRAIT_SHOWN]: !shown });
+    } catch (e) {
+      console.error("[threeO-portraits] togglePortrait error:", e);
+    }
   }
 
   function closeAllLocalPortraits() {
@@ -590,25 +618,31 @@ Object.assign(root.style, {
     ids.forEach(id => closeLocalPortrait(id));
   }
 
-  Hooks.on("renderThreeOGMActorSheet", (app, html) => {
-    html.find(".toggle-portrait-btn")
-      .off("click.threeo")
-      .on("click.threeo", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
+  function getActivePortraits() {
+    const ids = Array.from(domStore().keys());
+    return ids;
+  }
 
-    if (!html.find(".toggle-portrait-btn").length) {
-      const tokenBtn = html.find(".change-token-btn");
-      if (tokenBtn.length) {
-        const $btn = $(`<button type="button" class="toggle-portrait-btn" title="Показать/скрыть портрет">Портрет</button>`);
-        $btn.insertAfter(tokenBtn);
-        $btn.on("click", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
-      }
-    }
-  });
+  // Hooks.on("renderThreeOGMActorSheet", (app, html) => {
+  //   html.find(".toggle-portrait-btn")
+  //     .off("click.threeo")
+  //     .on("click.threeo", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
+
+  //   if (!html.find(".toggle-portrait-btn").length) {
+  //     const tokenBtn = html.find(".change-token-btn");
+  //     if (tokenBtn.length) {
+  //       const $btn = $(`<button type="button" class="toggle-portrait-btn" title="Показать/скрыть портрет">Портрет</button>`);
+  //       $btn.insertAfter(tokenBtn);
+  //       $btn.on("click", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
+  //     }
+  //   }
+  // });
 
   // Экспорт
-  globalThis.ThreeOPortraits = {
+  globalThis.GinzzzuPortraits = {
   togglePortrait,
   closeAllLocalPortraits,
+  getActivePortraits,
   };
   
 // === System-agnostic UI controls (directory + token HUD) ===
@@ -621,7 +655,7 @@ Hooks.on("getActorDirectoryEntryContext", (html, options) => {
       try {
         const actorId = li?.data("documentId") || li?.data("entityId");
         const actor = game.actors?.get(actorId);
-        if (actor && globalThis.ThreeOPortraits?.togglePortrait) globalThis.ThreeOPortraits.togglePortrait(actor);
+        if (actor && globalThis.GinzzzuPortraits?.togglePortrait) globalThis.GinzzzuPortraits.togglePortrait(actor);
       } catch (e) { console.error(e); }
     }
   });
@@ -630,10 +664,10 @@ Hooks.on("getActorDirectoryEntryContext", (html, options) => {
 Hooks.on("renderTokenHUD", (app, html) => {
   try {
     if (!game.user?.isGM) return;
-    const btn = $(`<div class="control-icon threeo-portrait" title="Портрет"><i class="fas fa-image"></i></div>`);
+    const btn = $(`<div class="control-icon ginzzzu-portrait" title="Портрет"><i class="fas fa-image"></i></div>`);
     btn.on("click", async () => {
       const actor = app?.object?.actor ?? app?.token?.actor ?? app?.document?.actor;
-      if (actor && globalThis.ThreeOPortraits?.togglePortrait) await globalThis.ThreeOPortraits.togglePortrait(actor);
+      if (actor && globalThis.GinzzzuPortraits?.togglePortrait) await globalThis.GinzzzuPortraits.togglePortrait(actor);
     });
     // Prefer right column if exists, else append to left
     const right = html.find(".col.right");
