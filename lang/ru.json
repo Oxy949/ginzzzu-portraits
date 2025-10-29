@@ -5,6 +5,8 @@
     "GINZZZUPORTRAITS": {
       "searchNPC": "Поиск NPC...",
       "sorting": "Сортировка:",
+      "displaySrc": "Источник:",
+      "fromScene": "(эта сцена)",
       "sortByName": "по имени",
       "sortByFolder": "по папке",
       "folder": "Папка:",

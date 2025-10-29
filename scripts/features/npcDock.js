@@ -130,8 +130,10 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
           <option value="name-asc">${game.i18n.localize("GINZZZUPORTRAITS.sortByName")}</option>
           <option value="folder-asc">${game.i18n.localize("GINZZZUPORTRAITS.sortByFolder")}</option>
         </select>
-        <label>${game.i18n.localize("GINZZZUPORTRAITS.folder")}</label>
+
+        <label>${game.i18n.localize("GINZZZUPORTRAITS.displaySrc")}</label>
         <select id="ginzzzu-npc-folder">
+          <option value="from-scene">${game.i18n.localize("GINZZZUPORTRAITS.fromScene")}</option>
           <option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>
         </select>
         <button class="clear-all" id="ginzzzu-npc-clear" title="${game.i18n.localize("GINZZZUPORTRAITS.hideAllPortraits")}">🧹</button>
@@ -196,6 +198,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
 
     searchEl.value = getSearchText();
     sortEl.value   = getSortMode();
+    folderEl.value = getFolderSel();
 
     searchEl.addEventListener("input", (e) => { setSearchText(e.target.value || ""); scheduleRebuild(0); });
     sortEl.addEventListener("change", (e) => { setSortMode(e.target.value); scheduleRebuild(0); });
@@ -212,7 +215,14 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     const sel = root.querySelector("#ginzzzu-npc-folder");
     if (!sel) return;
     const current = getFolderSel();
-    sel.innerHTML = `<option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>`;
+
+    // Базовые источники
+    sel.innerHTML = `
+      <option value="from-scene">${game.i18n.localize("GINZZZUPORTRAITS.fromScene")}</option>
+      <option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>
+    `;
+
+    // Далее — папки с NPC
     const list = collectActorFoldersWithNPC();
     for (const f of list) {
       const opt = document.createElement("option");
@@ -220,6 +230,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       opt.textContent = f.path || f.name || "(без имени)";
       sel.appendChild(opt);
     }
+
     sel.value = current;
     if (sel.value !== current) { sel.value = "all"; setFolderSel("all"); }
   }
@@ -330,7 +341,16 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
 
     // фильтр по папке
     const folderSel = getFolderSel();
-    if (folderSel !== "all") {
+    
+    if (folderSel === "from-scene") {
+      // показать только тех NPC, чьи токены есть на текущей сцене
+      const tokens = canvas?.tokens?.placeables ?? [];
+      const actorIdsOnScene = new Set(
+        tokens.map(t => t?.actor?.id || t?.document?.actorId || t?.actorId).filter(Boolean)
+      );
+      npcs = npcs.filter(a => actorIdsOnScene.has(a.id));
+    } else if (folderSel !== "all") {
+      // стандартный фильтр по выбранной папке
       npcs = npcs.filter(a => {
         let f = a.folder ?? null;
         while (f) { if (f.id === folderSel) return true; f = f.folder ?? null; }
@@ -460,18 +480,22 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
 
   // ── Hooks ────────────────────────────────────────────────────────────────────
   Hooks.once("ready", () => {
-    if (!game.user?.isGM) return;
+    if (!game.user?.isGM) 
+      return;
+
     ensureDock();
     buildDock();
 
     // актёры
-    Hooks.on("createActor", (a) => { if (a?.type === "npc" || a?.type === "player") scheduleRebuild(); });
-    Hooks.on("deleteActor", (a) => { if (a?.type === "npc" || a?.type === "player") scheduleRebuild(); });
+    Hooks.on("createActor", (a) => { scheduleRebuild(); });
+    Hooks.on("deleteActor", (a) => { scheduleRebuild(); });
     Hooks.on("updateActor", (actor, diff) => {
-      if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN)) reflectActorFlag(actor);
+      if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN)) 
+        reflectActorFlag(actor);
       const flat = foundry.utils.flattenObject(diff);
       const rel = ["name", "img", "type", "prototypeToken.texture.src", "folder"];
-      if (rel.some(k => k in flat)) scheduleRebuild();
+      if (rel.some(k => k in flat)) 
+        scheduleRebuild();
       // rebuild if favorite flags changed (npc or pc)
       if (foundry.utils.hasProperty(diff, FLAG_FAVORITE)) scheduleRebuild();
       if (foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.pcFavorite`)) scheduleRebuild();
@@ -482,7 +506,13 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     Hooks.on("updateFolder", (f) => { if (f?.type === "Actor") scheduleRebuild(); });
     Hooks.on("deleteFolder", (f) => { if (f?.type === "Actor") scheduleRebuild(); });
 
+    // сцена
     Hooks.on("canvasReady", () => scheduleRebuild());
+
+    // токены
+    Hooks.on("createToken",  () => scheduleRebuild());
+    Hooks.on("updateToken",  () => scheduleRebuild());
+    Hooks.on("deleteToken",  () => scheduleRebuild());
   });
 
   // Экспорт
