@@ -285,10 +285,19 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     if (!actor) return;
     const isFav = !!foundry.utils.getProperty(actor, FLAG_FAVORITE);
     try {
+      const animationClass = isFav ? 'removing-from-favorites' : 'adding-to-favorites';
+      // Добавляем соответствующий класс анимации
+      btn.classList.add(animationClass);
+      // Ждем окончания анимации перед обновлением
+      await new Promise(resolve => setTimeout(resolve, 100));
       await actor.update({ [FLAG_FAVORITE]: !isFav });
       scheduleRebuild(0);
+      // Удаляем класс анимации
+      btn.classList.remove(animationClass);
     } catch (e) {
       console.error("[threeO-dock] fav toggle error:", e);
+      btn.classList.remove('adding-to-favorites');
+      btn.classList.remove('removing-from-favorites');
     }
   }
 
@@ -347,7 +356,15 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
         ev.preventDefault();
         ev.stopPropagation();
         const isFav = !!foundry.utils.getProperty(a, `flags.${MODULE_ID}.pcFavorite`);
-        try { await a.update({ [`flags.${MODULE_ID}.pcFavorite`]: !isFav }); scheduleRebuild(0); } catch (e) { console.error(e); }
+        try {
+          const animationClass = isFav ? 'removing-from-favorites' : 'adding-to-favorites';
+          ev.currentTarget.classList.add(animationClass);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await a.update({ [`flags.${MODULE_ID}.pcFavorite`]: !isFav });
+           scheduleRebuild(0); 
+          } catch (e) {
+             console.error(e);
+          }
       });
 
       container.appendChild(btn);

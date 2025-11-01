@@ -87,6 +87,67 @@
 /* Контент: слева players (до 25%), справа NPC-линия */
 #ginzzzu-npc-dock .content { display:flex; align-items:flex-start; gap:10px; }
 
+@keyframes flyToFavorites {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+}
+
+@keyframes flyFromFavorites {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+}
+
+@keyframes flyUpToFavorites {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes flyDownFromFavorites {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.adding-to-favorites {
+  animation: flyToFavorites 0.1s ease-in-out forwards;
+}
+
+.removing-from-favorites {
+  animation: flyFromFavorites 0.1s ease-in-out forwards;
+}
+
+
+.players .item.adding-to-favorites {
+  animation: flyUpToFavorites 0.1s ease-in-out forwards;
+}
+
+.players .item.removing-from-favorites {
+  animation: flyDownFromFavorites 0.1s ease-in-out forwards;
+}
+
 /* Левая колонка: грид игроков, фикс. ячейки 50x50, без скролла */
 #ginzzzu-npc-dock .players {
   flex: 0 0 180px;                   /* фиксированная ширина, не сжимается */
