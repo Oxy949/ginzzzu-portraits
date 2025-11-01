@@ -28,6 +28,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     game.settings.register(MODULE_ID, "npcDockSort",    { scope: "client", config: false, type: String, default: "name-asc" });
     game.settings.register(MODULE_ID, "npcDockFolder",  { scope: "client", config: false, type: String, default: "all" });
     game.settings.register(MODULE_ID, "npcDockSearch",  { scope: "client", config: false, type: String, default: "" });
+    game.settings.register(MODULE_ID, "npcDockCollapsed", { scope: "client", config: false, type: Boolean, default: false });
   });
 
   Hooks.on("getActorContextOptions", async (app, menuItems) => {
@@ -59,6 +60,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
   const setFolderSel  = (v) => { try { game.settings.set(MODULE_ID, "npcDockFolder", v); } catch {} };
   const getSearchText = () => { try { return game.settings.get(MODULE_ID, "npcDockSearch") || ""; } catch { return ""; } };
   const setSearchText = (v) => { try { game.settings.set(MODULE_ID, "npcDockSearch", v); } catch {} };
+  const getIsCollapsed = () => { try { return game.settings.get(MODULE_ID, "npcDockCollapsed"); } catch { return false; } };
+  const setIsCollapsed = (v) => { try { game.settings.set(MODULE_ID, "npcDockCollapsed", v); } catch {} };
 
   // ── COLORS (folder-based) ────────────────────────────────────────────────────
   function hexToRgb(hex) {
@@ -120,6 +123,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     // Toolbar
     const toolbar = document.createElement("div");
     toolbar.className = "toolbar";
+    const isCollapsed = getIsCollapsed();
     toolbar.innerHTML = `
       <div class="left">
         <input id="ginzzzu-npc-search" type="text" placeholder="${game.i18n.localize("GINZZZUPORTRAITS.searchNPC")}">
@@ -137,6 +141,9 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
           <option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>
         </select>
         <button class="clear-all" id="ginzzzu-npc-clear" title="${game.i18n.localize("GINZZZUPORTRAITS.hideAllPortraits")}">🧹</button>
+        <button class="collapse-btn" id="ginzzzu-npc-collapse" title="${isCollapsed ? 'Развернуть' : 'Свернуть'}">
+          <i class="fas ${isCollapsed ? 'fa-expand' : 'fa-compress'}"></i>
+        </button>
       </div>
     `;
     root.appendChild(toolbar);
@@ -205,6 +212,20 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     folderEl.addEventListener("change", (e) => { setFolderSel(e.target.value || "all"); scheduleRebuild(0); });
 
     clearBtn.addEventListener("click", async (e) => { e.preventDefault(); await hideAllPortraitsAllActors(); });
+
+    // Collapse button functionality
+    const collapseBtn = toolbar.querySelector("#ginzzzu-npc-collapse");
+    collapseBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isCollapsed = !getIsCollapsed();
+      setIsCollapsed(isCollapsed);
+      root.classList.toggle("collapsed", isCollapsed);
+      collapseBtn.title = isCollapsed ? "Развернуть" : "Свернуть";
+      collapseBtn.querySelector("i").className = `fas ${isCollapsed ? 'fa-expand' : 'fa-compress'}`;
+    });
+
+    // Apply initial collapsed state
+    root.classList.toggle("collapsed", getIsCollapsed());
 
     return root;
   }
