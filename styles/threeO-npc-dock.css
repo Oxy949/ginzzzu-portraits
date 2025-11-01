@@ -18,8 +18,11 @@
 #ginzzzu-npc-dock.collapsed {
   width: auto;
   padding: 8px;
-  bottom: 20px;
+  bottom: 0;
+  left: calc(100vw - 400px); /* hotbar width is ~520px, adding some margin */
+  transform: none;
   background: rgba(12, 8, 16, 0.5);
+  border-radius: 6px 6px 0 0;
 }
 
 #ginzzzu-npc-dock.collapsed .content {
@@ -162,8 +165,9 @@
 #ginzzzu-npc-dock .item {
   transform: scale(0.94);
   transform-origin: center top;
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-  will-change: transform;
+  transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
   box-shadow: 0 0 8px rgba(255, 215, 106, 0.2);
 }
 
