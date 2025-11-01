@@ -5,6 +5,7 @@
     "GINZZZUPORTRAITS": {
       "showCharacterPortrait": "Показать Персонажа",
       "hideCharacterPortrait": "Скрыть Персонажа",
+      "toggleCharacterPortrait": "Переключить Персонажа",
       "searchNPC": "Поиск NPC...",
       "sorting": "Сортировка:",
       "displaySrc": "Источник:",

@@ -631,25 +631,13 @@ Object.assign(root.style, {
   closeAllLocalPortraits,
   getActivePortraits,
   };
-  
+
+
+
 // === System-agnostic UI controls (directory + token HUD) ===
-Hooks.on("getActorDirectoryEntryContext", (html, options) => {
-  options.push({
-    name: "Портрет: показать/скрыть",
-    icon: '<i class="fas fa-image"></i>',
-    condition: () => game.user?.isGM,
-    callback: (li) => {
-      try {
-        const actorId = li?.data("documentId") || li?.data("entityId");
-        const actor = game.actors?.get(actorId);
-        if (actor && globalThis.GinzzzuPortraits?.togglePortrait) globalThis.GinzzzuPortraits.togglePortrait(actor);
-      } catch (e) { console.error(e); }
-    }
-  });
-});
 
 Hooks.on("getActorContextOptions", async (app, menuItems) => {
-  if (!game.user.isGM && game.settings.get(CONSTANTS.MODULE_ID, "gmOnly")) {
+  if (!game.user.isGM) {
     return;
   }
   const getActorData = /* @__PURE__ */ __name((target) => {
@@ -679,17 +667,33 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
   );
 });
 
-Hooks.on("renderTokenHUD", (app, html) => {
-  try {
-    if (!game.user?.isGM) return;
-    const btn = $(`<div class="control-icon ginzzzu-portrait" title="Портрет"><i class="fas fa-image"></i></div>`);
-    btn.on("click", async () => {
-      const actor = app?.object?.actor ?? app?.token?.actor ?? app?.document?.actor;
-      if (actor && globalThis.GinzzzuPortraits?.togglePortrait) await globalThis.GinzzzuPortraits.togglePortrait(actor);
+Hooks.on("getHeaderControlsActorSheetV2", (app, buttons) => {
+  if (!game.user.isGM) {
+    return;
+  }
+  const removeLabelSheetHeader = false;
+  let theatreButtons = [];
+  if (app.document.isOwner) {
+    // if (!app.document.token) {
+    //   theatreButtons.push({
+    //     action: "configure-theatre",
+    //     label: "Theatre.UI.Config.Theatre",
+    //     class: "configure-theatre",
+    //     icon: "fas fa-user-edit",
+    //     onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document), "onClick")
+    //   });
+    // }
+    theatreButtons.push({
+      action: "add-to-theatre-navbar",
+      label: "GINZZZUPORTRAITS.toggleCharacterPortrait",
+      class: "add-to-theatre-navbar",
+      icon: "fas fa-theater-masks",
+      onClick: /* @__PURE__ */ __name(async (ev) => {
+        await globalThis.GinzzzuPortraits.togglePortrait(app.document);
+      }, "onClick")
     });
-    // Prefer right column if exists, else append to left
-    const right = html.find(".col.right");
-    if (right.length) right.append(btn); else html.find(".col.left").append(btn);
-  } catch (e) { console.error(e); }
+  }
+  buttons.unshift(...theatreButtons);
 });
+
 })();
