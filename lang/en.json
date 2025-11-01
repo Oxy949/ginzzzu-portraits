@@ -3,6 +3,8 @@
   "I18N.MAINTAINERS": "@tposney",
 
   "GINZZZUPORTRAITS": {
+    "showCharacterPortrait": "Show Character",
+    "hideCharacterPortrait": "Hide Character",
     "searchNPC": "Search NPC...",
     "sorting": "Sort by:",
     "displaySrc": "Source:",

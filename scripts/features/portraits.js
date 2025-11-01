@@ -1,4 +1,6 @@
 import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 (()=>{
   // Preferable actor image property paths (configurable)
@@ -623,21 +625,6 @@ Object.assign(root.style, {
     return ids;
   }
 
-  // Hooks.on("renderThreeOGMActorSheet", (app, html) => {
-  //   html.find(".toggle-portrait-btn")
-  //     .off("click.threeo")
-  //     .on("click.threeo", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
-
-  //   if (!html.find(".toggle-portrait-btn").length) {
-  //     const tokenBtn = html.find(".change-token-btn");
-  //     if (tokenBtn.length) {
-  //       const $btn = $(`<button type="button" class="toggle-portrait-btn" title="Показать/скрыть портрет">Портрет</button>`);
-  //       $btn.insertAfter(tokenBtn);
-  //       $btn.on("click", async (ev) => { ev.preventDefault(); await togglePortrait(app.actor); });
-  //     }
-  //   }
-  // });
-
   // Экспорт
   globalThis.GinzzzuPortraits = {
   togglePortrait,
@@ -659,6 +646,37 @@ Hooks.on("getActorDirectoryEntryContext", (html, options) => {
       } catch (e) { console.error(e); }
     }
   });
+});
+
+Hooks.on("getActorContextOptions", async (app, menuItems) => {
+  if (!game.user.isGM && game.settings.get(CONSTANTS.MODULE_ID, "gmOnly")) {
+    return;
+  }
+  const getActorData = /* @__PURE__ */ __name((target) => {
+    return game.actors.get($(target).data("entry-id"));
+  }, "getActorData");
+  menuItems.splice(
+    3,
+    0,
+    {
+      name: "GINZZZUPORTRAITS.showCharacterPortrait",
+      condition: /* @__PURE__ */ __name((target) => {
+        const actor = getActorData(target);
+        return actor && !globalThis.GinzzzuPortraits.getActivePortraits().includes(actor.id);
+      }, "condition"),
+      icon: '<i class="fas fa-theater-masks"></i>',
+      callback: /* @__PURE__ */ __name((target) => globalThis.GinzzzuPortraits.togglePortrait(getActorData(target)), "callback")
+    },
+    {
+      name: "GINZZZUPORTRAITS.hideCharacterPortrait",
+      condition: /* @__PURE__ */ __name((target) => {
+        const actor = getActorData(target);
+        return actor && globalThis.GinzzzuPortraits.getActivePortraits().includes(actor.id);
+      }, "condition"),
+      icon: '<i class="fas fa-theater-masks"></i>',
+      callback: /* @__PURE__ */ __name((target) => globalThis.GinzzzuPortraits.togglePortrait(getActorData(target)), "callback")
+    }
+  );
 });
 
 Hooks.on("renderTokenHUD", (app, html) => {

@@ -3,6 +3,8 @@
     "I18N.MAINTAINERS": "Oxy949",
 
     "GINZZZUPORTRAITS": {
+      "showCharacterPortrait": "Показать Персонажа",
+      "hideCharacterPortrait": "Скрыть Персонажа",
       "searchNPC": "Поиск NPC...",
       "sorting": "Сортировка:",
       "displaySrc": "Источник:",
