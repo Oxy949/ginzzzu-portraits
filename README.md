@@ -21,3 +21,5 @@ This module integrates seamlessly with other Foundry features and can be used bo
 - LMB - Show portrait
 - RMB - Open character sheet
 - MMB - Add character to favarite
+
+This module was heavily Inspired by Threatre Inserts module: https://foundryvtt.com/packages/theatre.
