@@ -23,9 +23,9 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
+**Environment (please complete the following information):**
+ - OS: [e.g. Windows 11]
+ - Browser [e.g. foundry app, chrome, safari]
  - Module Version [e.g. 1.1.0]
  - Foundry VTT Version [e.g. 13.350]
 
