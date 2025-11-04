@@ -249,3 +249,52 @@
   pointer-events: none;
   z-index: 1;
 }
+
+/* --- Колонка избранных NPC --- */
+#ginzzzu-npc-dock .npc-favs {
+  flex: 0 0 120px;             /* фиксированная ширина колонки */
+  width: 112px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 мини-портрета в ряд */
+  grid-auto-rows: 50px;        /* каждая строка по высоте карточки */
+  gap: 6px;
+  align-content: start;
+  justify-items: stretch;
+  max-height: 105px;           /* ограничиваем высоту колонки */
+  overflow-y: auto;            /* вертикальный скролл */
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255,215,106,0.35);
+  background: rgba(20, 15, 25, 0.35);
+  box-shadow: 0 0 10px rgba(255,215,106,0.25);
+  transition: opacity 0.2s ease;
+}
+
+
+/* уменьшенные карточки — 50% от обычных */
+#ginzzzu-npc-dock .npc-favs .item {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  transform: scale(0.96);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+#ginzzzu-npc-dock .npc-favs .item:hover {
+  transform: translateY(-2px) scale(1.0);
+  box-shadow: 0 6px 12px rgba(255,215,106,0.25);
+}
+
+/* скрыть подписи/доп. элементы в мини-портретах */
+#ginzzzu-npc-dock .npc-favs .item .nameplate,
+#ginzzzu-npc-dock .npc-favs .item .badge {
+  display: none !important;
+}
+
+/* для плавности появления/скрытия */
+#ginzzzu-npc-dock .npc-favs[style*="display: none"] {
+  opacity: 0;
+  pointer-events: none;
+}
