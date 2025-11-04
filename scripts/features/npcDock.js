@@ -226,7 +226,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       const isCollapsed = !getIsCollapsed();
       setIsCollapsed(isCollapsed);
       root.classList.toggle("collapsed", isCollapsed);
-      collapseBtn.title = isCollapsed ? "Развернуть" : "Свернуть";
+      collapseBtn.title = isCollapsed ? game.i18n.localize("GINZZZUPORTRAITS.showPanelUI") : game.i18n.localize("GINZZZUPORTRAITS.hidePanelUI");
       collapseBtn.querySelector("i").className = `fas ${isCollapsed ? 'fa-expand' : 'fa-compress'}`;
     });
 
