@@ -252,7 +252,7 @@
 
 /* --- Колонка избранных NPC --- */
 #ginzzzu-npc-dock .npc-favs {
-  flex: 0 0 120px;             /* фиксированная ширина колонки */
+  flex: 0 0 auto;             /* фиксированная ширина колонки */
   width: 112px;
   display: grid;
   grid-template-columns: repeat(2, 1fr); /* 2 мини-портрета в ряд */
@@ -260,7 +260,7 @@
   gap: 6px;
   align-content: start;
   justify-items: stretch;
-  max-height: 105px;           /* ограничиваем высоту колонки */
+  max-height: 100px;           /* ограничиваем высоту колонки */
   overflow-y: auto;            /* вертикальный скролл */
   overflow-x: hidden;
   scrollbar-width: thin;
