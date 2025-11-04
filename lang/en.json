@@ -6,6 +6,8 @@
     "showCharacterPortrait": "Show Character",
     "hideCharacterPortrait": "Hide Character",
     "toggleCharacterPortrait": "Toggle Character",
+    "showPanelUI": "Show Characters Panel",
+    "hidePanelUI": "Hide Characters Panel",
     "searchNPC": "Search NPC...",
     "sorting": "Sort by:",
     "displaySrc": "Source:",

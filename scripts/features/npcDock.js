@@ -141,7 +141,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
           <option value="all">${game.i18n.localize("GINZZZUPORTRAITS.allFolders")}</option>
         </select>
         <button class="clear-all" id="ginzzzu-npc-clear" title="${game.i18n.localize("GINZZZUPORTRAITS.hideAllPortraits")}">🧹</button>
-        <button class="collapse-btn" id="ginzzzu-npc-collapse" title="${isCollapsed ? 'Развернуть' : 'Свернуть'}">
+        <button class="collapse-btn" id="ginzzzu-npc-collapse" title="${isCollapsed ? game.i18n.localize("GINZZZUPORTRAITS.showPanelUI") : game.i18n.localize("GINZZZUPORTRAITS.hidePanelUI")}">
           <i class="fas ${isCollapsed ? 'fa-expand' : 'fa-compress'}"></i>
         </button>
       </div>

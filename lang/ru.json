@@ -6,6 +6,8 @@
       "showCharacterPortrait": "Показать Персонажа",
       "hideCharacterPortrait": "Скрыть Персонажа",
       "toggleCharacterPortrait": "Переключить Персонажа",
+      "showPanelUI": "Показать Панель Персонажей",
+      "hidePanelUI": "Скрыть Панель Персонажей",
       "searchNPC": "Поиск NPC...",
       "sorting": "Сортировка:",
       "displaySrc": "Источник:",

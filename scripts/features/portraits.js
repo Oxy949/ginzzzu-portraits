@@ -259,7 +259,7 @@ Object.assign(root.style, {
       gapPx = 0;
     } else {
       // если разрешено менять width, заранее ограничим его, чтобы не было слишком явного переползания
-      if (game.settings.get(MODULE_ID, "resizeToFit")) {
+      if (game.settings.get(MODULE_ID, "visualNovelMode") === false && game.settings.get(MODULE_ID, "resizeToFit")) {
         const possibleAtMinGap = Math.floor((bandW - (n - 1) * FRAME.gapMin) / n);
         widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, possibleAtMinGap));
       }
