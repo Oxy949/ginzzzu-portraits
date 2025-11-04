@@ -148,47 +148,53 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     `;
     root.appendChild(toolbar);
 
-    // Контент: players + npcs
+    // Контент: players + NPC (избранные отдельной колонкой)
     const content = document.createElement("div");
     content.className = "content";
-    
-    if (game.settings.get(MODULE_ID, "playerCharactersPanelEnabled") ) {
-    content.innerHTML = `
-      <div class="players"></div>
-      <div class="npcs"><div class="rail"></div></div>
-    `;
+
+    if (game.settings.get(MODULE_ID, "playerCharactersPanelEnabled")) {
+      content.innerHTML = `
+        <div class="players"></div>
+        <div class="npc-favs" style="display:none"></div>
+        <div class="npcs"><div class="rail"></div></div>
+      `;
     } else {
       content.innerHTML = `
-        <div class="players" style="display: none; visibility: hidden;"></div>
+        <div class="players" style="display:none; visibility:hidden;"></div>
+        <div class="npc-favs" style="display:none"></div>
         <div class="npcs"><div class="rail"></div></div>
       `;
     }
     root.appendChild(content);
 
-    // Прокрутка колёсиком — скроллим только NPC-ленту
-    // wheel: если над блоком игроков — крутим ВЕРТИКАЛЬНО players,
-    // иначе крутим ГОРИЗОНТАЛЬНО рельсу NPC
+
+
+    // wheel: если над блоком игроков или избранных — крутим ВЕРТИКАЛЬНО,
+    // иначе крутим ГОРИЗОНТАЛЬНО основную ленту NPC
     root.addEventListener("wheel", (ev) => {
       const players = root.querySelector(".players");
+      const favs    = root.querySelector(".npc-favs");
       const npcsRail = root.querySelector(".npcs .rail");
       if (!players || !npcsRail) return;
 
-      const pRect = players.getBoundingClientRect();
-      const overPlayers =
-        ev.clientX >= pRect.left && ev.clientX <= pRect.right &&
-        ev.clientY >= pRect.top  && ev.clientY <= pRect.bottom;
+      const over = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return ev.clientX >= r.left && ev.clientX <= r.right &&
+               ev.clientY >= r.top  && ev.clientY <= r.bottom;
+      };
 
-      if (overPlayers) {
-        // вертикальная прокрутка сетки игроков
+      if (over(players) || over(favs)) {
         ev.preventDefault();
-        players.scrollTop += ev.deltaY;
+        (over(players) ? players : favs).scrollTop += ev.deltaY;
       } else {
-        // горизонтальная прокрутка NPC-рельсы
         if (!ev.deltaY) return;
         ev.preventDefault();
         npcsRail.scrollLeft += ev.deltaY;
       }
     }, { passive: false });
+
+
 
     // Контекстное меню карточек отключаем (ПКМ — открыть лист)
     root.addEventListener("contextmenu", (ev) => {
@@ -371,24 +377,22 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     }
   }
 
-  // Построить карточки NPC (с учётом фильтров)
+    // Построить карточки NPC (с учётом фильтров, БЕЗ избранных — они в отдельной колонке)
   function buildNPCs(containerRail) {
+    if (!containerRail) return;
     containerRail.innerHTML = "";
 
     let npcs = (game.actors?.contents ?? []).filter(a => isNPC(a));
 
-    // фильтр по папке
+    // фильтр по источнику (папка / со сцены / все)
     const folderSel = getFolderSel();
-    
     if (folderSel === "from-scene") {
-      // показать только тех NPC, чьи токены есть на текущей сцене
       const tokens = canvas?.tokens?.placeables ?? [];
       const actorIdsOnScene = new Set(
         tokens.map(t => t?.actor?.id || t?.document?.actorId || t?.actorId).filter(Boolean)
       );
       npcs = npcs.filter(a => actorIdsOnScene.has(a.id));
     } else if (folderSel !== "all") {
-      // стандартный фильтр по выбранной папке
       npcs = npcs.filter(a => {
         let f = a.folder ?? null;
         while (f) { if (f.id === folderSel) return true; f = f.folder ?? null; }
@@ -396,7 +400,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       });
     }
 
-    // фильтр по поиску (имя/путь)
+    // поиск
     const q = (getSearchText() || "").trim().toLowerCase();
     if (q) {
       npcs = npcs.filter(a => {
@@ -411,24 +415,35 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       return;
     }
 
-    // сортировка с учетом избранного
-    const mode = getSortMode();
-    npcs.sort((a, b) => {
-      // сначала по избранному
-      const aFav = !!foundry.utils.getProperty(a, FLAG_FAVORITE);
-      const bFav = !!foundry.utils.getProperty(b, FLAG_FAVORITE);
-      if (aFav !== bFav) return bFav ? 1 : -1;
-
-      // затем по выбранному режиму
-      if (mode === "folder-asc") {
-        const pa = getFolderPath(a), pb = getFolderPath(b);
-        const byFolder = (pa||"").localeCompare(pb||"", game.i18n.lang || undefined, { sensitivity:"base" });
-        if (byFolder !== 0) return byFolder;
-      }
-      return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
-    });
-
+    // разделяем на избранных и остальных
+    const rest = [];
     for (const a of npcs) {
+      if (!foundry.utils.getProperty(a, FLAG_FAVORITE)) rest.push(a);
+    }
+
+    // если все совпадающие оказались избранными — основная лента пустая
+    if (!rest.length) {
+      containerRail.innerHTML = `<div class="empty">${game.i18n.localize("GINZZZUPORTRAITS.allInFavorites") || "Все подходящие NPC отмечены ★ и показаны в колонке избранных"}</div>`;
+      return;
+    }
+
+    // сортировка остальных
+    const mode = getSortMode();
+    if (mode === "folder-asc") {
+      rest.sort((a, b) => {
+        const pa = getFolderPath(a), pb = getFolderPath(b);
+        const byFolder = (pa || "").localeCompare(pb || "", game.i18n.lang || undefined, { sensitivity:"base" });
+        if (byFolder !== 0) return byFolder;
+        return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+      });
+    } else {
+      rest.sort((a, b) =>
+        (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" })
+      );
+    }
+
+    // рендер только обычных NPC
+    for (const a of rest) {
       const btn = document.createElement("div");
       btn.className = "item";
       btn.dataset.actorId = a.id;
@@ -442,15 +457,6 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
       if (shown) btn.classList.add("is-on");
 
-      // NPC favorite visual
-      if (foundry.utils.getProperty(a, FLAG_FAVORITE)) {
-        btn.classList.add("is-fav");
-        const star = document.createElement("div");
-        star.className = "fav-star";
-        star.textContent = "★";
-        btn.appendChild(star);
-      }
-
       const folderHex = getActorFolderColor(a);
       if (folderHex) {
         const rgb = hexToRgb(folderHex);
@@ -461,33 +467,100 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       }
 
       btn.addEventListener("click", onCardClickToggle);
-      btn.addEventListener("mouseup", onCardRightMouse);
-      // middle click toggle favorite
-      btn.addEventListener("mousedown", onCardMiddleFav);
+      btn.addEventListener("mousedown", onCardRightMouse);
+      btn.addEventListener("mousedown", onCardMiddleFav);  // СКМ — пометить избранным
 
       containerRail.appendChild(btn);
     }
   }
+
+
+    // Отдельная колонка избранных NPC — маленькие портреты, вертикальный скролл
+  function buildNPCFavs(containerFavs) {
+    if (!containerFavs) return;
+
+    // собираем ТОЛЬКО избранных NPC (независимо от фильтров)
+    let favs = (game.actors?.contents ?? [])
+      .filter(a => isNPC(a) && !!foundry.utils.getProperty(a, FLAG_FAVORITE));
+
+    if (!favs.length) {
+      containerFavs.style.display = "none";
+      containerFavs.innerHTML = "";
+      return;
+    }
+
+    // сортируем по имени
+    favs.sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", game.i18n.lang || undefined, { sensitivity: "base" })
+    );
+
+    containerFavs.style.display = "";
+    containerFavs.innerHTML = "";
+
+    for (const a of favs) {
+      const btn = document.createElement("div");
+      btn.className = "item";
+      btn.dataset.actorId = a.id;
+      btn.title = makeTooltip(a);
+
+      const img = document.createElement("img");
+      img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
+      img.alt = a.name || "NPC";
+      btn.appendChild(img);
+
+      // включён ли портрет
+      if (foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN)) {
+        btn.classList.add("is-on");
+      }
+
+      // звездочка для наглядности
+      const star = document.createElement("div");
+      star.className = "fav-star";
+      star.textContent = "★";
+      btn.appendChild(star);
+
+      const folderHex = getActorFolderColor(a);
+      if (folderHex) {
+        const rgb = hexToRgb(folderHex);
+        btn.style.setProperty("--folder-bg",    rgbaStr(rgb, 0.35));
+        btn.style.setProperty("--folder-color", rgbaStr(rgb, 0.8));
+        const l = relLuma(rgb);
+        btn.style.setProperty("--folder-shadow", `0 6px 16px rgba(0,0,0,${l>0.6?0.35:0.55})`);
+      }
+
+      btn.addEventListener("click", onCardClickToggle);
+      btn.addEventListener("mousedown", onCardRightMouse);
+      btn.addEventListener("mousedown", onCardMiddleFav); // СКМ — снять/поставить ★
+
+      containerFavs.appendChild(btn);
+    }
+  }
+
 
   // Построение всего дока
   function buildDock() {
     if (!game.user?.isGM) return;
     const root = ensureDock();
 
-    // обновление селектора папок
     refreshFolderSelectOptions();
 
-    // players + npcs
     const playersBox = root.querySelector(".players");
+    const npcFavsBox = root.querySelector(".npc-favs");
     const npcRail    = root.querySelector(".npcs .rail");
 
-    if (game.settings.get(MODULE_ID, "playerCharactersPanelEnabled") ) {
+    if (playersBox && game.settings.get(MODULE_ID, "playerCharactersPanelEnabled")) {
       buildPlayers(playersBox);
+    } else if (playersBox) {
+      playersBox.innerHTML = "";
     }
+
+    if (npcFavsBox) buildNPCFavs(npcFavsBox);
     buildNPCs(npcRail);
 
     root.style.display = "";
   }
+
+
 
   // Подсветка карточки по изменению флага (и для NPC, и для PLAYER)
   function reflectActorFlag(actor) {
