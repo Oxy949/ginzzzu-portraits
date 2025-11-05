@@ -7,9 +7,13 @@ A system-independent Foundry VTT module that brings a cinematic layer to your Fo
 It displays character and NPC portraits directly on screen — much like a visual novel or dialogue-driven RPG. 
 
 The module provides:
+
 🎭 Dynamic portraits for PCs and NPCs with smooth animation transitions.
+
 💬 NPC Dock, a visual panel bar for managing and displaying characters on screen that remembers sorting between worlds, supports folder-based sorting etc.
+
 ⚙️ Customizable layout, including sliders for portrait size, spacing, and screen offsets.
+
 ✨ Stylized UI with glass panels, glowing edges, and adaptive transparency.
 
 This module integrates seamlessly with other Foundry features and can be used both for roleplay storytelling and combat visualization for any gaming system.
