@@ -128,21 +128,21 @@ const FRAME = {
     root.id = "ginzzzu-portrait-layer";
 
     // слой на весь интерфейс; flex-ряд у низа по центру
-Object.assign(root.style, {
-  position: "absolute",
-  inset: "0",
-  zIndex: "1",
-  pointerEvents: "none",
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "flex-end",
-  justifyContent: "center",
-  gap: "24px",
-  paddingBottom: `${FRAME.bottomPx}px`,
-  // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
-  transform: "translateZ(0)", // Force GPU layer
-  backfaceVisibility: "hidden"
-});
+    Object.assign(root.style, {
+      position: "absolute",
+      inset: "0",
+      zIndex: "1",
+      pointerEvents: "none",
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      gap: "24px",
+      paddingBottom: `${FRAME.bottomPx}px`,
+      // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
+      transform: "translateZ(0)", // Force GPU layer
+      backfaceVisibility: "hidden"
+    });
 
 
     const rail = document.createElement("div");
@@ -304,13 +304,16 @@ Object.assign(root.style, {
     }
 
     imgs.forEach((el, i) => {
-      el.style.height    = `${porHeight * 100}vh`;
-      el.style.maxHeight = `${porHeight * 100}vh`;
-      el.style.width     = `${widthPx}px`;
-      el.style.maxWidth  = `${widthPx}px`;
-      el.style.flex      = "0 0 auto";
-      el.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
-      el.style.zIndex = String(100 + i);
+      const wrapper = el.parentElement;
+      if (!wrapper) return;
+      
+      wrapper.style.height    = `${porHeight * 100}vh`;
+      wrapper.style.maxHeight = `${porHeight * 100}vh`;
+      wrapper.style.width     = `${widthPx}px`;
+      wrapper.style.maxWidth  = `${widthPx}px`;
+      wrapper.style.flex      = "0 0 auto";
+      wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
+      wrapper.style.zIndex = String(100 + i);
     });
   }
 
@@ -460,29 +463,28 @@ Object.assign(root.style, {
     el.dataset.actorId = actorId;
     el.dataset.src = img;
 
+    // Создаем обертку для изображения
+    const wrapper = document.createElement("div");
+    wrapper.className = "ginzzzu-portrait-wrapper";
+
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       Object.assign(el.style, {
-        position: "relative",
-        width: "auto",
-        height: "auto",
-        objectFit: "cover",
-        overflow: "visible", 
-        borderRadius: "10px",
         filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
         transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
         pointerEvents: "none",
         opacity: "0",
-        transform: "translate3d(0,12px,0)",
+        left: "50%",
+        // transform: "translate3d(0,12px,0)",
         backfaceVisibility: "hidden",
         transformStyle: "preserve-3d",
-        willChange: "transform, opacity"
+        willChange: "transform, opacity",
       });
     } else {
       Object.assign(el.style, {
-        position: "relative",
-        width: "auto",
-        height: "auto",
+        position: "absolute",
+        width: "100%",
+        height: "100%",
         objectFit: "contain",
         borderRadius: "10px",
         filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
@@ -497,17 +499,25 @@ Object.assign(root.style, {
     }
 
 
-    rail.appendChild(el);
+    wrapper.appendChild(el);
+    rail.appendChild(wrapper);
     map.set(actorId, el);
 
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
 
-    // Собственное плавное появление
-    requestAnimationFrame(() => {
-      el.style.opacity = "1";
-      el.style.transform = "translateY(0)";
-    });
+    if (game.settings.get(MODULE_ID, "visualNovelMode")) {
+      // Собственное плавное появление
+      requestAnimationFrame(() => {
+        el.style.opacity = "1";
+      });
+    } else {
+      // Собственное плавное появление
+      requestAnimationFrame(() => {
+        el.style.opacity = "1";
+        el.style.transform = "translateY(0)";
+      });
+    }
   }
 
   // Скрытие одного портрета (удаление DOM + FLIP остальных)
@@ -525,7 +535,15 @@ Object.assign(root.style, {
 
     const timeout = Math.max(_ANIM.fadeMs, _ANIM.moveMs) + 80; // чуть больше — надёжнее
     setTimeout(() => {
-      try { el.remove(); } catch {}
+      try { 
+        // Удаляем обертку вместе с изображением
+        const wrapper = el.parentElement;
+        if (wrapper && wrapper.classList.contains('ginzzzu-portrait-wrapper')) {
+          wrapper.remove();
+        } else {
+          el.remove();
+        }
+      } catch {}
       map.delete(actorId);
 
       // Переложим оставшихся по снятому FIRST (FLIP через WAAPI)

@@ -1,0 +1,14 @@
+.ginzzzu-portrait-wrapper {
+  position: relative;
+  overflow: visible;
+}
+
+.ginzzzu-portrait-wrapper > img {
+  height: 100%;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  object-position: center;
+  position: absolute;
+  transform: translateX(-50%) translateY(0px);
+}
