@@ -1,4 +1,4 @@
-![Latest Release Download Count](https://img.shields.io/github/downloads/Oxy949/ginzzzu-portraits/latest/module.zip?color=2b82fc&label=DOWNLOADS&style=for-the-badge) [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fginzzzu-portraits&colorB=03ff1c&style=for-the-badge)](https://forge-vtt.com/bazaar#package=ginzzzu-portraits) ![Foundry 13](https://img.shields.io/badge/Foundry-v13-informational?color=2b82fc&label=Foundry%20VTT&style=for-the-badge)
+![Latest Release Download Count](https://img.shields.io/github/downloads/Oxy949/ginzzzu-portraits/latest/module.zip?color=2b82fc&label=DOWNLOADS&style=for-the-badge) [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fginzzzu-portraits&color=2b82fc&style=for-the-badge)](https://forge-vtt.com/bazaar#package=ginzzzu-portraits) ![Foundry 13](https://img.shields.io/badge/Foundry-v13-informational?color=2b82fc&label=Foundry%20VTT&style=for-the-badge)
 
 ![Image](./preview.webp)
 
@@ -30,4 +30,7 @@ This module integrates seamlessly with other Foundry features and can be used bo
 - RMB - Open character sheet
 - MMB - Add character to favarite
 
-This module was heavily Inspired by Threatre Inserts module: https://foundryvtt.com/packages/theatre.
+## Credits
+- [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design
+- [Oxy949](https://boosty.to/oxy949) - The module code, refactoring, bugfixes 
+- [Threatre Inserts](https://foundryvtt.com/packages/theatre) - Heavy inspiration *(and little bit'o code's reference)*
