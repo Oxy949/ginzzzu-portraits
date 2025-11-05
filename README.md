@@ -1,4 +1,6 @@
-![Latest Release Download Count](https://img.shields.io/github/downloads/Oxy949/ginzzzu-portraits/latest/module.zip?color=2b82fc&label=DOWNLOADS&style=for-the-badge) [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fginzzzu-portraits&colorB=03ff1c&style=for-the-badge)](https://forge-vtt.com/bazaar#package=ginzzzu-portraits)
+![Latest Release Download Count](https://img.shields.io/github/downloads/Oxy949/ginzzzu-portraits/latest/module.zip?color=2b82fc&label=DOWNLOADS&style=for-the-badge) [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fginzzzu-portraits&colorB=03ff1c&style=for-the-badge)](https://forge-vtt.com/bazaar#package=ginzzzu-portraits) ![Foundry 13](https://img.shields.io/badge/Foundry-v13-informational?color=2b82fc&label=Foundry%20VTT&style=for-the-badge)
+
+![Image](./preview.webp)
 
 # Ginzzzu's Portraits & NPC Dock
 A system-independent Foundry VTT module that brings a cinematic layer to your Foundry VTT games.
