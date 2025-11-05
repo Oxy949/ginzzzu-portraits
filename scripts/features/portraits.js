@@ -507,16 +507,20 @@ const FRAME = {
     relayoutDomHud(firstRects);
 
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
-      // Собственное плавное появление
-      requestAnimationFrame(() => {
-        el.style.opacity = "1";
-      });
+      // Ждем полной загрузки изображения в DOM перед анимацией
+      el.onload = () => {
+        requestAnimationFrame(() => {
+          el.style.opacity = "1";
+        });
+      };
     } else {
-      // Собственное плавное появление
-      requestAnimationFrame(() => {
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
-      });
+      // Ждем полной загрузки изображения в DOM перед анимацией
+      el.onload = () => {
+        requestAnimationFrame(() => {
+          el.style.opacity = "1";
+          el.style.transform = "translateY(0)";
+        });
+      };
     }
   }
 
