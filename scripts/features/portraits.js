@@ -1,4 +1,5 @@
-import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, DOCK_ID } from "../core/constants.js";
+
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -229,6 +230,111 @@ const FRAME = {
     if (!globalThis.__ginzzzuDomPortraits) globalThis.__ginzzzuDomPortraits = new Map();
     return globalThis.__ginzzzuDomPortraits;
   }
+
+  // === Active portraits icons inside NPC dock, BEFORE .toolbar ===
+  let __dockIconsBox;
+
+  function getDockRoot() {
+    return document.getElementById(DOCK_ID) || null;
+  }
+  function getDockToolbar(dock) {
+    if (!dock) return null;
+    // Предпочтительно — .toolbar, который является ПРЯМЫМ ребёнком дока
+    const tbs = dock.querySelectorAll(".toolbar");
+    for (const tb of tbs) if (tb.parentElement === dock) return tb;
+    return tbs[0] || null;
+  }
+  function ensureDockIconsBox() {
+    const dock = getDockRoot();
+    if (!dock) return null;
+
+    const tb = getDockToolbar(dock);
+    if (!tb) return null;
+
+    if (__dockIconsBox && dock.contains(__dockIconsBox)) return __dockIconsBox;
+
+    const box = document.createElement("div");
+    box.id = "active-portraits";
+    box.className = "active-portraits";
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", game.i18n?.localize?.("ginzzzu.activePortraits") || "Active portraits");
+    // вставляем ПЕРЕД .toolbar
+    dock.insertBefore(box, tb);
+
+    __dockIconsBox = box;
+    return __dockIconsBox;
+  }
+
+  function renderDockIcons() {
+    if (!game.user?.isGM) return; // панель нужна только ГМу
+    const box = ensureDockIconsBox();
+    if (!box) return;
+
+    const map = domStore();
+    const ids = Array.from(map.keys());
+
+    box.innerHTML = "";
+    for (const actorId of ids) {
+      const imgEl = map.get(actorId);
+      if (!imgEl?.isConnected) continue;
+
+      const actor = game.actors?.get(actorId);
+      const isOn  = actor ? !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN) : true;
+      const isFav = actor ? !!foundry.utils.getProperty(actor, FLAG_FAVORITE)       : false;
+      const src   = imgEl.currentSrc || imgEl.src || "icons/svg/mystery-man.svg";
+      const name  = imgEl.dataset.actorName || actor?.name || "Portrait";
+
+      // кнопка-иконка
+      const icon = document.createElement("button");
+      icon.type = "button";
+      icon.className = "dock-icon" + (isOn ? " is-on" : " is-off") + (isFav ? " is-fav" : "");
+      icon.dataset.actorId = actorId;
+      icon.title = name;
+
+      const im = document.createElement("img");
+      im.src = src; im.alt = name;
+      icon.appendChild(im);
+
+      if (isFav) {
+        const fav = document.createElement("span");
+        fav.className = "fav";
+        fav.textContent = "★";
+        icon.appendChild(fav);
+      }
+
+      // ЛКМ — показать/скрыть портрет
+      icon.addEventListener("click", async (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const a = game.actors?.get(actorId);
+        if (!a) return;
+        const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
+        try { await a.update({ [FLAG_PORTRAIT_SHOWN]: !shown }); } catch(e) { console.error(e); }
+      });
+
+      // ПКМ — открыть лист
+      icon.addEventListener("contextmenu", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        const a = game.actors?.get(actorId);
+        if (a) setTimeout(() => a.sheet?.render(true), 0);
+      });
+
+      // СКМ — избранное
+      icon.addEventListener("mousedown", async (ev) => {
+        if (ev.button !== 1) return;
+        ev.preventDefault(); ev.stopPropagation();
+        const a = game.actors?.get(actorId);
+        if (!a) return;
+        const favNow = !!foundry.utils.getProperty(a, FLAG_FAVORITE);
+        try { await a.update({ [FLAG_FAVORITE]: !favNow }); } catch(e) { console.error(e); }
+      });
+
+      box.appendChild(icon);
+    }
+
+    box.style.display = box.children.length ? "flex" : "none";
+  }
+
+
 
   // FIRST: текущие позиции всех портретов (для FLIP)
   function collectFirstRects() {
@@ -501,7 +607,60 @@ const FRAME = {
 
     wrapper.appendChild(el);
     rail.appendChild(wrapper);
+    // сохраняем имя для верхней панели
+    el.dataset.actorName = name || "";
     map.set(actorId, el);
+
+    // GM-only interactions on overlay portraits
+    try {
+      const allow = !!game.user?.isGM;
+      // Разрешаем события только ГМу (иначе остаётся «прозрачным» для кликов)
+      wrapper.style.pointerEvents = allow ? "auto" : "none";
+      el.style.pointerEvents = allow ? "auto" : "none";
+
+      // Тултип — только для ГМа
+      if (allow && name) {
+        wrapper.title = name;                     // нативный tooltip
+        try { if (ui?.tooltip?.bind) ui.tooltip.bind(wrapper); } catch(e){}  // если доступен менеджер Foundry
+      } else {
+        wrapper.removeAttribute("title");
+      }
+
+      // ПКМ — флип (зеркалирование)
+      if (!wrapper.__ginzzzuFlipBound) {
+        wrapper.addEventListener("contextmenu", (ev) => {
+          ev.preventDefault();
+          wrapper.classList.toggle("flipped");
+        });
+        wrapper.__ginzzzuFlipBound = true;
+      }
+    } catch(e) { console.warn(e); }
+
+    // Обновляем центральные иконки в тулбаре дока
+    try { renderDockIcons(); } catch (e) {}
+
+
+    // GM-только tooltip с именем актёра
+    if (game?.user?.isGM && name) {
+      wrapper.title = name;
+      // если доступен встроенный тултип Foundry — биндим его
+      try { if (ui?.tooltip?.bind) ui.tooltip.bind(wrapper); } catch {}
+    } else {
+      wrapper.removeAttribute("title");
+    }
+
+    // ПКМ: флип портрета — переключаем класс на обёртке
+    if (!wrapper.__ginzzzuFlipBound) {
+      wrapper.addEventListener("contextmenu", (ev) => {
+        ev.preventDefault();
+        wrapper.classList.toggle("flipped");
+      });
+      wrapper.__ginzzzuFlipBound = true;
+    }
+
+    // обновляем верхнюю панель
+    try { renderTopBar(); } catch (e) { console.warn(e); }
+
 
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
@@ -549,6 +708,7 @@ const FRAME = {
         }
       } catch {}
       map.delete(actorId);
+      try { renderDockIcons(); } catch {}
 
       // Переложим оставшихся по снятому FIRST (FLIP через WAAPI)
       relayoutDomHud(firstRects);
