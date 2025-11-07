@@ -100,6 +100,29 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+    reg("portraitFocusHighlightStrength", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusHighlightStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusHighlightStrength.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0.5,
+    range: { min: 0, max: 1, step: 0.05 },
+    requiresReload: false
+  });
+
+  reg("portraitShadowDimStrength", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitShadowDimStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitShadowDimStrength.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0.5,
+    range: { min: 0, max: 1, step: 0.05 },
+    requiresReload: false
+  });
+
+
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.name"),
