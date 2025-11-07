@@ -1,5 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, DOCK_ID } from "../core/constants.js";
-
+import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -231,107 +230,140 @@ const FRAME = {
     return globalThis.__ginzzzuDomPortraits;
   }
 
-  // === Active portraits icons inside NPC dock, BEFORE .toolbar ===
-  let __dockIconsBox;
+    // --- Фокус портрета (middle-click) ---
 
-  function getDockRoot() {
-    return document.getElementById(DOCK_ID) || null;
-  }
-  function getDockToolbar(dock) {
-    if (!dock) return null;
-    // Предпочтительно — .toolbar, который является ПРЯМЫМ ребёнком дока
-    const tbs = dock.querySelectorAll(".toolbar");
-    for (const tb of tbs) if (tb.parentElement === dock) return tb;
-    return tbs[0] || null;
-  }
-  function ensureDockIconsBox() {
-    const dock = getDockRoot();
-    if (!dock) return null;
+  // actorId того, кто сейчас "в фокусе" (или null, если никого)
+  let _focusedActorId = null;
 
-    const tb = getDockToolbar(dock);
-    if (!tb) return null;
-
-    if (__dockIconsBox && dock.contains(__dockIconsBox)) return __dockIconsBox;
-
-    const box = document.createElement("div");
-    box.id = "active-portraits";
-    box.className = "active-portraits";
-    box.setAttribute("role", "group");
-    box.setAttribute("aria-label", game.i18n?.localize?.("ginzzzu.activePortraits") || "Active portraits");
-    // вставляем ПЕРЕД .toolbar
-    dock.insertBefore(box, tb);
-
-    __dockIconsBox = box;
-    return __dockIconsBox;
+  function _getAllWrappers() {
+    const root = getDomHud();
+    if (!root) return [];
+    return Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
   }
 
-  function renderDockIcons() {
-    if (!game.user?.isGM) return; // панель нужна только ГМу
-    const box = ensureDockIconsBox();
-    if (!box) return;
+    function _getFocusShadowParams() {
+    // 0..1 – сила подсветки
+    let focusS = Number(game.settings.get(MODULE_ID, "portraitFocusHighlightStrength") ?? 0.5);
+    let shadowS = Number(game.settings.get(MODULE_ID, "portraitShadowDimStrength") ?? 0.5);
+    focusS  = Math.max(0, Math.min(1, focusS));
+    shadowS = Math.max(0, Math.min(1, shadowS));
 
-    const map = domStore();
-    const ids = Array.from(map.keys());
+    // Подбираем коэффициенты так, чтобы при s=0.5 примерно попасть
+    // в старые значения (brightness 1.12 / 0.7, saturate 1.05 / 0.8)
+    const focusBrightness = 1 + 0.24 * focusS;  // 0..+0.24
+    const focusSaturate   = 1 + 0.10 * focusS;  // 0..+0.10
 
-    box.innerHTML = "";
-    for (const actorId of ids) {
-      const imgEl = map.get(actorId);
-      if (!imgEl?.isConnected) continue;
+    const dimBrightness   = 1 - 0.60 * shadowS; // 1..0.4
+    const dimSaturate     = 1 - 0.40 * shadowS; // 1..0.6
 
-      const actor = game.actors?.get(actorId);
-      const isOn  = actor ? !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN) : true;
-      const isFav = actor ? !!foundry.utils.getProperty(actor, FLAG_FAVORITE)       : false;
-      const src   = imgEl.currentSrc || imgEl.src || "icons/svg/mystery-man.svg";
-      const name  = imgEl.dataset.actorName || actor?.name || "Portrait";
+    return { focusBrightness, focusSaturate, dimBrightness, dimSaturate };
+  }
 
-      // кнопка-иконка
-      const icon = document.createElement("button");
-      icon.type = "button";
-      icon.className = "dock-icon" + (isOn ? " is-on" : " is-off") + (isFav ? " is-fav" : "");
-      icon.dataset.actorId = actorId;
-      icon.title = name;
 
-      const im = document.createElement("img");
-      im.src = src; im.alt = name;
-      icon.appendChild(im);
+    function _applyPortraitFocus() {
+    const wrappers = _getAllWrappers();
+    if (!wrappers.length) return;
 
-      if (isFav) {
-        const fav = document.createElement("span");
-        fav.className = "fav";
-        fav.textContent = "★";
-        icon.appendChild(fav);
+    // Берём значения из настроек (0..1)
+    const {
+      focusBrightness,
+      focusSaturate,
+      dimBrightness,
+      dimSaturate
+    } = _getFocusShadowParams();
+
+    for (const wrapper of wrappers) {
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (!img) continue;
+
+      const actorId = img.dataset.actorId;
+
+      // Сохраняем базовый filter и zIndex (чтобы можно было откатить)
+      if (!img.dataset.baseFilter) {
+        img.dataset.baseFilter = img.style.filter || "";
+      }
+      if (!wrapper.dataset.baseZ) {
+        wrapper.dataset.baseZ = wrapper.style.zIndex || "";
       }
 
-      // ЛКМ — показать/скрыть портрет
-      icon.addEventListener("click", async (ev) => {
-        ev.preventDefault(); ev.stopPropagation();
-        const a = game.actors?.get(actorId);
-        if (!a) return;
-        const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
-        try { await a.update({ [FLAG_PORTRAIT_SHOWN]: !shown }); } catch(e) { console.error(e); }
-      });
+      if (_focusedActorId && actorId === _focusedActorId) {
+        // Активный портрет: выше по z-index и чуть ярче/насыщеннее
+        wrapper.classList.add("ginzzzu-portrait-focused");
+        wrapper.classList.remove("ginzzzu-portrait-dimmed");
+        wrapper.style.zIndex = "9999";
 
-      // ПКМ — открыть лист
-      icon.addEventListener("contextmenu", (ev) => {
-        ev.preventDefault(); ev.stopPropagation();
-        const a = game.actors?.get(actorId);
-        if (a) setTimeout(() => a.sheet?.render(true), 0);
-      });
+        img.style.filter = `${img.dataset.baseFilter} brightness(${focusBrightness}) saturate(${focusSaturate})`;
 
-      // СКМ — избранное
-      icon.addEventListener("mousedown", async (ev) => {
-        if (ev.button !== 1) return;
-        ev.preventDefault(); ev.stopPropagation();
-        const a = game.actors?.get(actorId);
-        if (!a) return;
-        const favNow = !!foundry.utils.getProperty(a, FLAG_FAVORITE);
-        try { await a.update({ [FLAG_FAVORITE]: !favNow }); } catch(e) { console.error(e); }
-      });
+      } else if (_focusedActorId) {
+        // Остальные — в "тень", но без изменения размера
+        wrapper.classList.remove("ginzzzu-portrait-focused");
+        wrapper.classList.add("ginzzzu-portrait-dimmed");
+        wrapper.style.zIndex = wrapper.dataset.baseZ || wrapper.style.zIndex;
 
-      box.appendChild(icon);
+        img.style.filter = `${img.dataset.baseFilter} brightness(${dimBrightness}) saturate(${dimSaturate})`;
+
+      } else {
+        // Фокуса нет — вернуть всё как было
+        wrapper.classList.remove("ginzzzu-portrait-focused", "ginzzzu-portrait-dimmed");
+
+        if (wrapper.dataset.baseZ) {
+          wrapper.style.zIndex = wrapper.dataset.baseZ;
+        }
+        if (img.dataset.baseFilter) {
+          img.style.filter = img.dataset.baseFilter;
+        }
+      }
     }
+  }
 
-    box.style.display = box.children.length ? "flex" : "none";
+
+  function setPortraitFocusByActorId(actorIdOrNull) {
+    _focusedActorId = actorIdOrNull || null;
+    _applyPortraitFocus();
+  }
+
+  function setSharedPortraitFocus(actorIdOrNull) {
+    const scene = canvas?.scene;
+    const value = actorIdOrNull || null;
+
+    // мгновенный локальный отклик (чтоб ГМ не ждал round-trip)
+    setPortraitFocusByActorId(value);
+
+    // Только ГМ обновляет сцену, остальным достаточно локального обновления
+    if (!scene || !game.user?.isGM) return;
+
+    try {
+      scene.update({ [`flags.${MODULE_ID}.focusedActorId`]: value });
+    } catch (e) {
+      console.error("[threeO-portraits] setSharedPortraitFocus error:", e);
+    }
+  }
+
+  function _onPortraitAuxClick(ev) {
+    if (!game.user?.isGM) return; 
+    // реагируем только на отпускание средней кнопки (auxclick)
+    if (ev.type !== "auxclick") return;
+
+    const button = ev.button;
+    if (button !== 1) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const wrapper = ev.currentTarget.closest(".ginzzzu-portrait-wrapper");
+    if (!wrapper) return;
+    const img = wrapper.querySelector("img.ginzzzu-portrait");
+    if (!img) return;
+
+    const actorId = img.dataset.actorId;
+    if (!actorId) return;
+
+    if (_focusedActorId === actorId) {
+      // повторный клик по тому же — снять подсветку
+      setSharedPortraitFocus(null);      // см. ниже
+    } else {
+      setSharedPortraitFocus(actorId);   // см. ниже
+    }
   }
 
 
@@ -419,8 +451,21 @@ const FRAME = {
       wrapper.style.maxWidth  = `${widthPx}px`;
       wrapper.style.flex      = "0 0 auto";
       wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
-      wrapper.style.zIndex = String(100 + i);
+
+      const baseZ = String(100 + i);
+      wrapper.dataset.baseZ = baseZ;
+
+      // если портрет сейчас не в фокусе — применяем базовый zIndex;
+      // фокусный оставляем выдвинутым вперёд
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      const actorId = img?.dataset.actorId;
+      if (!_focusedActorId || !actorId || actorId !== _focusedActorId) {
+        wrapper.style.zIndex = baseZ;
+      }
     });
+
+    // после перераскладки обновим "тени"/подсветку (на случай изменения порядка)
+    _applyPortraitFocus();
   }
 
 
@@ -572,6 +617,14 @@ const FRAME = {
     // Создаем обертку для изображения
     const wrapper = document.createElement("div");
     wrapper.className = "ginzzzu-portrait-wrapper";
+    wrapper.dataset.actorId = actorId;
+
+    // позволяем кликать по портрету
+    Object.assign(wrapper.style, {
+      pointerEvents: "auto",
+      cursor: "pointer",
+      transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
+    });
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
@@ -603,64 +656,14 @@ const FRAME = {
         willChange: "transform, opacity"
       });
     }
+    // Сохраняем базовый filter, чтобы при фокусе/дефокусе можно было вернуться
+    el.dataset.baseFilter = el.style.filter || "";
 
+    wrapper.addEventListener("auxclick", _onPortraitAuxClick);
 
     wrapper.appendChild(el);
     rail.appendChild(wrapper);
-    // сохраняем имя для верхней панели
-    el.dataset.actorName = name || "";
     map.set(actorId, el);
-
-    // GM-only interactions on overlay portraits
-    try {
-      const allow = !!game.user?.isGM;
-      // Разрешаем события только ГМу (иначе остаётся «прозрачным» для кликов)
-      wrapper.style.pointerEvents = allow ? "auto" : "none";
-      el.style.pointerEvents = allow ? "auto" : "none";
-
-      // Тултип — только для ГМа
-      if (allow && name) {
-        wrapper.title = name;                     // нативный tooltip
-        try { if (ui?.tooltip?.bind) ui.tooltip.bind(wrapper); } catch(e){}  // если доступен менеджер Foundry
-      } else {
-        wrapper.removeAttribute("title");
-      }
-
-      // ПКМ — флип (зеркалирование)
-      if (!wrapper.__ginzzzuFlipBound) {
-        wrapper.addEventListener("contextmenu", (ev) => {
-          ev.preventDefault();
-          wrapper.classList.toggle("flipped");
-        });
-        wrapper.__ginzzzuFlipBound = true;
-      }
-    } catch(e) { console.warn(e); }
-
-    // Обновляем центральные иконки в тулбаре дока
-    try { renderDockIcons(); } catch (e) {}
-
-
-    // GM-только tooltip с именем актёра
-    if (game?.user?.isGM && name) {
-      wrapper.title = name;
-      // если доступен встроенный тултип Foundry — биндим его
-      try { if (ui?.tooltip?.bind) ui.tooltip.bind(wrapper); } catch {}
-    } else {
-      wrapper.removeAttribute("title");
-    }
-
-    // ПКМ: флип портрета — переключаем класс на обёртке
-    if (!wrapper.__ginzzzuFlipBound) {
-      wrapper.addEventListener("contextmenu", (ev) => {
-        ev.preventDefault();
-        wrapper.classList.toggle("flipped");
-      });
-      wrapper.__ginzzzuFlipBound = true;
-    }
-
-    // обновляем верхнюю панель
-    try { renderTopBar(); } catch (e) { console.warn(e); }
-
 
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
@@ -680,6 +683,10 @@ const FRAME = {
           el.style.transform = "translateY(0)";
         });
       };
+    // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
+    if (_focusedActorId) {
+      _applyPortraitFocus();
+    }
     }
   }
 
@@ -688,6 +695,11 @@ const FRAME = {
     const map = domStore();
     const el = map.get(actorId);
     if (!el) return;
+
+    // если закрываем портрет, который был в фокусе — снять фокус
+    if (_focusedActorId === actorId) {
+      setSharedPortraitFocus(null);
+    }
 
     // FIRST до изменения DOM (для плавного сдвига остальных)
     const firstRects = collectFirstRects();
@@ -708,7 +720,6 @@ const FRAME = {
         }
       } catch {}
       map.delete(actorId);
-      try { renderDockIcons(); } catch {}
 
       // Переложим оставшихся по снятому FIRST (FLIP через WAAPI)
       relayoutDomHud(firstRects);
@@ -754,11 +765,35 @@ const FRAME = {
   });
 
   // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
-  Hooks.on("canvasReady", () => _toneApplyToRootVars());
+  Hooks.on("canvasReady", () => {
+  _toneApplyToRootVars();
+
+    try {
+      const focusedId = canvas?.scene?.getFlag?.(MODULE_ID, "focusedActorId");
+      if (focusedId) {
+        setPortraitFocusByActorId(focusedId);
+      } else {
+        setPortraitFocusByActorId(null);
+      }
+    } catch (e) {
+      console.error("[threeO-portraits] canvasReady focus error:", e);
+    }
+  });
   Hooks.on("updateScene", (scene, diff) => {
     if (scene.id !== canvas?.scene?.id) return;
-    if ("darkness" in diff || "environment" in diff || "flags" in diff) _toneApplyToRootVars();
+
+    if ("darkness" in diff || "environment" in diff || "flags" in diff) {
+      _toneApplyToRootVars();
+    }
+
+    // Наш общий фокус: flags[MODULE_ID].focusedActorId
+    const modFlags = diff.flags?.[MODULE_ID];
+    if (modFlags && Object.prototype.hasOwnProperty.call(modFlags, "focusedActorId")) {
+      const focusedId = modFlags.focusedActorId ?? null;
+      setPortraitFocusByActorId(focusedId);
+    }
   });
+
   Hooks.on("lightingRefresh", () => _toneApplyToRootVars());
 
   // Перераскладка при изменении размера окна
