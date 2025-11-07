@@ -56,6 +56,14 @@
         "name": "Portraits: adjustment strength (0..1)",
         "hint": "0 - no changes, 1 - maximum noticeable correction"
       },
+      "portraitFocusHighlightStrength": {
+      "name": "Portraits: Focus Brightness (0..1)",
+      "hint": "0 — no change, 1 — most noticeable correction"
+      },
+      "portraitShadowDimStrength": {
+      "name": "Portraits: Shadow Depth (0..1)",
+      "hint": "0 — no change, 1 — most noticeable correction"
+      },
       "actorImagePaths": {
         "name": "Actor image paths (CSV)",
         "hint": "List of Actor dot-path fields separated by commas, used in order as image source. Example: img, prototypeToken.texture.src, system.image"
