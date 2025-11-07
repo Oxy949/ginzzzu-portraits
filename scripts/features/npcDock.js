@@ -266,6 +266,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
   async function onCardClickToggle(ev) {
     ev.preventDefault();
     const btn = ev.currentTarget;
+    // Если карточка в процессе перетаскивания — игнорируем клик
+    if (btn?.dataset?.dragging) return;
     const actor = game.actors.get(btn.dataset.actorId);
     if (!actor) return;
     const isShown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
@@ -307,6 +309,32 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     }
   }
 
+  // Drag-and-drop: allow dragging an actor card onto the canvas to spawn a token
+  function onCardDragStart(ev) {
+    const btn = ev.currentTarget;
+    const actor = game.actors.get(btn.dataset.actorId);
+    if (!actor) return;
+    // mark as dragging so click handlers can ignore the click
+    try { btn.dataset.dragging = "1"; } catch(e) {}
+    try {
+      const data = { type: "Actor", id: actor.id, uuid: actor.uuid };
+      ev.dataTransfer.setData("text/plain", JSON.stringify(data));
+      ev.dataTransfer.effectAllowed = "copy";
+      const img = btn.querySelector("img");
+      if (img) {
+        // Use the portrait as the drag image if available
+        try { ev.dataTransfer.setDragImage(img, (img.width||32)/2, (img.height||32)/2); } catch(e) {}
+      }
+    } catch (e) {
+      console.warn("[threeO-dock] dragstart error:", e);
+    }
+  }
+
+  function onCardDragEnd(ev) {
+    const btn = ev.currentTarget;
+    try { delete btn.dataset.dragging; } catch(e) { btn.removeAttribute && btn.removeAttribute('data-dragging'); }
+  }
+
   // Построить карточки players (type "player")
   function buildPlayers(container) {
     container.innerHTML = "";
@@ -332,6 +360,11 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       img.src = a.img || a.prototypeToken?.texture?.src || "icons/svg/mystery-man.svg";
       img.alt = a.name || "Player";
       btn.appendChild(img);
+
+      // Make card draggable to allow dropping an Actor onto the canvas
+      btn.draggable = true;
+      btn.addEventListener("dragstart", onCardDragStart);
+      btn.addEventListener("dragend", onCardDragEnd);
 
       const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
       if (shown) btn.classList.add("is-on");
@@ -466,6 +499,11 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
         btn.style.setProperty("--folder-shadow", `0 6px 16px rgba(0,0,0,${l>0.6?0.35:0.55})`);
       }
 
+      // draggable
+      btn.draggable = true;
+      btn.addEventListener("dragstart", onCardDragStart);
+      btn.addEventListener("dragend", onCardDragEnd);
+
       btn.addEventListener("click", onCardClickToggle);
       btn.addEventListener("mousedown", onCardRightMouse);
       btn.addEventListener("mousedown", onCardMiddleFav);  // СКМ — пометить избранным
@@ -527,6 +565,11 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
         const l = relLuma(rgb);
         btn.style.setProperty("--folder-shadow", `0 6px 16px rgba(0,0,0,${l>0.6?0.35:0.55})`);
       }
+
+      // draggable
+      btn.draggable = true;
+      btn.addEventListener("dragstart", onCardDragStart);
+      btn.addEventListener("dragend", onCardDragEnd);
 
       btn.addEventListener("click", onCardClickToggle);
       btn.addEventListener("mousedown", onCardRightMouse);
