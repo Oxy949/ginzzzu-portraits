@@ -230,6 +230,144 @@ const FRAME = {
     return globalThis.__ginzzzuDomPortraits;
   }
 
+    // --- Фокус портрета (middle-click) ---
+
+  // actorId того, кто сейчас "в фокусе" (или null, если никого)
+  let _focusedActorId = null;
+
+  function _getAllWrappers() {
+    const root = getDomHud();
+    if (!root) return [];
+    return Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
+  }
+
+    function _getFocusShadowParams() {
+    // 0..1 – сила подсветки
+    let focusS = Number(game.settings.get(MODULE_ID, "portraitFocusHighlightStrength") ?? 0.5);
+    let shadowS = Number(game.settings.get(MODULE_ID, "portraitShadowDimStrength") ?? 0.5);
+    focusS  = Math.max(0, Math.min(1, focusS));
+    shadowS = Math.max(0, Math.min(1, shadowS));
+
+    // Подбираем коэффициенты так, чтобы при s=0.5 примерно попасть
+    // в старые значения (brightness 1.12 / 0.7, saturate 1.05 / 0.8)
+    const focusBrightness = 1 + 0.24 * focusS;  // 0..+0.24
+    const focusSaturate   = 1 + 0.10 * focusS;  // 0..+0.10
+
+    const dimBrightness   = 1 - 0.60 * shadowS; // 1..0.4
+    const dimSaturate     = 1 - 0.40 * shadowS; // 1..0.6
+
+    return { focusBrightness, focusSaturate, dimBrightness, dimSaturate };
+  }
+
+
+    function _applyPortraitFocus() {
+    const wrappers = _getAllWrappers();
+    if (!wrappers.length) return;
+
+    // Берём значения из настроек (0..1)
+    const {
+      focusBrightness,
+      focusSaturate,
+      dimBrightness,
+      dimSaturate
+    } = _getFocusShadowParams();
+
+    for (const wrapper of wrappers) {
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (!img) continue;
+
+      const actorId = img.dataset.actorId;
+
+      // Сохраняем базовый filter и zIndex (чтобы можно было откатить)
+      if (!img.dataset.baseFilter) {
+        img.dataset.baseFilter = img.style.filter || "";
+      }
+      if (!wrapper.dataset.baseZ) {
+        wrapper.dataset.baseZ = wrapper.style.zIndex || "";
+      }
+
+      if (_focusedActorId && actorId === _focusedActorId) {
+        // Активный портрет: выше по z-index и чуть ярче/насыщеннее
+        wrapper.classList.add("ginzzzu-portrait-focused");
+        wrapper.classList.remove("ginzzzu-portrait-dimmed");
+        wrapper.style.zIndex = "9999";
+
+        img.style.filter = `${img.dataset.baseFilter} brightness(${focusBrightness}) saturate(${focusSaturate})`;
+
+      } else if (_focusedActorId) {
+        // Остальные — в "тень", но без изменения размера
+        wrapper.classList.remove("ginzzzu-portrait-focused");
+        wrapper.classList.add("ginzzzu-portrait-dimmed");
+        wrapper.style.zIndex = wrapper.dataset.baseZ || wrapper.style.zIndex;
+
+        img.style.filter = `${img.dataset.baseFilter} brightness(${dimBrightness}) saturate(${dimSaturate})`;
+
+      } else {
+        // Фокуса нет — вернуть всё как было
+        wrapper.classList.remove("ginzzzu-portrait-focused", "ginzzzu-portrait-dimmed");
+
+        if (wrapper.dataset.baseZ) {
+          wrapper.style.zIndex = wrapper.dataset.baseZ;
+        }
+        if (img.dataset.baseFilter) {
+          img.style.filter = img.dataset.baseFilter;
+        }
+      }
+    }
+  }
+
+
+  function setPortraitFocusByActorId(actorIdOrNull) {
+    _focusedActorId = actorIdOrNull || null;
+    _applyPortraitFocus();
+  }
+
+  function setSharedPortraitFocus(actorIdOrNull) {
+    const scene = canvas?.scene;
+    const value = actorIdOrNull || null;
+
+    // мгновенный локальный отклик (чтоб ГМ не ждал round-trip)
+    setPortraitFocusByActorId(value);
+
+    // Только ГМ обновляет сцену, остальным достаточно локального обновления
+    if (!scene || !game.user?.isGM) return;
+
+    try {
+      scene.update({ [`flags.${MODULE_ID}.focusedActorId`]: value });
+    } catch (e) {
+      console.error("[threeO-portraits] setSharedPortraitFocus error:", e);
+    }
+  }
+
+  function _onPortraitAuxClick(ev) {
+    if (!game.user?.isGM) return; 
+    // реагируем только на отпускание средней кнопки (auxclick)
+    if (ev.type !== "auxclick") return;
+
+    const button = ev.button;
+    if (button !== 1) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const wrapper = ev.currentTarget.closest(".ginzzzu-portrait-wrapper");
+    if (!wrapper) return;
+    const img = wrapper.querySelector("img.ginzzzu-portrait");
+    if (!img) return;
+
+    const actorId = img.dataset.actorId;
+    if (!actorId) return;
+
+    if (_focusedActorId === actorId) {
+      // повторный клик по тому же — снять подсветку
+      setSharedPortraitFocus(null);      // см. ниже
+    } else {
+      setSharedPortraitFocus(actorId);   // см. ниже
+    }
+  }
+
+
+
   // FIRST: текущие позиции всех портретов (для FLIP)
   function collectFirstRects() {
     const root = getDomHud();
@@ -313,8 +451,21 @@ const FRAME = {
       wrapper.style.maxWidth  = `${widthPx}px`;
       wrapper.style.flex      = "0 0 auto";
       wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
-      wrapper.style.zIndex = String(100 + i);
+
+      const baseZ = String(100 + i);
+      wrapper.dataset.baseZ = baseZ;
+
+      // если портрет сейчас не в фокусе — применяем базовый zIndex;
+      // фокусный оставляем выдвинутым вперёд
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      const actorId = img?.dataset.actorId;
+      if (!_focusedActorId || !actorId || actorId !== _focusedActorId) {
+        wrapper.style.zIndex = baseZ;
+      }
     });
+
+    // после перераскладки обновим "тени"/подсветку (на случай изменения порядка)
+    _applyPortraitFocus();
   }
 
 
@@ -466,6 +617,14 @@ const FRAME = {
     // Создаем обертку для изображения
     const wrapper = document.createElement("div");
     wrapper.className = "ginzzzu-portrait-wrapper";
+    wrapper.dataset.actorId = actorId;
+
+    // позволяем кликать по портрету
+    Object.assign(wrapper.style, {
+      pointerEvents: "auto",
+      cursor: "pointer",
+      transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
+    });
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
@@ -497,7 +656,10 @@ const FRAME = {
         willChange: "transform, opacity"
       });
     }
+    // Сохраняем базовый filter, чтобы при фокусе/дефокусе можно было вернуться
+    el.dataset.baseFilter = el.style.filter || "";
 
+    wrapper.addEventListener("auxclick", _onPortraitAuxClick);
 
     wrapper.appendChild(el);
     rail.appendChild(wrapper);
@@ -521,6 +683,10 @@ const FRAME = {
           el.style.transform = "translateY(0)";
         });
       };
+    // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
+    if (_focusedActorId) {
+      _applyPortraitFocus();
+    }
     }
   }
 
@@ -529,6 +695,11 @@ const FRAME = {
     const map = domStore();
     const el = map.get(actorId);
     if (!el) return;
+
+    // если закрываем портрет, который был в фокусе — снять фокус
+    if (_focusedActorId === actorId) {
+      setSharedPortraitFocus(null);
+    }
 
     // FIRST до изменения DOM (для плавного сдвига остальных)
     const firstRects = collectFirstRects();
@@ -594,11 +765,35 @@ const FRAME = {
   });
 
   // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
-  Hooks.on("canvasReady", () => _toneApplyToRootVars());
+  Hooks.on("canvasReady", () => {
+  _toneApplyToRootVars();
+
+    try {
+      const focusedId = canvas?.scene?.getFlag?.(MODULE_ID, "focusedActorId");
+      if (focusedId) {
+        setPortraitFocusByActorId(focusedId);
+      } else {
+        setPortraitFocusByActorId(null);
+      }
+    } catch (e) {
+      console.error("[threeO-portraits] canvasReady focus error:", e);
+    }
+  });
   Hooks.on("updateScene", (scene, diff) => {
     if (scene.id !== canvas?.scene?.id) return;
-    if ("darkness" in diff || "environment" in diff || "flags" in diff) _toneApplyToRootVars();
+
+    if ("darkness" in diff || "environment" in diff || "flags" in diff) {
+      _toneApplyToRootVars();
+    }
+
+    // Наш общий фокус: flags[MODULE_ID].focusedActorId
+    const modFlags = diff.flags?.[MODULE_ID];
+    if (modFlags && Object.prototype.hasOwnProperty.call(modFlags, "focusedActorId")) {
+      const focusedId = modFlags.focusedActorId ?? null;
+      setPortraitFocusByActorId(focusedId);
+    }
   });
+
   Hooks.on("lightingRefresh", () => _toneApplyToRootVars());
 
   // Перераскладка при изменении размера окна

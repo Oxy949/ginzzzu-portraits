@@ -12,3 +12,39 @@
   position: absolute;
   transform: translateX(-50%) translateY(0px);
 }
+
+/* ПКМ-флип (зеркалирование всей обёртки, не конфликтует с FLIP-анимацией img) */
+.ginzzzu-portrait-wrapper.flipped {
+  transform: scaleX(-1);
+  transform-origin: center center;
+}
+
+/* Резервные стили верхней панели (на случай, если inline-стили не применились) */
+#ginzzzu-portraits-topbar {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(12, 8, 16, 0.35);
+  box-shadow: 0 6px 16px rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
+  z-index: 60;
+  pointer-events: none;
+}
+
+#ginzzzu-portraits-topbar .ginzzzu-topbar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  pointer-events: none;
+  opacity: 0.95;
+}
