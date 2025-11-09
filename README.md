@@ -29,9 +29,10 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 
 - **Left-click** to add or remove portraits on screen.
 - **Right-click** to open the character sheet for any PC or NPC.
+- **Middle-click** to highlight portrait and shadow others (can be tuned in settings).
 - **Drag actor cards** from the dock onto the canvas to create tokens.
 - **Scroll the mouse wheel** to browse portraits or switch sorting modes.
-- **Folder colors match**** each portrait’s background or outline for quick visual grouping.
+- **Folder colors match** each portrait’s background or outline for quick visual grouping.
 - Clear the screen with a single click, or display only portraits from a **chosen folder**.
 - **Quick search** by name or folder path.
 - **Sort by name or folder** to organize groups easily.
