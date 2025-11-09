@@ -28,7 +28,7 @@ This module integrates seamlessly with other Foundry features and can be used bo
 After installing, you’ll find a PC/NPC control panel at the bottom of your screen — an intuitive way to manage all your character portraits right on the tabletop.
 
 - **Left-click** to add or remove portraits on screen.
-- **Right-click **to open the character sheet for any PC or NPC.
+- **Right-click** to open the character sheet for any PC or NPC.
 - **Drag actor cards** from the dock onto the canvas to create tokens.
 - **Scroll the mouse wheel** to browse portraits or switch sorting modes.
 - **Folder colors match**** each portrait’s background or outline for quick visual grouping.
