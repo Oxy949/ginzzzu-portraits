@@ -27,18 +27,18 @@ This module integrates seamlessly with other Foundry features and can be used bo
 ## Usage
 After installing, you’ll find a PC/NPC control panel at the bottom of your screen — an intuitive way to manage all your character portraits right on the tabletop.
 
--**Left-click** to add or remove portraits on screen.
--**Right-click **to open the character sheet for any PC or NPC.
--**Drag actor cards** from the dock onto the canvas to create tokens.
--**Scroll the mouse wheel** to browse portraits or switch sorting modes.
--**Folder colors match**** each portrait’s background or outline for quick visual grouping.
--Clear the screen with a single click, or display only portraits from a **chosen folder**.
--**Quick search** by name or folder path.
--**Sort by name or folder** to organize groups easily.
--**Show only token portraits** for battle scenes or cinematic moments.
--**Add** player charaters and NPCs **to favorites with the middle mouse button** to keep important characters at the front.
--**Dynamic lighting support**: portraits dim with darkness for deeper immersion.
--Fully customizable settings.
+- **Left-click** to add or remove portraits on screen.
+- **Right-click **to open the character sheet for any PC or NPC.
+- **Drag actor cards** from the dock onto the canvas to create tokens.
+- **Scroll the mouse wheel** to browse portraits or switch sorting modes.
+- **Folder colors match**** each portrait’s background or outline for quick visual grouping.
+- Clear the screen with a single click, or display only portraits from a **chosen folder**.
+- **Quick search** by name or folder path.
+- **Sort by name or folder** to organize groups easily.
+- **Show only token portraits** for battle scenes or cinematic moments.
+- **Add** player charaters and NPCs **to favorites with the middle mouse button** to keep important characters at the front.
+- **Dynamic lighting support**: portraits dim with darkness for deeper immersion.
+- Fully customizable settings.
 
 ## Credits
 - [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design
