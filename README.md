@@ -25,11 +25,9 @@ This module integrates seamlessly with other Foundry features and can be used bo
 4. Enjoy!
 
 # Usage
-
 After installing, you’ll find a PC/NPC control panel at the bottom of your screen — an intuitive way to manage all your character portraits right on the tabletop.
 
 ## Panel controls
-
 - **Left-click** — add or remove portraits on the screen.
 - **Right-click** — open the character sheet for any PC or NPC.
 - **Middle-click** — add PCs or NPCs to **Favorites** to keep important characters at the front.
@@ -40,17 +38,14 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 - **Quick search**: use `Search` field to filter portraits by name or folder path.
 
 ## Portrait controls
-
 - **Middle-click a portrait** to highlight it and dim the others (adjustable in `Settings`).
 
 ## Useful tips
-
 - Folder colors match each portrait’s background or outline for quick visual grouping.
 - Use the `(Scene)` option to show portraits only for characters with tokens on the current scene.
 - Dynamic lighting support: portraits dim with scene darkness for deeper immersion (adjustable in `Settings`).
 - Right-click an actor in the **Actors** list (top-right panel) and select **“Show portrait”**, or use the top-right button in the character sheet to instantly display the portrait.
 - Use `Settings` to configure the module to your preferences.
-
 
 ## Credits
 - [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design
