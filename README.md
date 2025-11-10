@@ -24,28 +24,33 @@ This module integrates seamlessly with other Foundry features and can be used bo
 3. Enable the module in your world
 4. Enjoy!
 
-## Usage
-After installing, you’ll find a PC/NPC control panel at the bottom of your screen — an intuitive way to manage all your character portraits right on the tabletop.
+# Usage
 
-**- Panel Controlls: -**
-- **Left-click** to add or remove portraits on screen.
-- **Right-click** to open the character sheet for any PC or NPC.
-- **Middle-click** player charaters or NPCs **to add to favorites** to keep important characters at the front.
-- **Drag actor cards** from the dock onto the canvas to create tokens.
-- **Scroll the mouse wheel** to browse portraits or switch sorting modes.
-- Clear the screen by pressing **Clear All** button (top-right red one).
-- Use a **folder selection dropdown** to specify a actors folder with portraits.
-- Use **Quick search** to filter portraits by name or folder path.
+After installing, you’ll find a PC/NPC control panel at the bottom of your screen—an intuitive way to manage all your character portraits right on the tabletop.
 
-**- Portraits Controlls: -**
-- **Middle-click** on displayed portrait to highlight the portrait and dimm the others active (can be tuned in settings).
+## Panel controls
 
-**- Usefull Tips: -**
-- **Folder colors match** each portrait’s background or outline for quick visual grouping.
-- Use **(Scene)** option to show portrasits for characters from tockens on the current scene only.
-- **Dynamic lighting support**: portraits dim with scene darkness for deeper immersion (can be tuned in settings).
-- **Right-click** an actor in actors list (top right panel) and select "Show portrait" or use top right button in character's sheet to instantly display the portrait.
-- Use settings to adjust the module for your own preference.
+- **Left-click** — add or remove portraits on the screen.
+- **Right-click** — open the character sheet for any PC or NPC.
+- **Middle-click** — add PCs or NPCs to **Favorites** to keep important characters at the front.
+- **Drag** actor cards from the dock onto the canvas to create tokens.
+- **Scroll** the mouse wheel to browse portraits.
+- **Clear the screen** by pressing the `Clear All` button (red, top-right).
+- **Folder selection**: use the folder dropdown to select an **actors** folder with portraits.
+- **Quick search**: use `Search` field to filter portraits by name or folder path.
+
+## Portrait controls
+
+- **Middle-click a portrait** to highlight it and dim the others (adjustable in `Settings`).
+
+## Useful tips
+
+- Folder colors match each portrait’s background or outline for quick visual grouping.
+- Use the `(Scene)` option to show portraits only for characters with tokens on the current scene.
+- Dynamic lighting support: portraits dim with scene darkness for deeper immersion (adjustable in `Settings`).
+- Right-click an actor in the **Actors** list (top-right panel) and select **“Show portrait”**, or use the top-right button in the character sheet to instantly display the portrait.
+- Use `Settings` to configure the module to your preferences.
+
 
 ## Credits
 - [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design
