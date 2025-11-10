@@ -49,3 +49,7 @@
   pointer-events: none;
   opacity: 0.95;
 }
+
+div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
+    transform: translateY(5px);
+}
