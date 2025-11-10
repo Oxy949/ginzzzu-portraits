@@ -26,7 +26,7 @@ This module integrates seamlessly with other Foundry features and can be used bo
 
 # Usage
 
-After installing, you’ll find a PC/NPC control panel at the bottom of your screen—an intuitive way to manage all your character portraits right on the tabletop.
+After installing, you’ll find a PC/NPC control panel at the bottom of your screen — an intuitive way to manage all your character portraits right on the tabletop.
 
 ## Panel controls
 
