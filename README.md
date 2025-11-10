@@ -34,6 +34,7 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 - **Drag** actor cards from the dock onto the canvas to create tokens.
 - **Scroll** the mouse wheel to browse portraits.
 - **Clear the screen** by pressing the `Clear All` button (red, top-right).
+- **Toggle panel visibility** by pressing the `Show/Hide Panel` button (gray, top-right).
 - **Folder selection**: use the folder dropdown to select an **actors** folder with portraits.
 - **Quick search**: use `Search` field to filter portraits by name or folder path.
 
