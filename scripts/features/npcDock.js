@@ -1,4 +1,4 @@
-import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/constants.js";
+import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } from "../core/constants.js";
 
 (()=>{
   // ── Actor type utilities (configurable) ─────────────────────────────────────
@@ -90,10 +90,19 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     while (f) { names.unshift(f.name || ""); f = f.folder ?? null; }
     return names.join(" / ");
   }
+
   function makeTooltip(actor) {
+    // Берём кастомное отображаемое имя, если оно есть
+    const name =
+      (globalThis.GinzzzuPortraits?.getActorDisplayName?.(actor) || actor.name || "").trim();
+
+    // Если имени нет вообще — не показываем подсказку
+    if (!name) return "";
+
     const folderPath = getFolderPath(actor);
-    return folderPath ? `${actor.name}\n${folderPath}` : actor.name;
+    return folderPath ? `${name}\n${folderPath}` : name;
   }
+
 
   function collectActorFoldersWithNPC() {
     const actors = (game.actors?.contents ?? []).filter(a => isNPC(a));
@@ -650,16 +659,18 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
     Hooks.on("createActor", (a) => { scheduleRebuild(); });
     Hooks.on("deleteActor", (a) => { scheduleRebuild(); });
     Hooks.on("updateActor", (actor, diff) => {
-      if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN)) 
+      if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN))
         reflectActorFlag(actor);
+
       const flat = foundry.utils.flattenObject(diff);
       const rel = ["name", "img", "type", "prototypeToken.texture.src", "folder"];
-      if (rel.some(k => k in flat)) 
+      if (rel.some(k => k in flat))
         scheduleRebuild();
-      // rebuild if favorite flags changed (npc or pc)
-      if (foundry.utils.hasProperty(diff, FLAG_FAVORITE)) scheduleRebuild();
-      if (foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.pcFavorite`)) scheduleRebuild();
+      
+      if (foundry.utils.hasProperty(diff, FLAG_MODULE)) 
+        scheduleRebuild();
     });
+
 
     // папки
     Hooks.on("createFolder", (f) => { if (f?.type === "Actor") scheduleRebuild(); });

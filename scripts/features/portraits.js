@@ -250,24 +250,37 @@ const FRAME = {
     const wrappers = _getAllWrappers();
     for (const wrapper of wrappers) {
       const actorId = wrapper.dataset.actorId || "";
-      const displayName = _getDisplayName(actorId);
-      const rawName = wrapper.dataset.rawName;
+      const displayNameRaw = _getDisplayName(actorId);
+      const rawName = wrapper.dataset.rawName ?? "";
+      const safeName = (displayNameRaw || rawName || "").trim();
 
-      wrapper.dataset.displayName = displayName || "";
+      wrapper.dataset.displayName = safeName;
 
-      const badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      // Обновляем / создаём / удаляем плашку имени
+      let badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      if (!safeName && badge) {
+        // Имя стало пустым — убираем подсказку вообще
+        badge.remove();
+        badge = null;
+      } else if (safeName && !badge) {
+        // Имя появилось — создаём плашку
+        badge = document.createElement("div");
+        badge.className = "ginzzzu-portrait-name";
+        wrapper.appendChild(badge);
+      }
       if (badge) {
-        badge.textContent = displayName || rawName || "";
+        badge.textContent = safeName;
       }
 
-      // alt тоже можно освежить
+      // alt тоже обновляем
       const img = wrapper.querySelector("img.ginzzzu-portrait");
       if (img) {
         img.dataset.rawName = rawName;
-        img.alt = displayName || rawName || "Portrait";
+        img.alt = safeName || "Portrait";
       }
     }
   }
+
 
 
     function _getFocusShadowParams() {
@@ -616,7 +629,10 @@ const FRAME = {
     const map = domStore();
     const existing = map.get(actorId);
 
-    const displayName = _getDisplayName(name || ""); 
+    // БЕРЁМ актуальное отображаемое имя по actorId
+    const displayNameRaw = _getDisplayName(actorId);
+    const rawName = typeof name === "string" ? name : "";
+    const safeName = (displayNameRaw || rawName || "").trim();
 
     // Уже есть с тем же src — показать и переложить
     if (existing && existing.dataset.src === img) {
@@ -666,31 +682,33 @@ const FRAME = {
 
     const el = document.createElement("img");
     el.className = "ginzzzu-portrait";
-    el.alt = displayName || name || "Portrait";
+    // alt тоже уважает отображаемое имя
+    el.alt = safeName || "Portrait";
     el.src = finalSrc;
     el.dataset.actorId = actorId;
     el.dataset.src = img;
-    el.dataset.rawName = name || "";
+    el.dataset.rawName = rawName;
 
-    // Создаем обертку для изображения
+    // Обёртка
     const wrapper = document.createElement("div");
     wrapper.className = "ginzzzu-portrait-wrapper";
     wrapper.dataset.actorId = actorId;
-    wrapper.dataset.rawName = name || "";
-    wrapper.dataset.displayName = displayName || "";
+    wrapper.dataset.rawName = rawName;
+    wrapper.dataset.displayName = safeName;
 
-    // позволяем кликать по портрету
     Object.assign(wrapper.style, {
       pointerEvents: "auto",
       cursor: "pointer",
       transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
     });
 
-    // Имя, всплывающее при наведении
-    const nameBadge = document.createElement("div");
-    nameBadge.className = "ginzzzu-portrait-name";
-    nameBadge.textContent = displayName || name || "";
-    wrapper.appendChild(nameBadge);
+    // Плашка имени — ТОЛЬКО если есть непустое имя
+    if (safeName) {
+      const nameBadge = document.createElement("div");
+      nameBadge.className = "ginzzzu-portrait-name";
+      nameBadge.textContent = safeName;
+      wrapper.appendChild(nameBadge);
+    }
 
     wrapper.appendChild(el);
 
@@ -752,10 +770,10 @@ const FRAME = {
           el.style.transform = "translateY(0)";
         });
       };
-    // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
-    if (_focusedActorId) {
-      _applyPortraitFocus();
-    }
+      // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
+      if (_focusedActorId) {
+        _applyPortraitFocus();
+      }
     }
   }
 
