@@ -1,4 +1,5 @@
-import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME } from "../core/constants.js";
+
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -732,18 +733,34 @@ const FRAME = {
       return;
 
     let shown = foundry.utils.getProperty(changes, FLAG_PORTRAIT_SHOWN);
-    if (typeof shown === "undefined") 
+    if (typeof shown === "undefined")
       shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
 
     const actorId = actor.id;
     const img = _getActorImage(actor);
-    const name = actor.name || "Portrait";
 
-    if (shown) 
+    // Берём кастомное имя, если задано
+    const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+    const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+    const name = customName || actor.name || "Portrait";
+
+    if (shown) {
       openLocalPortrait({ actorId, img, name });
-    else       
+
+      // Показываем уведомление на всех клиентах
+      try {
+        if (ui?.notifications) {
+          // Просто выводим имя — чтобы игроки видели псевдоним
+          ui.notifications.info(name);
+        }
+      } catch (e) {
+        console.warn("[threeO-portraits] notification error:", e);
+      }
+    } else {
       closeLocalPortrait(actorId);
+    }
   });
+
 
   Hooks.once("ready", () => {
     log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
@@ -753,7 +770,11 @@ const FRAME = {
         let shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
         if (typeof shown !== "undefined" && shown) {
           const img = _getActorImage(actor);
-          const name = actor.name || "Portrait";
+
+          const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+          const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+          const name = customName || actor.name || "Portrait";
+
           openLocalPortrait({ actorId: actor.id, img, name });
         }
       }
@@ -761,8 +782,11 @@ const FRAME = {
       _toneApplyToRootVars();
       // первая раскладка
       setTimeout(() => relayoutDomHud(), 0);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   });
+
 
   // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
   Hooks.on("canvasReady", () => {
@@ -832,6 +856,74 @@ const FRAME = {
     }
   }
 
+  // ---- Конфигурация портрета из чарника ----
+  async function configurePortrait(ev, actorSheet) {
+    if (!isGM()) return;
+    ev?.preventDefault?.();
+
+    // В ActorSheet v2 актёр лежит в actorSheet.actor
+    const actor = actorSheet?.actor ?? actorSheet?.document ?? actorSheet;
+    if (!actor) {
+      console.warn("[threeO-portraits] configurePortrait: actor not found", actorSheet);
+      return;
+    }
+
+    // Текущее кастомное имя (флаг мира)
+    const currentRaw  = await actor.getFlag(MODULE_ID, "displayName");
+    const currentName = typeof currentRaw === "string" ? currentRaw : "";
+
+    // Простая экранизация кавычек, чтобы не ломать HTML-атрибут
+    const safeValue   = currentName.replace(/"/g, "&quot;");
+    const placeholder = (actor.name ?? "").replace(/"/g, "&quot;");
+
+    const content = `
+      <form class="ginzzzu-portrait-config">
+        <div class="form-group">
+          <label>Отображаемое имя портрета</label>
+          <input type="text" name="displayName" value="${safeValue}" placeholder="${placeholder}">
+          <p class="notes">
+            Это имя будет использоваться в уведомлениях и может отличаться от системного имени актёра.
+            Оставьте поле пустым, чтобы использовать имя актёра.
+          </p>
+        </div>
+      </form>`;
+
+    return new Promise((resolve) => {
+      new Dialog({
+        title: `Портрет: имя для игроков — ${actor.name}`,
+        content,
+        buttons: {
+          clear: {
+            icon: '<i class="fas fa-eraser"></i>',
+            label: "Сбросить",
+            callback: async () => {
+              await actor.unsetFlag(MODULE_ID, "displayName");
+              resolve();
+            }
+          },
+          save: {
+            icon: '<i class="fas fa-save"></i>',
+            label: game.i18n.localize("Save"),
+            callback: async (html) => {
+              const input = html.find('input[name="displayName"]').val();
+              const value = String(input ?? "").trim();
+
+              if (!value) {
+                await actor.unsetFlag(MODULE_ID, "displayName");
+              } else {
+                await actor.setFlag(MODULE_ID, "displayName", value);
+              }
+              resolve();
+            }
+          }
+        },
+        default: "save",
+        close: () => resolve()
+      }).render(true);
+    });
+  }
+
+
   function closeAllLocalPortraits() {
     const ids = Array.from(domStore().keys());
     ids.forEach(id => closeLocalPortrait(id));
@@ -845,6 +937,7 @@ const FRAME = {
   // Экспорт
   globalThis.GinzzzuPortraits = {
   togglePortrait,
+  configurePortrait,
   closeAllLocalPortraits,
   getActivePortraits,
   };
@@ -891,15 +984,15 @@ Hooks.on("getHeaderControlsActorSheetV2", (app, buttons) => {
   const removeLabelSheetHeader = false;
   let theatreButtons = [];
   if (app.document.isOwner) {
-    // if (!app.document.token) {
-    //   theatreButtons.push({
-    //     action: "configure-theatre",
-    //     label: "Theatre.UI.Config.Theatre",
-    //     class: "configure-theatre",
-    //     icon: "fas fa-user-edit",
-    //     onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document), "onClick")
-    //   });
-    // }
+    if (!app.document.token) {
+      theatreButtons.push({
+        action: "configure-theatre",
+        label: "Theatre.UI.Config.Theatre",
+        class: "configure-theatre",
+        icon: "fas fa-user-edit",
+        onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.configurePortrait(ev, app.document.sheet), "onClick")
+      });
+    }
     theatreButtons.push({
       action: "add-to-theatre-navbar",
       label: "GINZZZUPORTRAITS.toggleCharacterPortrait",
