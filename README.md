@@ -40,6 +40,10 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 
 ## Portrait controls
 - **Middle-click a portrait** to highlight it and dim the others (adjustable in `Settings`).
+- Move cursor over portrait to see character's name (can switch to permament visibility in settings).
+
+## Character settings
+- Change displayed name in Player/NPC Sheet > Settings (3 dots in top right) > Configure Character Portrait.
 
 ## Useful tips
 - Folder colors match each portrait’s background or outline for quick visual grouping.
