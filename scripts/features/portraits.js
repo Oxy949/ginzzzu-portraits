@@ -1,4 +1,6 @@
 import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME } from "../core/constants.js";
+import { configurePortrait } from "./portraitConfig.js";
+
 
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
@@ -996,73 +998,6 @@ const FRAME = {
     const name = customName || actor.name || "Portrait";
     return name;
   }
-
-  // ---- Конфигурация из чарника ----
-  async function configurePortrait(ev, actorSheet) {
-    if (!isGM()) return;
-    ev?.preventDefault?.();
-
-    const actor = actorSheet?.actor ?? actorSheet?.document ?? actorSheet;
-    if (!actor) {
-      console.warn("[threeO-portraits] configurePortrait: actor not found", actorSheet);
-      return;
-    }
-
-    // Берём текущее кастомное имя через foundry.utils.getProperty + константу
-    const currentRaw  = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME);
-    const currentName = typeof currentRaw === "string" ? currentRaw : "";
-
-    const safeValue   = currentName.replace(/"/g, "&quot;");
-    const placeholder = (actor.name ?? "").replace(/"/g, "&quot;");
-
-    const content = `
-      <form class="ginzzzu-portrait-config">
-        <div class="form-group">
-          <label>Отображаемое имя портрета</label>
-          <input type="text" name="displayName" value="${safeValue}" placeholder="${placeholder}">
-          <p class="notes">
-            Это имя будет использоваться в уведомлениях и может отличаться от системного имени актёра.
-            Оставьте поле пустым, чтобы использовать имя актёра.
-          </p>
-        </div>
-      </form>`;
-
-    return new Promise((resolve) => {
-      new Dialog({
-        title: `Портрет: имя для игроков — ${actor.name}`,
-        content,
-        buttons: {
-          clear: {
-            icon: '<i class="fas fa-eraser"></i>',
-            label: "Сбросить",
-            callback: async () => {
-              await actor.unsetFlag(MODULE_ID, "displayName");
-              resolve();
-            }
-          },
-          save: {
-            icon: '<i class="fas fa-save"></i>',
-            label: game.i18n.localize("Save"),
-            callback: async (html) => {
-              const input = html.find('input[name="displayName"]').val();
-              const value = String(input ?? "");
-
-              if (!value) {
-                await actor.unsetFlag(MODULE_ID, "displayName");
-              } else {
-                await actor.setFlag(MODULE_ID, "displayName", value);
-              }
-              resolve();
-            }
-          }
-        },
-        default: "save",
-        close: () => resolve()
-      }).render(true);
-    });
-  }
-
-
 
   function closeAllLocalPortraits() {
     const ids = Array.from(domStore().keys());
