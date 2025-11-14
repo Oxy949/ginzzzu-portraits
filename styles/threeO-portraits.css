@@ -53,3 +53,36 @@
 div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
     transform: translateY(5px);
 }
+
+/* Плашка имени портрета, всплывающая при наведении */
+.ginzzzu-portrait-wrapper .ginzzzu-portrait-name {
+  position: absolute;
+  left: 50%;
+  top: var(--threeo-portrait-name-top, 50%);
+  transform: translateX(-50%) translateY(4px);
+  z-index: 10;
+
+  padding: 2px 10px;
+  border-radius: 999px;
+
+  background: rgba(12, 8, 16, 0.7);
+  color: #f5ecff;
+  font-size: var(--threeo-portrait-name-font-size, 25px);
+  line-height: 1.2;
+  white-space: nowrap;
+
+  pointer-events: none;
+  opacity: 0;
+
+  backdrop-filter: blur(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.ginzzzu-portrait-wrapper:hover .ginzzzu-portrait-name {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+
