@@ -37,6 +37,28 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  reg("portraitNameVertical", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 50,              // по умолчанию середина
+    range: { min: 0, max: 100, step: 1 },
+    requiresReload: true
+  });
+
+  reg("portraitNameFontSize", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameFontSize.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameFontSize.hint"),
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 25,
+    range: { min: 10, max: 60, step: 1 },
+    requiresReload: false
+  });
+
     // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("visualNovelMode", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.name"),
@@ -122,6 +144,16 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
+    // === Разделители публичной части имени ===
+  reg("displayNameSeparators", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.displayNameSeparators.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.displayNameSeparators.hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    default: "#,:",
+    requiresReload: false
+  });
 
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
