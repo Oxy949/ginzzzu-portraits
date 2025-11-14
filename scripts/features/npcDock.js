@@ -93,8 +93,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
 
   function makeTooltip(actor) {
     // Берём кастомное отображаемое имя, если оно есть
-    const name =
-      (globalThis.GinzzzuPortraits?.getActorDisplayName?.(actor) || actor.name || "").trim();
+    const name = (globalThis.GinzzzuPortraits?.getActorDisplayName?.(actor) || actor.name || "");
 
     // Если имени нет вообще — не показываем подсказку
     if (!name) return "";

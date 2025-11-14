@@ -53,6 +53,10 @@
         "name": "Portrait: name font size",
         "hint": "Font size of the name badge on portraits (in pixels)."
       },
+      "portraitNamesAlwaysVisible": {
+        "name": "Portraits: always show names",
+        "hint": "If enabled, name badges are always visible on portraits (not only on hover)."
+      },
       "visualNovelMode": {
         "name": "Visual novel mode",
         "hint": "If enabled, portrait will fit the screen from bottom to top."

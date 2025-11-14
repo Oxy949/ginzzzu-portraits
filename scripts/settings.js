@@ -59,6 +59,16 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
+  reg("portraitNamesAlwaysVisible", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
     // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("visualNovelMode", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.name"),

@@ -130,6 +130,11 @@ const FRAME = {
     root = document.createElement("div");
     root.id = "ginzzzu-portrait-layer";
 
+    // Вешаем класс для режима "всегда показывать имена"
+    if (game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible")) {
+      root.classList.add("ginzzzu-show-names-always");
+    }
+
     // слой на весь интерфейс; flex-ряд у низа по центру
     Object.assign(root.style, {
       position: "absolute",
@@ -252,16 +257,16 @@ const FRAME = {
     const wrappers = _getAllWrappers();
     for (const wrapper of wrappers) {
       const actorId = wrapper.dataset.actorId || "";
-      const displayNameRaw = _getDisplayName(actorId);
+      const displayName = _getDisplayName(actorId);
       const rawName = wrapper.dataset.rawName ?? "";
-      const safeName = (displayNameRaw || rawName || "").trim();
+      const safeName = String(displayName || rawName);
 
       wrapper.dataset.displayName = safeName;
 
-      // Обновляем / создаём / удаляем плашку имени
+      // Работаем с плашкой имени
       let badge = wrapper.querySelector(".ginzzzu-portrait-name");
       if (!safeName && badge) {
-        // Имя стало пустым — убираем подсказку вообще
+        // Имя стало пустым — удаляем плашку
         badge.remove();
         badge = null;
       } else if (safeName && !badge) {
@@ -274,7 +279,7 @@ const FRAME = {
         badge.textContent = safeName;
       }
 
-      // alt тоже обновляем
+      // alt тоже освежим
       const img = wrapper.querySelector("img.ginzzzu-portrait");
       if (img) {
         img.dataset.rawName = rawName;
@@ -285,7 +290,7 @@ const FRAME = {
 
 
 
-    function _getFocusShadowParams() {
+  function _getFocusShadowParams() {
     // 0..1 – сила подсветки
     let focusS = Number(game.settings.get(MODULE_ID, "portraitFocusHighlightStrength") ?? 0.5);
     let shadowS = Number(game.settings.get(MODULE_ID, "portraitShadowDimStrength") ?? 0.5);
@@ -304,7 +309,7 @@ const FRAME = {
   }
 
 
-    function _applyPortraitFocus() {
+  function _applyPortraitFocus() {
     const wrappers = _getAllWrappers();
     if (!wrappers.length) return;
 
@@ -631,10 +636,9 @@ const FRAME = {
     const map = domStore();
     const existing = map.get(actorId);
 
-    // БЕРЁМ актуальное отображаемое имя по actorId
-    const displayNameRaw = _getDisplayName(actorId);
     const rawName = typeof name === "string" ? name : "";
-    const safeName = (displayNameRaw || rawName || "").trim();
+    const displayName = _getDisplayName(actorId);
+    const safeName = String(displayName || rawName);
 
     // Уже есть с тем же src — показать и переложить
     if (existing && existing.dataset.src === img) {
@@ -682,37 +686,37 @@ const FRAME = {
       try { await _preloadImage(finalSrc, 2000); } catch {}
     }
 
-    const el = document.createElement("img");
-    el.className = "ginzzzu-portrait";
-    // alt тоже уважает отображаемое имя
-    el.alt = safeName || "Portrait";
-    el.src = finalSrc;
-    el.dataset.actorId = actorId;
-    el.dataset.src = img;
-    el.dataset.rawName = rawName;
+        const el = document.createElement("img");
+        el.className = "ginzzzu-portrait";
+        el.alt = safeName || "Portrait";
+        el.src = finalSrc;
+        el.dataset.actorId = actorId;
+        el.dataset.src = img;
+        el.dataset.rawName = rawName;
 
-    // Обёртка
-    const wrapper = document.createElement("div");
-    wrapper.className = "ginzzzu-portrait-wrapper";
-    wrapper.dataset.actorId = actorId;
-    wrapper.dataset.rawName = rawName;
-    wrapper.dataset.displayName = safeName;
+        // Создаем обертку для изображения
+        const wrapper = document.createElement("div");
+        wrapper.className = "ginzzzu-portrait-wrapper";
+        wrapper.dataset.actorId = actorId;
+        wrapper.dataset.rawName = rawName;
+        wrapper.dataset.displayName = safeName;
 
-    Object.assign(wrapper.style, {
-      pointerEvents: "auto",
-      cursor: "pointer",
-      transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
-    });
+        // позволяем кликать по портрету
+        Object.assign(wrapper.style, {
+          pointerEvents: "auto",
+          cursor: "pointer",
+          transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
+        });
 
-    // Плашка имени — ТОЛЬКО если есть непустое имя
-    if (safeName) {
-      const nameBadge = document.createElement("div");
-      nameBadge.className = "ginzzzu-portrait-name";
-      nameBadge.textContent = safeName;
-      wrapper.appendChild(nameBadge);
-    }
+        // Имя, всплывающее при наведении — только если оно не пустое
+        if (safeName) {
+          const nameBadge = document.createElement("div");
+          nameBadge.className = "ginzzzu-portrait-name";
+          nameBadge.textContent = safeName;
+          wrapper.appendChild(nameBadge);
+        }
 
-    wrapper.appendChild(el);
+        wrapper.appendChild(el);
 
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
@@ -888,7 +892,7 @@ const FRAME = {
           const img = _getActorImage(actor);
 
           const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
-          const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+          const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
           const name = customName || actor.name || "Portrait";
 
           openLocalPortrait({ actorId: actor.id, img, name });
