@@ -68,6 +68,7 @@ Hooks.once("init", () => {
     default: false,
     requiresReload: true
   });
+
     // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("visualNovelMode", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.name"),
@@ -153,16 +154,6 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
-    // === Разделители публичной части имени ===
-  reg("displayNameSeparators", {
-    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.displayNameSeparators.name"),
-    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.displayNameSeparators.hint"),
-    scope: "world",
-    config: true,
-    type: String,
-    default: "#,:",
-    requiresReload: false
-  });
 
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
