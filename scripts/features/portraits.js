@@ -740,22 +740,10 @@ const FRAME = {
     const img = _getActorImage(actor);
 
     // Берём кастомное имя, если задано
-    const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
-    const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
-    const name = customName || actor.name || "Portrait";
+    const name = getActorDisplayName(actor);
 
     if (shown) {
       openLocalPortrait({ actorId, img, name });
-
-      // Показываем уведомление на всех клиентах
-      try {
-        if (ui?.notifications) {
-          // Просто выводим имя — чтобы игроки видели псевдоним
-          ui.notifications.info(name);
-        }
-      } catch (e) {
-        console.warn("[threeO-portraits] notification error:", e);
-      }
     } else {
       closeLocalPortrait(actorId);
     }
@@ -856,23 +844,48 @@ const FRAME = {
     }
   }
 
-  // ---- Конфигурация портрета из чарника ----
+    // ---- Тоггл из чарника ----
+  function getActorDisplayName(actorOrId) {
+    // Accept either an Actor object or an actor id string (or a token-like wrapper)
+    if (!isGM()) return;
+    let actor = actorOrId;
+    try {
+      if (typeof actor === "string") {
+        actor = game.actors?.get(actor);
+      } else if (actor && typeof actor === "object" && !actor.update && actor.id) {
+        // Could be a Token or some wrapper that contains an id
+        actor = game.actors?.get(actor.id);
+      }
+    } catch (e) {
+      // ignore and handle below
+    }
+
+    if (!actor || typeof actor.update !== "function") {
+      console.warn("[threeO-portraits] togglePortrait: actor not found or invalid:", actorOrId);
+      return;
+    }
+
+    const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+    const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+    const name = customName || actor.name || "Portrait";
+    return name;
+  }
+
+  // ---- Конфигурация из чарника ----
   async function configurePortrait(ev, actorSheet) {
     if (!isGM()) return;
     ev?.preventDefault?.();
 
-    // В ActorSheet v2 актёр лежит в actorSheet.actor
     const actor = actorSheet?.actor ?? actorSheet?.document ?? actorSheet;
     if (!actor) {
       console.warn("[threeO-portraits] configurePortrait: actor not found", actorSheet);
       return;
     }
 
-    // Текущее кастомное имя (флаг мира)
-    const currentRaw  = await actor.getFlag(MODULE_ID, "displayName");
+    // Берём текущее кастомное имя через foundry.utils.getProperty + константу
+    const currentRaw  = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME);
     const currentName = typeof currentRaw === "string" ? currentRaw : "";
 
-    // Простая экранизация кавычек, чтобы не ломать HTML-атрибут
     const safeValue   = currentName.replace(/"/g, "&quot;");
     const placeholder = (actor.name ?? "").replace(/"/g, "&quot;");
 
@@ -924,6 +937,7 @@ const FRAME = {
   }
 
 
+
   function closeAllLocalPortraits() {
     const ids = Array.from(domStore().keys());
     ids.forEach(id => closeLocalPortrait(id));
@@ -938,6 +952,7 @@ const FRAME = {
   globalThis.GinzzzuPortraits = {
   togglePortrait,
   configurePortrait,
+  getActorDisplayName,
   closeAllLocalPortraits,
   getActivePortraits,
   };
@@ -987,7 +1002,7 @@ Hooks.on("getHeaderControlsActorSheetV2", (app, buttons) => {
     if (!app.document.token) {
       theatreButtons.push({
         action: "configure-theatre",
-        label: "Theatre.UI.Config.Theatre",
+        label: "GINZZZUPORTRAITS.configurePortrait",
         class: "configure-theatre",
         icon: "fas fa-user-edit",
         onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.configurePortrait(ev, app.document.sheet), "onClick")
