@@ -85,4 +85,11 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Всегда показывать имена на портретах, если включено в настройках */
+#ginzzzu-portrait-layer.ginzzzu-show-names-always .ginzzzu-portrait-name {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
 

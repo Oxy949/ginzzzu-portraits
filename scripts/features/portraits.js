@@ -1,4 +1,7 @@
-import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME } from "../core/constants.js";
+import { configurePortrait } from "./portraitConfig.js";
+
+
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -161,6 +164,11 @@ const FRAME = {
     root = document.createElement("div");
     root.id = "ginzzzu-portrait-layer";
 
+    // Вешаем класс для режима "всегда показывать имена"
+    if (game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible")) {
+      root.classList.add("ginzzzu-show-names-always");
+    }
+
     // слой на весь интерфейс; flex-ряд у низа по центру
     Object.assign(root.style, {
       position: "absolute",
@@ -275,6 +283,7 @@ const FRAME = {
     return Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
   }
 
+
   function refreshPortraitDisplayNames() {
     const wrappers = _getAllWrappers();
     for (const wrapper of wrappers) {
@@ -298,7 +307,48 @@ const FRAME = {
   }
 
 
-    function _getFocusShadowParams() {
+  function _getDisplayName(actorId) {
+    return globalThis.GinzzzuPortraits.getActorDisplayName(actorId);
+  }
+
+  function refreshPortraitDisplayNames() {
+    const wrappers = _getAllWrappers();
+    for (const wrapper of wrappers) {
+      const actorId = wrapper.dataset.actorId || "";
+      const displayName = _getDisplayName(actorId);
+      const rawName = wrapper.dataset.rawName ?? "";
+      const safeName = String(displayName || rawName);
+
+      wrapper.dataset.displayName = safeName;
+
+      // Работаем с плашкой имени
+      let badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      if (!safeName && badge) {
+        // Имя стало пустым — удаляем плашку
+        badge.remove();
+        badge = null;
+      } else if (safeName && !badge) {
+        // Имя появилось — создаём плашку
+        badge = document.createElement("div");
+        badge.className = "ginzzzu-portrait-name";
+        wrapper.appendChild(badge);
+      }
+      if (badge) {
+        badge.textContent = safeName;
+      }
+
+      // alt тоже освежим
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (img) {
+        img.dataset.rawName = rawName;
+        img.alt = safeName || "Portrait";
+      }
+    }
+  }
+
+
+
+  function _getFocusShadowParams() {
     // 0..1 – сила подсветки
     let focusS = Number(game.settings.get(MODULE_ID, "portraitFocusHighlightStrength") ?? 0.5);
     let shadowS = Number(game.settings.get(MODULE_ID, "portraitShadowDimStrength") ?? 0.5);
@@ -317,7 +367,7 @@ const FRAME = {
   }
 
 
-    function _applyPortraitFocus() {
+  function _applyPortraitFocus() {
     const wrappers = _getAllWrappers();
     if (!wrappers.length) return;
 
@@ -646,6 +696,10 @@ const FRAME = {
 
     const displayName = _getDisplayName(name || ""); 
 
+    const rawName = typeof name === "string" ? name : "";
+    const displayName = _getDisplayName(actorId);
+    const safeName = String(displayName || rawName);
+
     // Уже есть с тем же src — показать и переложить
     if (existing && existing.dataset.src === img) {
       existing.style.opacity = "1";
@@ -706,13 +760,38 @@ const FRAME = {
     wrapper.dataset.actorId = actorId;
     wrapper.dataset.rawName = name || "";
     wrapper.dataset.displayName = displayName || "";
+        const el = document.createElement("img");
+        el.className = "ginzzzu-portrait";
+        el.alt = safeName || "Portrait";
+        el.src = finalSrc;
+        el.dataset.actorId = actorId;
+        el.dataset.src = img;
+        el.dataset.rawName = rawName;
 
-    // позволяем кликать по портрету
-    Object.assign(wrapper.style, {
-      pointerEvents: "auto",
-      cursor: "pointer",
-      transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
-    });
+        // Создаем обертку для изображения
+        const wrapper = document.createElement("div");
+        wrapper.className = "ginzzzu-portrait-wrapper";
+        wrapper.dataset.actorId = actorId;
+        wrapper.dataset.rawName = rawName;
+        wrapper.dataset.displayName = safeName;
+
+        // позволяем кликать по портрету
+        Object.assign(wrapper.style, {
+          pointerEvents: "auto",
+          cursor: "pointer",
+          transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
+        });
+
+        // Имя, всплывающее при наведении — только если оно не пустое
+        if (safeName) {
+          const nameBadge = document.createElement("div");
+          nameBadge.className = "ginzzzu-portrait-name";
+          nameBadge.textContent = safeName;
+          wrapper.appendChild(nameBadge);
+        }
+
+        wrapper.appendChild(el);
+
 
     // Имя, всплывающее при наведении
     const nameBadge = document.createElement("div");
@@ -780,10 +859,10 @@ const FRAME = {
           el.style.transform = "translateY(0)";
         });
       };
-    // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
-    if (_focusedActorId) {
-      _applyPortraitFocus();
-    }
+      // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
+      if (_focusedActorId) {
+        _applyPortraitFocus();
+      }
     }
   }
 
@@ -829,17 +908,60 @@ const FRAME = {
       return;
 
     let shown = foundry.utils.getProperty(changes, FLAG_PORTRAIT_SHOWN);
-    if (typeof shown === "undefined") 
+    if (typeof shown === "undefined")
       shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
 
     const actorId = actor.id;
     const img = _getActorImage(actor);
-    const name = actor.name || "Portrait";
 
-    if (shown) 
+    // Берём кастомное имя, если задано
+    const name = getActorDisplayName(actor);
+
+    if (shown) {
       openLocalPortrait({ actorId, img, name });
-    else       
+    } else {
       closeLocalPortrait(actorId);
+    }
+  });
+  
+  // === Автообновление имён на портретах при rename актёра ===
+  Hooks.on("updateActor", (actor, changed) => {
+    console.log("[threeO-portraits] updateActor hook for name change", actor.id, changed);
+    // Нас интересует только изменение имени
+    if (!("name" in changed) && !foundry.utils.hasProperty(changed, FLAG_MODULE)) 
+      return;
+
+    const root = getDomHud?.();
+    if (!root) return;
+
+    const actorId = actor.id;
+    const wrappers = root.querySelectorAll(".ginzzzu-portrait-wrapper");
+
+    for (const wrapper of wrappers) {
+      if (wrapper.dataset.actorId !== actorId) continue;
+
+      const rawName = actor.name || "";
+      const displayName = _getDisplayName(actor);
+
+      // сохраняем "сырое" имя и публичное
+      wrapper.dataset.rawName = rawName;
+      wrapper.dataset.displayName = displayName || "";
+
+      // обновляем текст плашки
+      const badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      if (badge) {
+        badge.textContent = displayName || rawName || "";
+      }
+
+      // обновляем alt у картинки
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (img) {
+        img.dataset.rawName = rawName;
+        img.alt = displayName || rawName || "Portrait";
+      }
+    }
+
+    globalThis.GinzzzuPortraits.refreshDisplayNames();
   });
 // === Автообновление имён на портретах при rename актёра ===
 Hooks.on("updateActor", (actor, changed) => {
@@ -877,6 +999,7 @@ Hooks.on("updateActor", (actor, changed) => {
   }
 });
 
+
   Hooks.once("ready", () => {
     log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
     try {
@@ -885,7 +1008,11 @@ Hooks.on("updateActor", (actor, changed) => {
         let shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
         if (typeof shown !== "undefined" && shown) {
           const img = _getActorImage(actor);
-          const name = actor.name || "Portrait";
+
+          const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+          const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
+          const name = customName || actor.name || "Portrait";
+
           openLocalPortrait({ actorId: actor.id, img, name });
         }
       }
@@ -893,8 +1020,11 @@ Hooks.on("updateActor", (actor, changed) => {
       _toneApplyToRootVars();
       // первая раскладка
       setTimeout(() => relayoutDomHud(), 0);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   });
+
 
   // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
   Hooks.on("canvasReady", () => {
@@ -964,6 +1094,33 @@ Hooks.on("updateActor", (actor, changed) => {
     }
   }
 
+    // ---- Тоггл из чарника ----
+  function getActorDisplayName(actorOrId) {
+    // Accept either an Actor object or an actor id string (or a token-like wrapper)
+    let actor = actorOrId;
+    try {
+      if (typeof actor === "string") {
+        actor = game.actors?.get(actor);
+      } else if (actor && typeof actor === "object" && !actor.update && actor.id) {
+        // Could be a Token or some wrapper that contains an id
+        actor = game.actors?.get(actor.id);
+      }
+    } catch (e) {
+      // ignore and handle below
+    }
+
+    if (!actor || typeof actor.update !== "function") {
+      console.warn("[threeO-portraits] getActorDisplayName: actor not found or invalid:", actorOrId);
+      return;
+    }
+
+    const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+    const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
+    const name = customName || actor.name || "Portrait";
+    return name;
+  }
+
+
   function closeAllLocalPortraits() {
     const ids = Array.from(domStore().keys());
     ids.forEach(id => closeLocalPortrait(id));
@@ -977,6 +1134,8 @@ Hooks.on("updateActor", (actor, changed) => {
   // Экспорт
   globalThis.GinzzzuPortraits = {
   togglePortrait,
+  configurePortrait,
+  getActorDisplayName,
   closeAllLocalPortraits,
   getActivePortraits,
   refreshDisplayNames: refreshPortraitDisplayNames
@@ -1024,15 +1183,15 @@ Hooks.on("getHeaderControlsActorSheetV2", (app, buttons) => {
   const removeLabelSheetHeader = false;
   let theatreButtons = [];
   if (app.document.isOwner) {
-    // if (!app.document.token) {
-    //   theatreButtons.push({
-    //     action: "configure-theatre",
-    //     label: "Theatre.UI.Config.Theatre",
-    //     class: "configure-theatre",
-    //     icon: "fas fa-user-edit",
-    //     onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document), "onClick")
-    //   });
-    // }
+    if (!app.document.token) {
+      theatreButtons.push({
+        action: "configure-theatre",
+        label: "GINZZZUPORTRAITS.configurePortrait",
+        class: "configure-theatre",
+        icon: "fas fa-user-edit",
+        onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.configurePortrait(ev, app.document.sheet), "onClick")
+      });
+    }
     theatreButtons.push({
       action: "add-to-theatre-navbar",
       label: "GINZZZUPORTRAITS.toggleCharacterPortrait",
