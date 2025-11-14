@@ -103,6 +103,42 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
   }
 
 
+  // Публичное имя для карточек (обрезаем по настройке-разделителю)
+  function getDisplayNameFromName(rawName) {
+    const s = String(rawName ?? "").trim();
+    if (!s) return "";
+
+    let sepStr = "#,:";
+    try {
+      sepStr = String(game.settings.get(MODULE_ID, "displayNameSeparators") ?? "#,:");
+    } catch (e) {
+      sepStr = "#,:";
+    }
+
+    const seps = sepStr
+      .split(",")
+      .map(ch => ch.trim())
+      .filter(Boolean);
+
+    if (!seps.length) return s;
+
+    let cut = -1;
+    for (const ch of seps) {
+      const idx = s.indexOf(ch);
+      if (idx >= 0) {
+        cut = (cut === -1) ? idx : Math.min(cut, idx);
+      }
+    }
+
+    if (cut === -1) return s;
+
+    const left = s.slice(0, cut).trim();
+    return left || s;
+  }
+
+
+
+
   function collectActorFoldersWithNPC() {
     const actors = (game.actors?.contents ?? []).filter(a => isNPC(a));
     const usedFolderIds = new Set();
@@ -495,10 +531,17 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
       img.alt = a.name || "NPC";
       btn.appendChild(img);
 
+
+      const displayName = getDisplayNameFromName(a.name || "");
+      const label = document.createElement("div");
+      label.className = "npc-label";
+      label.textContent = displayName || a.name || "";
+
       const displayName = globalThis.GinzzzuPortraits.getActorDisplayName(a);
       const label = document.createElement("div");
       label.className = "npc-label";
       label.textContent = displayName || "";
+
       btn.appendChild(label);
 
       const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);

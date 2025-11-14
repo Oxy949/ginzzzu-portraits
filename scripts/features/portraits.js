@@ -24,6 +24,40 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
   }
 const log = (...a) => console.log("%c[threeO-portraits]", "color:#7cf", ...a);
 
+  // Публичное имя для показа (режется по настройке displayNameSeparators)
+  function _getDisplayName(rawName) {
+    const s = String(rawName ?? "").trim();
+    if (!s) return "";
+
+    let sepStr = "#,:";
+    try {
+      sepStr = String(game.settings.get(MODULE_ID, "displayNameSeparators") ?? "#,:");
+    } catch (e) {
+      sepStr = "#,:";
+    }
+
+    const seps = sepStr
+      .split(",")
+      .map(ch => ch.trim())
+      .filter(Boolean);
+
+    if (!seps.length) return s;
+
+    let cut = -1;
+    for (const ch of seps) {
+      const idx = s.indexOf(ch);
+      if (idx >= 0) {
+        cut = (cut === -1) ? idx : Math.min(cut, idx);
+      }
+    }
+
+    if (cut === -1) return s;
+
+    const left = s.slice(0, cut).trim();
+    // если слева ничего не осталось — лучше показать оригинал
+    return left || s;
+  }
+
   // ---- Adaptive tone (по темноте сцены) ----
 function _toneGetDarkness() {
   // 0..1 — чем больше, тем темнее; поддержка V10..V12
@@ -248,6 +282,30 @@ const FRAME = {
     if (!root) return [];
     return Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
   }
+
+
+  function refreshPortraitDisplayNames() {
+    const wrappers = _getAllWrappers();
+    for (const wrapper of wrappers) {
+      const rawName = wrapper.dataset.rawName || "";
+      const displayName = _getDisplayName(rawName);
+
+      wrapper.dataset.displayName = displayName || "";
+
+      const badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      if (badge) {
+        badge.textContent = displayName || rawName || "";
+      }
+
+      // alt тоже можно освежить
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (img) {
+        img.dataset.rawName = rawName;
+        img.alt = displayName || rawName || "Portrait";
+      }
+    }
+  }
+
 
   function _getDisplayName(actorId) {
     return globalThis.GinzzzuPortraits.getActorDisplayName(actorId);
@@ -636,6 +694,8 @@ const FRAME = {
     const map = domStore();
     const existing = map.get(actorId);
 
+    const displayName = _getDisplayName(name || ""); 
+
     const rawName = typeof name === "string" ? name : "";
     const displayName = _getDisplayName(actorId);
     const safeName = String(displayName || rawName);
@@ -686,6 +746,20 @@ const FRAME = {
       try { await _preloadImage(finalSrc, 2000); } catch {}
     }
 
+    const el = document.createElement("img");
+    el.className = "ginzzzu-portrait";
+    el.alt = displayName || name || "Portrait";
+    el.src = finalSrc;
+    el.dataset.actorId = actorId;
+    el.dataset.src = img;
+    el.dataset.rawName = name || "";
+
+    // Создаем обертку для изображения
+    const wrapper = document.createElement("div");
+    wrapper.className = "ginzzzu-portrait-wrapper";
+    wrapper.dataset.actorId = actorId;
+    wrapper.dataset.rawName = name || "";
+    wrapper.dataset.displayName = displayName || "";
         const el = document.createElement("img");
         el.className = "ginzzzu-portrait";
         el.alt = safeName || "Portrait";
@@ -717,6 +791,15 @@ const FRAME = {
         }
 
         wrapper.appendChild(el);
+
+
+    // Имя, всплывающее при наведении
+    const nameBadge = document.createElement("div");
+    nameBadge.className = "ginzzzu-portrait-name";
+    nameBadge.textContent = displayName || name || "";
+    wrapper.appendChild(nameBadge);
+
+    wrapper.appendChild(el);
 
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
@@ -880,6 +963,41 @@ const FRAME = {
 
     globalThis.GinzzzuPortraits.refreshDisplayNames();
   });
+// === Автообновление имён на портретах при rename актёра ===
+Hooks.on("updateActor", (actor, changed) => {
+  // Нас интересует только изменение имени
+  if (!("name" in changed)) return;
+
+  const root = getDomHud?.();
+  if (!root) return;
+
+  const actorId = actor.id;
+  const wrappers = root.querySelectorAll(".ginzzzu-portrait-wrapper");
+
+  for (const wrapper of wrappers) {
+    if (wrapper.dataset.actorId !== actorId) continue;
+
+    const rawName = actor.name || "";
+    const displayName = _getDisplayName(rawName);
+
+    // сохраняем "сырое" имя и публичное
+    wrapper.dataset.rawName = rawName;
+    wrapper.dataset.displayName = displayName || "";
+
+    // обновляем текст плашки
+    const badge = wrapper.querySelector(".ginzzzu-portrait-name");
+    if (badge) {
+      badge.textContent = displayName || rawName || "";
+    }
+
+    // обновляем alt у картинки
+    const img = wrapper.querySelector("img.ginzzzu-portrait");
+    if (img) {
+      img.dataset.rawName = rawName;
+      img.alt = displayName || rawName || "Portrait";
+    }
+  }
+});
 
 
   Hooks.once("ready", () => {
