@@ -979,7 +979,6 @@ const FRAME = {
     // ---- Тоггл из чарника ----
   function getActorDisplayName(actorOrId) {
     // Accept either an Actor object or an actor id string (or a token-like wrapper)
-    if (!isGM()) return;
     let actor = actorOrId;
     try {
       if (typeof actor === "string") {
@@ -993,7 +992,7 @@ const FRAME = {
     }
 
     if (!actor || typeof actor.update !== "function") {
-      console.warn("[threeO-portraits] togglePortrait: actor not found or invalid:", actorOrId);
+      console.warn("[threeO-portraits] getActorDisplayName: actor not found or invalid:", actorOrId);
       return;
     }
 
@@ -1002,6 +1001,7 @@ const FRAME = {
     const name = customName || actor.name || "Portrait";
     return name;
   }
+
 
   function closeAllLocalPortraits() {
     const ids = Array.from(domStore().keys());
