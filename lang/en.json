@@ -55,7 +55,7 @@
       },
       "visualNovelMode": {
         "name": "Visual novel mode",
-        "hint": "If enabled, portrait tones will adjust based on scene darkness."
+        "hint": "If enabled, portrait will fit the screen from bottom to top."
       },
       "resizeToFit": {
         "name": "Portraits: resize to fit all portraits",
