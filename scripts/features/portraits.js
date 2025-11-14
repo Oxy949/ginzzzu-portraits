@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME } from "../core/constants.js";
 
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
@@ -242,6 +242,34 @@ const FRAME = {
     return Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
   }
 
+  function _getDisplayName(actorId) {
+    return globalThis.GinzzzuPortraits.getActorDisplayName(actorId);
+  }
+
+  function refreshPortraitDisplayNames() {
+    const wrappers = _getAllWrappers();
+    for (const wrapper of wrappers) {
+      const actorId = wrapper.dataset.actorId || "";
+      const displayName = _getDisplayName(actorId);
+      const rawName = wrapper.dataset.rawName;
+
+      wrapper.dataset.displayName = displayName || "";
+
+      const badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      if (badge) {
+        badge.textContent = displayName || rawName || "";
+      }
+
+      // alt тоже можно освежить
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (img) {
+        img.dataset.rawName = rawName;
+        img.alt = displayName || rawName || "Portrait";
+      }
+    }
+  }
+
+
     function _getFocusShadowParams() {
     // 0..1 – сила подсветки
     let focusS = Number(game.settings.get(MODULE_ID, "portraitFocusHighlightStrength") ?? 0.5);
@@ -442,6 +470,24 @@ const FRAME = {
       porHeight = game.settings.get(MODULE_ID, "gmPortraitHeight");
     }
 
+    // Настройки плашки имени
+    let nameV = 50;
+    try {
+      nameV = Number(game.settings.get(MODULE_ID, "portraitNameVertical") ?? 50);
+    } catch (e) {
+      nameV = 50;
+    }
+    nameV = Math.max(0, Math.min(100, nameV));
+
+    let nameFontSize = 25;
+    try {
+      nameFontSize = Number(game.settings.get(MODULE_ID, "portraitNameFontSize") ?? 25);
+    } catch (e) {
+      nameFontSize = 25;
+    }
+    if (!Number.isFinite(nameFontSize)) nameFontSize = 25;
+    nameFontSize = Math.max(8, Math.min(72, nameFontSize));
+
     imgs.forEach((el, i) => {
       const wrapper = el.parentElement;
       if (!wrapper) return;
@@ -452,6 +498,14 @@ const FRAME = {
       wrapper.style.maxWidth  = `${widthPx}px`;
       wrapper.style.flex      = "0 0 auto";
       wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
+
+      // Передаём значение в CSS как переменную
+      wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}%`);
+      
+      // Передаём настройки имени в CSS-переменные
+      wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}%`);
+      wrapper.style.setProperty("--threeo-portrait-name-font-size", `${nameFontSize}px`);
+
 
       const baseZ = String(100 + i);
       wrapper.dataset.baseZ = baseZ;
@@ -562,6 +616,8 @@ const FRAME = {
     const map = domStore();
     const existing = map.get(actorId);
 
+    const displayName = _getDisplayName(name || ""); 
+
     // Уже есть с тем же src — показать и переложить
     if (existing && existing.dataset.src === img) {
       existing.style.opacity = "1";
@@ -610,15 +666,18 @@ const FRAME = {
 
     const el = document.createElement("img");
     el.className = "ginzzzu-portrait";
-    el.alt = name || "Portrait";
+    el.alt = displayName || name || "Portrait";
     el.src = finalSrc;
     el.dataset.actorId = actorId;
     el.dataset.src = img;
+    el.dataset.rawName = name || "";
 
     // Создаем обертку для изображения
     const wrapper = document.createElement("div");
     wrapper.className = "ginzzzu-portrait-wrapper";
     wrapper.dataset.actorId = actorId;
+    wrapper.dataset.rawName = name || "";
+    wrapper.dataset.displayName = displayName || "";
 
     // позволяем кликать по портрету
     Object.assign(wrapper.style, {
@@ -626,6 +685,15 @@ const FRAME = {
       cursor: "pointer",
       transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
     });
+
+    // Имя, всплывающее при наведении
+    const nameBadge = document.createElement("div");
+    nameBadge.className = "ginzzzu-portrait-name";
+    nameBadge.textContent = displayName || name || "";
+    wrapper.appendChild(nameBadge);
+
+    wrapper.appendChild(el);
+
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
@@ -748,6 +816,46 @@ const FRAME = {
       closeLocalPortrait(actorId);
     }
   });
+  
+  // === Автообновление имён на портретах при rename актёра ===
+  Hooks.on("updateActor", (actor, changed) => {
+    console.log("[threeO-portraits] updateActor hook for name change", actor.id, changed);
+    // Нас интересует только изменение имени
+    if (!("name" in changed) && !foundry.utils.hasProperty(changed, FLAG_MODULE)) 
+      return;
+
+    const root = getDomHud?.();
+    if (!root) return;
+
+    const actorId = actor.id;
+    const wrappers = root.querySelectorAll(".ginzzzu-portrait-wrapper");
+
+    for (const wrapper of wrappers) {
+      if (wrapper.dataset.actorId !== actorId) continue;
+
+      const rawName = actor.name || "";
+      const displayName = _getDisplayName(actor);
+
+      // сохраняем "сырое" имя и публичное
+      wrapper.dataset.rawName = rawName;
+      wrapper.dataset.displayName = displayName || "";
+
+      // обновляем текст плашки
+      const badge = wrapper.querySelector(".ginzzzu-portrait-name");
+      if (badge) {
+        badge.textContent = displayName || rawName || "";
+      }
+
+      // обновляем alt у картинки
+      const img = wrapper.querySelector("img.ginzzzu-portrait");
+      if (img) {
+        img.dataset.rawName = rawName;
+        img.alt = displayName || rawName || "Portrait";
+      }
+    }
+
+    globalThis.GinzzzuPortraits.refreshDisplayNames();
+  });
 
 
   Hooks.once("ready", () => {
@@ -866,7 +974,7 @@ const FRAME = {
     }
 
     const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
-    const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+    const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
     const name = customName || actor.name || "Portrait";
     return name;
   }
@@ -919,7 +1027,7 @@ const FRAME = {
             label: game.i18n.localize("Save"),
             callback: async (html) => {
               const input = html.find('input[name="displayName"]').val();
-              const value = String(input ?? "").trim();
+              const value = String(input ?? "");
 
               if (!value) {
                 await actor.unsetFlag(MODULE_ID, "displayName");
@@ -955,6 +1063,7 @@ const FRAME = {
   getActorDisplayName,
   closeAllLocalPortraits,
   getActivePortraits,
+  refreshDisplayNames: refreshPortraitDisplayNames
   };
 
 

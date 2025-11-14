@@ -37,6 +37,14 @@
         "name": "Portraits: height",
         "hint": "0 - bottom strip, 1 - full height. Used if GM hasn't forced a value."
       },
+      "portraitNameVertical": {
+        "name": "Portrait: name badge vertical position",
+        "hint": "Vertical position of the name badge on the portrait (0 — top, 100 — bottom)."
+      },
+      "portraitNameFontSize": {
+        "name": "Portrait: name font size",
+        "hint": "Font size of the name badge on portraits (in pixels)."
+      },
       "visualNovelMode": {
         "name": "Visual novel mode",
         "hint": "If enabled, portrait tones will adjust based on scene darkness."
@@ -64,6 +72,10 @@
       "portraitShadowDimStrength": {
       "name": "Portraits: Shadow Depth (0..1)",
       "hint": "0 — no change, 1 — most noticeable correction"
+      },
+      "displayNameSeparators": {
+        "name": "Name: public-part separators",
+        "hint": "Characters to cut off NPC names for players. Comma-separated. Example: #,: — then \"Karl#Main boss\" will show players only \"Karl\"."
       },
       "actorImagePaths": {
         "name": "Actor image paths (CSV)",

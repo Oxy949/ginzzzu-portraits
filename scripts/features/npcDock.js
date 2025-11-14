@@ -487,6 +487,12 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
       img.alt = a.name || "NPC";
       btn.appendChild(img);
 
+      const displayName = globalThis.GinzzzuPortraits.getActorDisplayName(a);
+      const label = document.createElement("div");
+      label.className = "npc-label";
+      label.textContent = displayName || "";
+      btn.appendChild(label);
+
       const shown = !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN);
       if (shown) btn.classList.add("is-on");
 
@@ -672,6 +678,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/
   // Экспорт
   globalThis.GinzzzuNPCDock = {
     rebuild: buildDock,
+    refreshDisplayNames: () => buildDock(),
     show: () => { const r = ensureDock(); r.style.display = ""; },
     hide: () => { const r = ensureDock(); r.style.display = "none"; }
   };
