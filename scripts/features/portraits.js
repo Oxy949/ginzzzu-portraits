@@ -365,6 +365,71 @@ const FRAME = {
     }
   }
 
+  // --- Флип портрета (горизонтальное отражение) ---
+
+  // Обновляем визуальный флип через класс на wrapper
+  function _updateImgTransformForFlip(img) {
+    if (!img) return;
+    const wrapper = img.closest(".ginzzzu-portrait-wrapper");
+    if (!wrapper) return;
+
+    const isFlipped = img.dataset.flipped === "1";
+
+    // навешиваем/снимаем класс, сам transform перенесём в CSS
+    wrapper.classList.toggle("ginzzzu-portrait-flipped", isFlipped);
+  }
+
+
+  // локальное применение флипа по actorId (без записи в сцену)
+  function _setLocalFlipByActorId(actorId, isFlipped) {
+    if (!actorId) return;
+    const map = domStore();
+    const img = map.get(actorId);
+    if (!img) return;
+
+    img.dataset.flipped = isFlipped ? "1" : "0";
+    _updateImgTransformForFlip(img);
+  }
+
+  // общий флип с синхронизацией через флаг сцены
+  function setSharedPortraitFlip(actorId, isFlipped) {
+    // мгновенный отклик локально
+    _setLocalFlipByActorId(actorId, isFlipped);
+
+    const scene = canvas?.scene;
+    if (!scene || !game.user?.isGM) return;
+
+    try {
+      const flagPath = `flags.${MODULE_ID}.flipped.${actorId}`;
+      scene.update({ [flagPath]: !!isFlipped });
+    } catch (e) {
+      console.error("[threeO-portraits] setSharedPortraitFlip error:", e);
+    }
+  }
+
+function _onPortraitClick(ev) {
+  if (!game.user?.isGM) return;
+
+  // Реагируем на ПКМ
+  if (ev.type !== "contextmenu") return;
+  if (ev.button !== 2) return;
+
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  const wrapper = ev.currentTarget.closest(".ginzzzu-portrait-wrapper");
+  if (!wrapper) return;
+  const img = wrapper.querySelector("img.ginzzzu-portrait");
+  if (!img) return;
+
+  const actorId = img.dataset.actorId;
+  if (!actorId) return;
+
+  const isFlipped = img.dataset.flipped === "1";
+  setSharedPortraitFlip(actorId, !isFlipped);
+}
+
+
 
   function setPortraitFocusByActorId(actorIdOrNull) {
     _focusedActorId = actorIdOrNull || null;
@@ -732,6 +797,7 @@ const FRAME = {
         transformStyle: "preserve-3d",
         willChange: "transform, opacity",
       });
+      el.dataset.baseTransform = el.style.transform || "";
     } else {
       Object.assign(el.style, {
         position: "absolute",
@@ -752,7 +818,21 @@ const FRAME = {
     // Сохраняем базовый filter, чтобы при фокусе/дефокусе можно было вернуться
     el.dataset.baseFilter = el.style.filter || "";
 
+    // базовый transform для последующего флипа
+    el.dataset.baseTransform = el.style.transform || "";
+
+        // начальное состояние флипа из флагов сцены (если есть)
+    try {
+      const scene = canvas?.scene;
+      const flippedFlags = scene?.getFlag?.(MODULE_ID, "flipped") || {};
+      const isFlippedInitial = !!flippedFlags?.[actorId];
+      el.dataset.flipped = isFlippedInitial ? "1" : "0";
+    } catch (e) {
+      el.dataset.flipped = el.dataset.flipped || "0";
+    }
+
     wrapper.addEventListener("auxclick", _onPortraitAuxClick);
+    wrapper.addEventListener("contextmenu", _onPortraitClick);
 
     wrapper.appendChild(el);
     rail.appendChild(wrapper);
@@ -766,6 +846,8 @@ const FRAME = {
       el.onload = () => {
         requestAnimationFrame(() => {
           el.style.opacity = "1";
+          // VN-режим: transform обычно пустой, но всё равно прогоняем через флип
+          _updateImgTransformForFlip(el);
         });
       };
     } else {
@@ -773,13 +855,11 @@ const FRAME = {
       el.onload = () => {
         requestAnimationFrame(() => {
           el.style.opacity = "1";
-          el.style.transform = "translateY(0)";
+          // после окончательного положения фиксируем базовый transform
+          el.dataset.baseTransform = "translateY(0)";
+          _updateImgTransformForFlip(el);
         });
       };
-      // если уже есть активный фокус, обновим состояние "в тени" / "подсветка"
-      if (_focusedActorId) {
-        _applyPortraitFocus();
-      }
     }
   }
 
@@ -912,17 +992,19 @@ const FRAME = {
   Hooks.on("canvasReady", () => {
   _toneApplyToRootVars();
 
-    try {
-      const focusedId = canvas?.scene?.getFlag?.(MODULE_ID, "focusedActorId");
-      if (focusedId) {
-        setPortraitFocusByActorId(focusedId);
-      } else {
-        setPortraitFocusByActorId(null);
+    // восстановим флип портретов из флага сцены
+     try {
+      const flippedAll = canvas?.scene?.getFlag?.(MODULE_ID, "flipped") || {};
+      if (flippedAll && typeof flippedAll === "object") {
+        for (const [actorId, isFlipped] of Object.entries(flippedAll)) {
+        _setLocalFlipByActorId(actorId, !!isFlipped);
+        }
+       }
+      } catch (e2) {
+        console.error("[threeO-portraits] canvasReady flip restore error:", e2);
       }
-    } catch (e) {
-      console.error("[threeO-portraits] canvasReady focus error:", e);
-    }
   });
+
   Hooks.on("updateScene", (scene, diff) => {
     if (scene.id !== canvas?.scene?.id) return;
 
@@ -930,11 +1012,23 @@ const FRAME = {
       _toneApplyToRootVars();
     }
 
-    // Наш общий фокус: flags[MODULE_ID].focusedActorId
     const modFlags = diff.flags?.[MODULE_ID];
-    if (modFlags && Object.prototype.hasOwnProperty.call(modFlags, "focusedActorId")) {
+    if (!modFlags) return;
+
+    // Наш общий фокус: flags[MODULE_ID].focusedActorId
+    if (Object.prototype.hasOwnProperty.call(modFlags, "focusedActorId")) {
       const focusedId = modFlags.focusedActorId ?? null;
       setPortraitFocusByActorId(focusedId);
+    }
+
+    // Общий флип: flags[MODULE_ID].flipped[actorId]
+    if (Object.prototype.hasOwnProperty.call(modFlags, "flipped")) {
+      const flippedPatch = modFlags.flipped;
+      if (flippedPatch && typeof flippedPatch === "object") {
+        for (const [actorId, isFlipped] of Object.entries(flippedPatch)) {
+          _setLocalFlipByActorId(actorId, !!isFlipped);
+        }
+      }
     }
   });
 
