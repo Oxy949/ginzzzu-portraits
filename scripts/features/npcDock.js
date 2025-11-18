@@ -31,29 +31,6 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     game.settings.register(MODULE_ID, "npcDockCollapsed", { scope: "client", config: false, type: Boolean, default: false });
   });
 
-  Hooks.on("getActorContextOptions", async (app, menuItems) => {
-    return;
-    // const getActorData = /* @__PURE__ */ __name((target) => {
-    //   return game.actors.get($(target).data("entry-id"));
-    // }, "getActorData");
-    // menuItems.splice(
-    //   3,
-    //   0,
-    //   {
-    //     name: "Theatre.UI.Config.AddToStage",
-    //     condition: /* @__PURE__ */ __name((target) => !Theatre.isActorStaged(getActorData(target)), "condition"),
-    //     icon: '<i class="fas fa-theater-masks"></i>',
-    //     callback: /* @__PURE__ */ __name((target) => Theatre.addToNavBar(getActorData(target)), "callback")
-    //   },
-    //   {
-    //     name: "Theatre.UI.Config.RemoveFromStage",
-    //     condition: /* @__PURE__ */ __name((target) => Theatre.isActorStaged(getActorData(target)), "condition"),
-    //     icon: '<i class="fas fa-theater-masks"></i>',
-    //     callback: /* @__PURE__ */ __name((target) => Theatre.removeFromNavBar(getActorData(target)), "callback")
-    //   }
-    // );
-  });
-
   const getSortMode   = () => { try { return game.settings.get(MODULE_ID, "npcDockSort")   || "name-asc"; } catch { return "name-asc"; } };
   const setSortMode   = (v) => { try { game.settings.set(MODULE_ID, "npcDockSort",   v); } catch {} };
   const getFolderSel  = () => { try { return game.settings.get(MODULE_ID, "npcDockFolder") || "all"; } catch { return "all"; } };
@@ -681,7 +658,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
 
     // токены
     Hooks.on("createToken",  () => scheduleRebuild());
-    Hooks.on("updateToken",  () => scheduleRebuild());
+    // Hooks.on("updateToken",  () => scheduleRebuild());
     Hooks.on("deleteToken",  () => scheduleRebuild());
   });
 
