@@ -92,4 +92,17 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   pointer-events: auto;
 }
 
+/* Центрируем точку, вокруг которой зеркалим wrapper */
+.ginzzzu-portrait-wrapper {
+  transform-origin: center center;
+}
 
+/* Флип всей ячейки */
+.ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped {
+  transform: scaleX(-1);
+}
+
+/* А подпись флипнем обратно, чтобы текст не был зеркальным */
+.ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
+  transform: scaleX(-1);
+}
