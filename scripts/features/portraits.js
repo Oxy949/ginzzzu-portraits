@@ -22,7 +22,6 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
     // Fallbacks
     return actor.img || actor.prototypeToken?.texture?.src || actor?.texture?.src || "";
   }
-const log = (...a) => console.log("%c[threeO-portraits]", "color:#7cf", ...a);
 
   // ---- Adaptive tone (по темноте сцены) ----
 function _toneGetDarkness() {
@@ -923,7 +922,7 @@ function _onPortraitClick(ev) {
   
   // === Автообновление имён на портретах при rename актёра ===
   Hooks.on("updateActor", (actor, changed) => {
-    console.log("[threeO-portraits] updateActor hook for name change", actor.id, changed);
+    // console.log("[threeO-portraits] updateActor hook for name change", actor.id, changed);
     // Нас интересует только изменение имени
     if (!("name" in changed) && !foundry.utils.hasProperty(changed, FLAG_MODULE)) 
       return;
@@ -963,7 +962,7 @@ function _onPortraitClick(ev) {
 
 
   Hooks.once("ready", () => {
-    log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
+    // log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
     try {
       // Поднимем уже отмеченные портреты (если есть)
       for (const actor of game.actors ?? []) {
