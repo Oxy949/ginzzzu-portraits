@@ -56,7 +56,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 25,
     range: { min: 10, max: 60, step: 1 },
-    requiresReload: false
+    requiresReload: true
   });
 
   reg("portraitNamesAlwaysVisible", {
@@ -140,7 +140,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 0.5,
     range: { min: 0, max: 1, step: 0.05 },
-    requiresReload: false
+    requiresReload: true
   });
 
   reg("portraitShadowDimStrength", {
@@ -151,7 +151,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 0.5,
     range: { min: 0, max: 1, step: 0.05 },
-    requiresReload: false
+    requiresReload: true
   });
 
 
