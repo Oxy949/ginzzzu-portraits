@@ -47,6 +47,7 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 You can now assign expressive emotional states to any portrait. Check settings to switch on/off and allow players to use it.
 Supported emotions include:
 😊 Joy • 😢 Sadness • 😠 Anger • 😱 Fear • 💖 Love • 🤕 Hurt • 😪 Tired
+
 Each emotion applies: color-grade filter, glowing highlight, a unique animated behavior (shake, tilt, bob, pulse, etc.).
 
 How to use:
