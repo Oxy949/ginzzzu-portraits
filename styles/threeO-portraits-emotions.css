@@ -1,0 +1,274 @@
+/* Общий контейнер панели эмоций для HUD */
+#ginzzzu-portrait-layer .threeo-emo-toolbar {
+  position: absolute;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transform-origin: center;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+
+  /* по умолчанию панель не перевёрнута */
+  --threeo-emo-inner-flip: 1;
+}
+
+
+/* Масштаб берём из CSS-переменной, которую ставим с JS */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
+  --threeo-emo-scale: 1;
+}
+
+/* Позиции — сверху / слева / справа */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-top .threeo-emo-toolbar {
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -70%)
+             scale(var(--threeo-emo-scale))
+             scaleX(var(--threeo-emo-inner-flip, 1));
+  flex-direction: row;
+}
+
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-left .threeo-emo-toolbar {
+  left: 0;
+  top: 50%;
+  transform: translate(-60%, -50%)
+             scale(var(--threeo-emo-scale))
+             scaleX(var(--threeo-emo-inner-flip, 1));
+  flex-direction: column;
+}
+
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-right .threeo-emo-toolbar {
+  right: 0;
+  top: 50%;
+  transform: translate(60%, -50%)
+             scale(var(--threeo-emo-scale))
+             scaleX(var(--threeo-emo-inner-flip, 1));
+  flex-direction: column;
+}
+
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .threeo-emo-toolbar {
+  --threeo-emo-inner-flip: -1;
+}
+
+/* Показываем панель при наведении на портрет */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper:hover .threeo-emo-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Кнопки эмоций и внешний вид — берём из threeO-portraits-free.css,
+   но на всякий случай дублируем базу, чтобы модуль был самодостаточным */
+
+#ginzzzu-portrait-layer .threeo-emo-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 3px;
+  margin: 0;
+
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+
+  cursor: pointer;
+  outline: none;
+
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+#ginzzzu-portrait-layer .threeo-emo-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+
+#ginzzzu-portrait-layer .threeo-emo-btn.is-active {
+  transform: scale(1.08);
+  filter: brightness(1.45) drop-shadow(0 0 4px rgb(199, 199, 18));
+}
+
+#ginzzzu-portrait-layer .threeo-emo-btn .threeo-emo-emoji {
+  font-size: 22px;
+  line-height: 1;
+  filter:
+    drop-shadow(0 0 3px rgba(0,0,0,0.7))
+    drop-shadow(0 0 8px rgba(0,0,0,0.7));
+}
+
+/* ----------------------------------------------------
+   ЭФФЕКТЫ ЭМОЦИЙ ДЛЯ ПОРТРЕТОВ
+---------------------------------------------------- */
+
+/* БАЗА: эффект поверх текущего filter (тон, яркость и т.п.) */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="emo-"] img {
+  transition: filter 200ms ease, transform 200ms ease;
+}
+
+/* 😊 Радость — тёплая желтоватая подсветка */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy img {
+  filter: brightness(1.15) saturate(1.25) drop-shadow(0 0 18px rgba(255, 215, 80, 0.6)) !important;
+}
+
+/* 😠 Агрессия — красное свечение и лёгкое увеличение контраста */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger img {
+  filter: brightness(1.1) contrast(1.4) saturate(1.3) drop-shadow(0 0 22px rgba(237, 23, 23, 0.55)) !important;
+}
+
+/* 😢 Печаль — холодное голубое свечение, затемнение */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad img {
+  filter: brightness(0.85) saturate(0.9) contrast(1.1) hue-rotate(180deg) drop-shadow(0 0 20px rgba(110, 160, 255, 0.55)) !important;
+}
+
+/* 💖 Симпатия — розово-лиловое мягкое сияние */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love img {
+  filter: brightness(1.15) saturate(1.2) drop-shadow(0 0 22px rgba(255, 120, 200, 0.55)) !important;
+}
+
+/* 😱 Страх — синеватое холодное свечение и повышенный контраст */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear img {
+  filter: brightness(0.9) saturate(0.3) contrast(1.35) hue-rotate(150deg) drop-shadow(0 0 22px rgba(80, 120, 255, 0.55)) !important;
+}
+
+/* 😪 Усталость — мягкое приглушение, легкий серо-жёлтый тон */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired img {
+  filter: brightness(0.85) saturate(0.12) contrast(1.92) hue-rotate(0deg) drop-shadow(0 0 16px rgba(200, 180, 120, 0.45)) !important;
+}
+
+/* 🤕 Боль — фиолетово-красноватый оттенок + контраст */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt img {
+  filter: brightness(0.9) saturate(1.4) contrast(1.15) hue-rotate(-10deg) drop-shadow(0 0 22px rgba(221, 32, 32, 0.55)) !important;
+}
+
+/* ----------------------------------------------------
+   БАЗА ДЛЯ АНИМАЦИЙ ЭМОЦИЙ
+---------------------------------------------------- */
+
+/* Базовые значения переменных движения/пульса и флипа */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
+  --shakeX: 0px;
+  --bobY: 0px;
+  --pulse: 1;
+  --tilt: 0deg;
+  /* значение по умолчанию, если модуль ещё не задал --flip-scale-x */
+  --flip-scale-x: var(--flip-scale-x, 1);
+}
+
+/* Применяем смещения, "просадку" dimmed и флип к рамке портрета */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
+  transform:
+    translate3d(
+      var(--shakeX, 0px),
+      calc(var(--bobY, 0px) + var(--ginzzzu-dim-offset-y, 0px)),
+      0
+    )
+    scale(var(--pulse, 1))
+    rotate(var(--tilt, 0deg))
+    scaleX(var(--ginzzzu-flip-scale-x, 1));
+}
+
+/* ----------------------------------------------------
+   ПРИВЯЗКА АНИМАЦИЙ К ЭМОЦИЯМ
+---------------------------------------------------- */
+
+/* Агрессия — дрожь */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger {
+  animation: anger-jitter 0.22s linear infinite;
+}
+
+/* Печаль — медленное оседание */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad {
+  animation: sad-sag 2.4s ease-in-out infinite;
+}
+
+/* Страх — тремор + проседание */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear {
+  animation: fear-shiver 0.58s linear infinite;
+}
+
+/* Радость — подпрыгивание */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy {
+  animation: joy-bob 0.3s ease-in-out infinite;
+}
+
+/* Любовь — сердцебиение */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love {
+  animation: heart-beat 1.2s ease-in-out infinite;
+}
+
+/* Усталость — ленивое покачивание */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired {
+  animation: tired-bob 2.8s ease-in-out infinite;
+}
+
+/* Боль — пульсация */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt {
+  animation: hurt-pulse 0.5s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------
+   КЕЙФРЕЙМЫ 
+---------------------------------------------------- */
+
+@keyframes hurt-pulse {
+  0%   { --pulse: 1; }
+  50%  { --pulse: 1.02; }
+  100% { --pulse: 1; }
+}
+
+/* Агрессивная дрожь */
+@keyframes anger-jitter {
+  0%   { --shakeX: 0px; }
+  20%  { --shakeX: -2px; }
+  40%  { --shakeX: 2px; }
+  60%  { --shakeX: -1px; }
+  80%  { --shakeX: 1px; }
+  100% { --shakeX: 0px; }
+}
+
+/* Сердцебиение */
+@keyframes heart-beat {
+  0%, 100% { --pulse: 1; }
+  25%      { --pulse: 1.02; }
+  50%      { --pulse: 1.04; }
+  75%      { --pulse: 1.02; }
+}
+
+/* Усталое «покачивание» */
+@keyframes tired-bob {
+  0%,100% { --bobY: 0px;   --tilt: 0deg; }
+  50%     { --bobY: 2px;   --tilt: -0.6deg; }
+}
+
+/* Испуг — микро-тремор + лёгкое проседание */
+@keyframes fear-shiver {
+  0%   { --shakeX: 0px;     --bobY: 0px; }
+  10%  { --shakeX: -1px;  --bobY: -0.5px; }
+  20%  { --shakeX: 1px;   --bobY: 0.5px; }
+  30%  { --shakeX: -1.2px;  --bobY: -0.8px; }
+  40%  { --shakeX: 1.2px;   --bobY: 0.8px; }
+  50%  { --shakeX: -1px;    --bobY: -1px; }
+  60%  { --shakeX: 1px;     --bobY: 1px; }
+  80%  { --shakeX: -1px;    --bobY: 0.5px; }
+  100% { --shakeX: 0px;     --bobY: 0px; }
+}
+
+/* Радость — подпрыгивание */
+@keyframes joy-bob {
+  0%, 100% { --bobY: 0px; }
+  50%      { --bobY: 10px; }
+}
+
+/* Печаль — чуть-чуть «проседает» */
+@keyframes sad-sag {
+  0%,100% { --bobY: 0px; }
+  50%     { --bobY: 3px; }
+}

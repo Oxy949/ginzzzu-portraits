@@ -85,6 +85,32 @@
       "name": "Portraits: Shadow Depth (0..1)",
       "hint": "0 — no change, 1 — most noticeable correction"
       },
+      "portraitFlipAccess": {
+      "name": "Who can flip portraits",
+      "hint": "Controls who can flip portraits with right-click: only the GM or also players who own the character.",
+      "gm": "GM only",
+      "owners": "GM and Owners"
+    },
+        "emotionPanelVisibility": {
+        "name": "Emotion Panel Visibility",
+        "hint": "Controls who can see the emotion panel when hovering over a portrait.",
+        "none": "No one",
+        "gm": "GM only",
+        "all": "GM and Players"
+      },
+
+      "emotionPanelScale": {
+        "name": "Emotion Panel Scale",
+        "hint": "Adjusts the overall size of the emotion panel (icon scale)."
+      },
+
+      "emotionPanelPosition": {
+        "name": "Emotion Panel Position",
+        "hint": "Choose where the emotion panel appears relative to the portrait.",
+        "top": "Top",
+        "left": "Left",
+        "right": "Right"
+      },
       "displayNameSeparators": {
         "name": "Name: public-part separators",
         "hint": "Characters to cut off NPC names for players. Comma-separated. Example: #,: — then \"Karl#Main boss\" will show players only \"Karl\"."

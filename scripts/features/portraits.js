@@ -407,9 +407,7 @@ const FRAME = {
   }
 
 function _onPortraitClick(ev) {
-  if (!game.user?.isGM) return;
-
-  // Реагируем на ПКМ
+  // Реагируем только на ПКМ
   if (ev.type !== "contextmenu") return;
   if (ev.button !== 2) return;
 
@@ -424,10 +422,46 @@ function _onPortraitClick(ev) {
   const actorId = img.dataset.actorId;
   if (!actorId) return;
 
-  const isFlipped = img.dataset.flipped === "1";
-  setSharedPortraitFlip(actorId, !isFlipped);
-}
+  const actor = game.actors?.get(actorId);
+  if (!actor) return;
 
+  const isGMUser = !!game.user?.isGM;
+  const isOwner  = !!actor.isOwner;
+
+  // Режим доступа к флипу: "gm" или "owners"
+  let flipMode = "gm";
+  try {
+    flipMode = game.settings.get(MODULE_ID, "portraitFlipAccess") || "gm";
+  } catch (e) {
+    flipMode = "gm";
+  }
+
+  // Проверяем право флипа:
+  // - ГМ всегда может
+  // - владельцы могут, только если включён режим "owners"
+  if (!isGMUser) {
+    if (flipMode !== "owners" || !isOwner) {
+      return;
+    }
+  }
+
+  const current = img.dataset.flipped === "1";
+  const next = !current;
+
+  // Мгновенный локальный отклик HUD
+  _setLocalFlipByActorId(actorId, next);
+
+  // Сохраняем в флаги актёра → обновится у всех
+  actor.update({
+    flags: {
+      [MODULE_ID]: {
+        portraitFlipX: next
+      }
+    }
+  }).catch(e => {
+    console.error("[ginzzzu-portraits] portrait flip actor.update failed:", e);
+  });
+}
 
 
   function setPortraitFocusByActorId(actorIdOrNull) {
@@ -820,11 +854,22 @@ function _onPortraitClick(ev) {
     // базовый transform для последующего флипа
     el.dataset.baseTransform = el.style.transform || "";
 
-        // начальное состояние флипа из флагов сцены (если есть)
+    // начальное состояние флипа:
+    // 1) пробуем взять из флагов актёра (как в системе ThreeO)
+    // 2) если нет — читаем старый флаг сцены (для совместимости)
     try {
-      const scene = canvas?.scene;
-      const flippedFlags = scene?.getFlag?.(MODULE_ID, "flipped") || {};
-      const isFlippedInitial = !!flippedFlags?.[actorId];
+      let isFlippedInitial = false;
+
+      const actor = game.actors?.get(actorId);
+      if (actor && foundry?.utils?.hasProperty?.(actor, `flags.${MODULE_ID}.portraitFlipX`)) {
+        const v = foundry.utils.getProperty(actor, `flags.${MODULE_ID}.portraitFlipX`);
+        isFlippedInitial = !!v;
+      } else {
+        const scene = canvas?.scene;
+        const flippedFlags = scene?.getFlag?.(MODULE_ID, "flipped") || {};
+        isFlippedInitial = !!flippedFlags?.[actorId];
+      }
+
       el.dataset.flipped = isFlippedInitial ? "1" : "0";
     } catch (e) {
       el.dataset.flipped = el.dataset.flipped || "0";
@@ -837,6 +882,11 @@ function _onPortraitClick(ev) {
     rail.appendChild(wrapper);
     map.set(actorId, el);
 
+    // === Подключение панели эмоций к HUD-портрету ===
+    if (globalThis.GinzzzuPortraitEmotions?.attachToolbarToHudWrapper) {
+      globalThis.GinzzzuPortraitEmotions.attachToolbarToHudWrapper(wrapper, actorId);
+    }
+    
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
 
@@ -957,35 +1007,60 @@ function _onPortraitClick(ev) {
       }
     }
 
+    // --- Обновление флипа HUD-портрета по флагу актёра ---
+    const flipChanged = foundry.utils.hasProperty(
+      changed,
+      `flags.${MODULE_ID}.portraitFlipX`
+    );
+    if (flipChanged) {
+      const flip = !!foundry.utils.getProperty(
+        actor,
+        `flags.${MODULE_ID}.portraitFlipX`
+      );
+      _setLocalFlipByActorId(actor.id, flip);
+    }
+
     globalThis.GinzzzuPortraits.refreshDisplayNames();
   });
 
 
-  Hooks.once("ready", () => {
-    // log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
-    try {
-      // Поднимем уже отмеченные портреты (если есть)
-      for (const actor of game.actors ?? []) {
-        let shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
-        if (typeof shown !== "undefined" && shown) {
-          const img = _getActorImage(actor);
+Hooks.once("ready", () => {
+  // log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
+  try {
+    // Поднимем уже отмеченные портреты (если есть)
+    for (const actor of game.actors ?? []) {
+      let shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
+      if (typeof shown !== "undefined" && shown) {
+        const img = _getActorImage(actor);
 
-          const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
-          const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
-          const name = customName || actor.name || "Portrait";
+        const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+        const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
+        const name = customName || actor.name || "Portrait";
 
-          openLocalPortrait({ actorId: actor.id, img, name });
-        }
+        openLocalPortrait({ actorId: actor.id, img, name });
       }
-      // Apply tone after initial population
-      _toneApplyToRootVars();
-      // первая раскладка
-      setTimeout(() => relayoutDomHud(), 0);
-    } catch (e) {
-      console.error(e);
     }
-  });
+    // Apply tone after initial population
+    _toneApplyToRootVars();
+    // первая раскладка
+    setTimeout(() => relayoutDomHud(), 0);
+  } catch (e) {
+    console.error(e);
+  }
 
+  // Приём socket-запросов на флип от игроков (обрабатывает только ГМ)
+  if (game.socket) {
+    game.socket.on(`module.${MODULE_ID}`, (data) => {
+      if (!data || data.type !== "flipPortrait") return;
+      if (!game.user?.isGM) return;
+
+      const { actorId, isFlipped } = data;
+      if (!actorId) return;
+
+      setSharedPortraitFlip(actorId, !!isFlipped);
+    });
+  }
+});
 
   // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
   Hooks.on("canvasReady", () => {

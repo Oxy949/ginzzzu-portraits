@@ -41,6 +41,19 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 ## Portrait controls
 - **Middle-click a portrait** to highlight it and dim the others (adjustable in `Settings`).
 - Move cursor over portrait to see character's name (can switch to permament visibility in settings).
+- **Right-click to flip** portrait horizontally (players can flip their characters)
+
+## Emotion panel
+You can now assign expressive emotional states to any portrait. Check settings to switch on/off and allow players to use it.
+Supported emotions include:
+😊 Joy • 😢 Sadness • 😠 Anger • 😱 Fear • 💖 Love • 🤕 Hurt • 😪 Tired
+Each emotion applies: color-grade filter, glowing highlight, a unique animated behavior (shake, tilt, bob, pulse, etc.).
+
+How to use:
+- Hover over a portrait to reveal the Emotion Panel
+- Click an icon to apply an emotion
+- Click the same icon again to remove it
+- All connected users see the emotion and animation immediately
 
 ## Character settings
 - Change displayed name in Player/NPC Sheet > Settings (3 dots in top right) > Configure Character Portrait.
