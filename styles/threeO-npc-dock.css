@@ -391,6 +391,12 @@
   width: 100%;
   top: -38px;
 }
+
+#ginzzzu-npc-dock.collapsed .active-portraits {
+  justify-content: right;
+  right: 1px;
+}
+
 #ginzzzu-npc-dock .active-portraits::-webkit-scrollbar {
   height: 6px;
 }
@@ -402,7 +408,9 @@
 /* Кнопка-иконка */
 #ginzzzu-npc-dock .active-portraits .dock-icon {
   width: 30px;
+  min-width: 30px;
   height: 30px;
+  min-height: 30px;
   padding: 0;
   border: 1px solid rgba(255,255,255,0.5);
   border-radius: 50%;
@@ -418,6 +426,7 @@
 
   transition: transform .12s ease, outline-color .12s ease, box-shadow .12s ease, opacity .12s ease;
 }
+
 #ginzzzu-npc-dock .active-portraits .dock-icon img {
   width: 100%;
   height: 100%;

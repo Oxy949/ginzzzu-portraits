@@ -105,15 +105,9 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     root.style.display = "none";
     document.body.appendChild(root);
 
-    // Mini dock: above toolbar, shows currently active portraits as circles
+    // Mini dock container (CSS handles layout) — shows currently active portraits as circles
     const mini = document.createElement("div");
-    mini.className = "mini-dock";
-    // Basic inline styles so it appears above toolbar even without CSS changes
-    mini.style.display = "flex";
-    mini.style.gap = "8px";
-    mini.style.alignItems = "center";
-    mini.style.padding = "6px";
-    mini.style.flexWrap = "wrap";
+    mini.className = "active-portraits";
     root.appendChild(mini);
 
     // Toolbar
@@ -585,7 +579,7 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     // Мини-док: кружочки текущих активных портретов (и NPC, и PC)
     function buildMiniDock() {
       const root = ensureDock();
-      const mini = root.querySelector('.mini-dock');
+      const mini = root.querySelector('.active-portraits');
       if (!mini) return;
       mini.innerHTML = "";
 
@@ -600,20 +594,23 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
 
       for (const a of active) {
         const btn = document.createElement('div');
-        btn.className = 'mini-item';
+        btn.className = 'dock-icon';
         btn.dataset.actorId = a.id;
         btn.title = makeTooltip(a) || (a.name || "");
 
         const img = document.createElement('img');
         img.src = a.img || a.prototypeToken?.texture?.src || 'icons/svg/mystery-man.svg';
         img.alt = a.name || '';
-        img.style.width = '34px';
-        img.style.height = '34px';
-        img.style.objectFit = 'cover';
-        img.style.borderRadius = '50%';
-        img.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)';
-        img.style.cursor = 'pointer';
+        img.draggable = false;
         btn.appendChild(img);
+
+        // favorite badge (if set)
+        if (foundry.utils.getProperty(a, FLAG_FAVORITE)) {
+          const f = document.createElement('div');
+          f.className = 'fav';
+          f.textContent = '★';
+          btn.appendChild(f);
+        }
 
         // Left click: toggle portrait (hide)
         btn.addEventListener('click', async (ev) => {
