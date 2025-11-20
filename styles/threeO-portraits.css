@@ -107,5 +107,9 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 /* Подпись флипнем обратно, чтобы текст не был зеркальным
    (это оставляем как есть, как у тебя и было) */
 .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
-  transform: scaleX(-1);
+  transform: translateX(-50%) translateY(0) scaleX(-1);
+}
+
+#ginzzzu-portrait-layer.ginzzzu-show-names-always .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
+    transform: translateX(-50%) translateY(0) scaleX(-1);
 }

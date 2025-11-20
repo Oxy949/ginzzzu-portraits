@@ -165,7 +165,7 @@ Hooks.once("init", () => {
       owners: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.owners")
     },
     default: "gm",
-    requiresReload: false
+    requiresReload: true
   });
 
   // === Панель эмоций на портретах ===
@@ -181,7 +181,7 @@ Hooks.once("init", () => {
       all:  game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.all")
     },
     default: "gm",
-    requiresReload: false
+    requiresReload: true
   });
 
   reg("emotionPanelScale", {
@@ -192,7 +192,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 1,
     range: { min: 0.6, max: 1.6, step: 0.05 },
-    requiresReload: false
+    requiresReload: true
   });
 
   reg("emotionPanelPosition", {
@@ -207,7 +207,7 @@ Hooks.once("init", () => {
       right: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelPosition.right")
     },
     default: "top",
-    requiresReload: false
+    requiresReload: true
   });
 
   // === Источник изображения актёра (CSV путей) ===

@@ -1,23 +1,20 @@
-import { MODULE_ID } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
 
 /**
  * Общая логика панели эмоций для HUD-портретов.
  * Флаги те же, что и у free-слоя: flags.<systemId>.portraitEmotion
  */
 (() => {
-
-  const NS = MODULE_ID;    
-
   // Должно совпадать с EMO из threeO-portraits-free.js
   const EMO = {
-    none:  { key:"none",  label:"Без эмоции", emoji:"✖", className:"" },
-    joy:   { key:"joy",   label:"Радость",    emoji:"😊", className:"emo-joy" },
-    anger: { key:"anger", label:"Агрессия",   emoji:"😠", className:"emo-anger" },
-    sad:   { key:"sad",   label:"Печаль",     emoji:"😢", className:"emo-sad" },
-    love:  { key:"love",  label:"Симпатия",   emoji:"💖", className:"emo-love" },
-    fear:  { key:"fear",  label:"Страх",      emoji:"😱", className:"emo-fear" },
-    tired: { key:"tired", label:"Усталость",  emoji:"😪", className:"emo-tired" },
-    hurt:  { key:"hurt",  label:"Боль",       emoji:"🤕", className:"emo-hurt" }
+    none:  { key:"none",  label:"None", emoji:"✖", className:"" },
+    joy:   { key:"joy",   label:"Joy",    emoji:"😊", className:"emo-joy" },
+    anger: { key:"anger", label:"Anger",   emoji:"😠", className:"emo-anger" },
+    sad:   { key:"sad",   label:"Sad",     emoji:"😢", className:"emo-sad" },
+    love:  { key:"love",  label:"Love",   emoji:"💖", className:"emo-love" },
+    fear:  { key:"fear",  label:"Fear",      emoji:"😱", className:"emo-fear" },
+    tired: { key:"tired", label:"Tired",  emoji:"😪", className:"emo-tired" },
+    hurt:  { key:"hurt",  label:"Hurt",       emoji:"🤕", className:"emo-hurt" }
   };
 
   function _getVisibilityMode() {
@@ -104,7 +101,7 @@ import { MODULE_ID } from "../core/constants.js";
     if (!actor) return "none";
 
     // безопасно читаем флаг модуля
-    const raw = actor.getFlag?.(NS, "portraitEmotion");
+    const raw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION);
     const key = raw == null ? "none" : String(raw);
 
     return EMO[key] ? key : "none";
@@ -171,7 +168,7 @@ import { MODULE_ID } from "../core/constants.js";
         try {
             // Аккуратно обновляем только наш флаг
             await actor.update({
-            [`flags.${NS}.portraitEmotion`]: newFlagValue
+            [FLAG_PORTRAIT_EMOTION]: newFlagValue
             });
         } catch (e) {
             console.error("[GinzzzuPortraitEmotions] failed to update portraitEmotion", e);
@@ -208,7 +205,7 @@ import { MODULE_ID } from "../core/constants.js";
   // Реакция на изменение актёров — обновляем эмоцию на HUD
   Hooks.on("updateActor", (actor, diff, options, userId) => {
     if (!actor?.id) return;
-    if (foundry.utils.hasProperty(diff, `flags.${NS}.portraitEmotion`)) {
+    if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_EMOTION)) {
       applyEmotionToHudDom(actor.id);
     }
   });
