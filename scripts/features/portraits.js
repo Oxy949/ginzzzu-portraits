@@ -1117,7 +1117,27 @@ Hooks.once("ready", () => {
   Hooks.on("lightingRefresh", () => _toneApplyToRootVars());
 
   // Перераскладка при изменении размера окна
-  window.addEventListener("resize", () => relayoutDomHud());
+  // Use a debounced handler so rapid resizes trigger a single relayout.
+  let __threeo_portraits_resizeTimer = null;
+  function _onWindowResizeDebounced() {
+    if (__threeo_portraits_resizeTimer) clearTimeout(__threeo_portraits_resizeTimer);
+    __threeo_portraits_resizeTimer = setTimeout(() => {
+      try {
+        const root = getDomHud();
+        if (root) {
+          const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
+          // Ensure padding accounts for current sidebar width before relayout
+          syncSidePadding(root, rail);
+        }
+        // Re-apply adaptive tone vars (in case viewport change affects lighting perception)
+        _toneApplyToRootVars();
+        relayoutDomHud();
+      } catch (e) {
+        console.error("[threeO-portraits] resize handler error:", e);
+      }
+    }, 120);
+  }
+  window.addEventListener("resize", _onWindowResizeDebounced, { passive: true });
   Hooks.on("canvasReady", () => relayoutDomHud());
   Hooks.on("collapseSidebar", function(a, collapsed) {
     setTimeout(() => relayoutDomHud(), 500);
