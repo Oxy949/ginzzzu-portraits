@@ -5,6 +5,7 @@ Hooks.once("init", () => {
   // Helper to register
   const reg = (key, data) => game.settings.register(MODULE_ID, key, data);
 
+  // === Appearance: layout and sizing ===
   reg("gmForcePortraitHeight", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.gmForcePortraitHeight.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.gmForcePortraitHeight.hint"),
@@ -37,39 +38,6 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  reg("portraitNameVertical", {
-    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.name"),
-    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.hint"),
-    scope: "world",
-    config: true,
-    type: Number,
-    default: 50,              // по умолчанию середина
-    range: { min: 0, max: 100, step: 1 },
-    requiresReload: true
-  });
-
-  reg("portraitNameFontSize", {
-    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameFontSize.name"),
-    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameFontSize.hint"),
-    scope: "client",
-    config: true,
-    type: Number,
-    default: 25,
-    range: { min: 10, max: 60, step: 1 },
-    requiresReload: true
-  });
-
-  reg("portraitNamesAlwaysVisible", {
-    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.name"),
-    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.hint"),
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: false,
-    requiresReload: true
-  });
-
-    // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("visualNovelMode", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.visualNovelMode.hint"),
@@ -80,7 +48,6 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // === Тон портретов в зависимости от темноты сцены (клиент / Client) ===
   reg("resizeToFit", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.resizeToFit.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.resizeToFit.hint"),
@@ -100,28 +67,41 @@ Hooks.once("init", () => {
     default: true,
     requiresReload: true
   });
-  
-  reg("playerCharactersPanelEnabled", {
-    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerCharactersPanelEnabled.name"),
-    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerCharactersPanelEnabled.hint"),
+
+  // === Names: label appearance ===
+  reg("portraitNameVertical", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.hint"),
     scope: "world",
     config: true,
-    type: Boolean,
-    default: true,
+    type: Number,
+    default: 50,              // по умолчанию середина
+    range: { min: 0, max: 100, step: 1 },
     requiresReload: true
   });
 
-    // Show/hide active portrait mini-dock (client setting)
-  reg("showActivePortraits", {
-    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.showActivePortraits.name"),
-    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.showActivePortraits.hint"),
+  reg("portraitNameFontSize", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameFontSize.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameFontSize.hint"),
     scope: "world",
     config: true,
-    type: Boolean,
-    default: true,
+    type: Number,
+    default: 25,
+    range: { min: 10, max: 60, step: 1 },
     requiresReload: true
   });
 
+  reg("portraitNamesAlwaysVisible", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
+  // === Tone: automatic brightness/contrast adjustments ===
   reg("portraitToneEnabled", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.hint"),
@@ -143,7 +123,7 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-    reg("portraitFocusHighlightStrength", {
+  reg("portraitFocusHighlightStrength", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusHighlightStrength.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusHighlightStrength.hint"),
     scope: "world",
@@ -164,8 +144,9 @@ Hooks.once("init", () => {
     range: { min: 0, max: 1, step: 0.05 },
     requiresReload: true
   });
-  
-    reg("portraitFlipAccess", {
+
+  // === Access & UI panels ===
+  reg("portraitFlipAccess", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.hint"),
     scope: "world",
@@ -179,7 +160,27 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // === Панель эмоций на портретах ===
+  reg("playerCharactersPanelEnabled", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerCharactersPanelEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerCharactersPanelEnabled.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
+  reg("showActivePortraits", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.showActivePortraits.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.showActivePortraits.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
+  // === Emotion: panel and color effects ===
   reg("emotionPanelVisibility", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.hint"),
@@ -195,7 +196,6 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // Reset emotion when hiding portrait (world setting)
   reg("resetEmotionOnHide", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.resetEmotionOnHide.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.resetEmotionOnHide.hint"),
@@ -232,7 +232,6 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // === Интенсивность цветовых изменений от эмоций (клиент) ===
   reg("emotionColorIntensity", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionColorIntensity.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionColorIntensity.hint"),
@@ -244,7 +243,7 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
-  // === Источник изображения актёра (CSV путей) ===
+  // === Actors: image sources and type lists ===
   reg("actorImagePaths", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.hint"),
@@ -255,7 +254,6 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // === Типы актёров (CSV) ===
   reg("pcActorTypes", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.pcActorTypes.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.pcActorTypes.hint"),
@@ -276,7 +274,7 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // === Портреты: анимация (мир / World) ===
+  // === Animation: timings and easing ===
   reg("portraitFadeMs", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFadeMs.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFadeMs.hint"),
@@ -307,7 +305,7 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
-  // === NPC Dock: предпочтения (клиент / Client) ===
+  // === NPC Dock: preferences ===
   reg("npcDockFolder", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockFolder.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockFolder.hint"),
