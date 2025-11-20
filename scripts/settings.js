@@ -221,6 +221,18 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // === Интенсивность цветовых изменений от эмоций (клиент) ===
+  reg("emotionColorIntensity", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionColorIntensity.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionColorIntensity.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 1,
+    range: { min: 0, max: 1, step: 0.01 },
+    requiresReload: true
+  });
+
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.name"),

@@ -33,6 +33,14 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
     return 1;
   }
 
+  function _getColorIntensity() {
+    try {
+      const v = Number(game.settings.get(MODULE_ID, "emotionColorIntensity"));
+      if (Number.isFinite(v)) return Math.max(0, Math.min(1, v));
+    } catch {}
+    return 1;
+  }
+
   function _getPosition() {
     try {
       const raw = String(game.settings.get(MODULE_ID, "emotionPanelPosition") || "top");
@@ -186,6 +194,10 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
     // масштаб через CSS-переменную
     wrap.style.setProperty("--threeo-emo-scale", String(scale));
 
+    // интенсивность цветового эффекта (0..1)
+    const intensity = _getColorIntensity();
+    wrap.style.setProperty("--threeo-emo-intensity", String(intensity));
+
     // начальная подсветка активной эмоции
     const key = _getActorEmotionKey(actor);
     _applyEmotionClasses(wrap, key);
@@ -219,7 +231,8 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
     if (
       localKey === "emotionPanelVisibility" ||
       localKey === "emotionPanelScale" ||
-      localKey === "emotionPanelPosition"
+      localKey === "emotionPanelPosition" ||
+      localKey === "emotionColorIntensity"
     ) {
       refreshAllHudToolbars();
     }

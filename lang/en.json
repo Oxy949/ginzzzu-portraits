@@ -111,6 +111,10 @@
         "left": "Left",
         "right": "Right"
       },
+      "emotionColorIntensity": {
+        "name": "Emotion Color Intensity",
+        "hint": "0 - no color changes from emotions, 1 - full (default)"
+      },
       "displayNameSeparators": {
         "name": "Name: public-part separators",
         "hint": "Characters to cut off NPC names for players. Comma-separated. Example: #,: — then \"Karl#Main boss\" will show players only \"Karl\"."
