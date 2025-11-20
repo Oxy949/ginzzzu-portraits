@@ -29,8 +29,7 @@
     "requires": []
   },
   "esmodules": [
-    "scripts/entry.js",
-    "scripts/features/portraits-emotions.js"
+    "scripts/entry.js"
   ],
   "scripts": [],
   "styles": [

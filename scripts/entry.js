@@ -5,5 +5,4 @@
 import "./settings.js";
 import "./features/portraits.js";
 import "./features/npcDock.js";
-
-// Nothing to export: modules register through Foundry Hooks on import.
+import "./features/portraits-emotions.js";
