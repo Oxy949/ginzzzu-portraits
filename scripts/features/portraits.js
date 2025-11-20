@@ -1206,6 +1206,19 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
     3,
     0,
     {
+      name: "GINZZZUPORTRAITS.configurePortrait",
+      condition: /* @__PURE__ */ __name((target) => {
+        const actor = getActorData(target);
+        return actor;
+      }, "condition"),
+      icon: '<i class="fas fa-user-edit"></i>',
+      callback: /* @__PURE__ */ __name((target) => globalThis.GinzzzuPortraits.configurePortrait(null, getActorData(target)), "callback")
+    }
+  );
+  menuItems.splice(
+    3,
+    0,
+    {
       name: "GINZZZUPORTRAITS.showCharacterPortrait",
       condition: /* @__PURE__ */ __name((target) => {
         const actor = getActorData(target);
