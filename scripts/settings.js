@@ -195,6 +195,17 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // Reset emotion when hiding portrait (world setting)
+  reg("resetEmotionOnHide", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.resetEmotionOnHide.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.resetEmotionOnHide.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
   reg("emotionPanelScale", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.hint"),

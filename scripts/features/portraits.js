@@ -916,18 +916,21 @@ function _onPortraitClick(ev) {
 
     const firstRects = collectFirstRects();
 
-    // --- Сброс эмоции при скрытии портрета (только у тех, у кого есть права) ---
+    // --- Optionally reset emotion when hiding portrait (guarded by setting) ---
     try {
-      const actor = game.actors?.get(actorId);
-      if (actor) {
-        const canEdit =
-          (game.user?.isGM) ||
-          !!actor.isOwner;
+      // Only perform the reset if the world setting enabled it
+      if (game.settings.get(MODULE_ID, "resetEmotionOnHide")) {
+        const actor = game.actors?.get(actorId);
+        if (actor) {
+          const canEdit =
+            (game.user?.isGM) ||
+            !!actor.isOwner;
 
-        if (canEdit) {
-          actor.update({
-            [FLAG_PORTRAIT_EMOTION]: null
-          }).catch(e => console.error("[ginzzzu-portraits] failed to reset emotion:", e));
+          if (canEdit) {
+            actor.update({
+              [FLAG_PORTRAIT_EMOTION]: null
+            }).catch(e => console.error("[ginzzzu-portraits] failed to reset emotion:", e));
+          }
         }
       }
     } catch (e) {

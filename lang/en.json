@@ -99,6 +99,11 @@
         "all": "GM and Owners"
       },
 
+      "resetEmotionOnHide": {
+        "name": "Reset emotion when hiding portrait",
+        "hint": "When enabled, the actor's emotion flag will be cleared when their portrait is hidden."
+      },
+
       "emotionPanelScale": {
         "name": "Emotion Panel Scale",
         "hint": "Adjusts the overall size of the emotion panel (icon scale)."
