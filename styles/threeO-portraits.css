@@ -1,6 +1,10 @@
 .ginzzzu-portrait-wrapper {
   position: relative;
   overflow: visible;
+
+  /* Точка вращения и базовое значение флипа для совместной анимации */
+  transform-origin: center center;
+  --flip-scale-x: 1;
 }
 
 .ginzzzu-portrait-wrapper > img {
@@ -12,12 +16,6 @@
   position: absolute;
   transform: translateX(-50%) translateY(0px);
   border: none;
-}
-
-/* ПКМ-флип (зеркалирование всей обёртки, не конфликтует с FLIP-анимацией img) */
-.ginzzzu-portrait-wrapper.flipped {
-  transform: scaleX(-1);
-  transform-origin: center center;
 }
 
 /* Резервные стили верхней панели (на случай, если inline-стили не применились) */
@@ -50,8 +48,17 @@
   opacity: 0.95;
 }
 
+/* Центрируем точку, вокруг которой зеркалим wrapper
+   и вводим переменные для флипа и "просадки" затемнённых портретов */
+.ginzzzu-portrait-wrapper {
+  transform-origin: center center;
+  --ginzzzu-flip-scale-x: 1;
+  --ginzzzu-dim-offset-y: 0px;
+}
+
+/* Портреты "в тени" — чуть ниже */
 div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
-    transform: translateY(5px);
+  --ginzzzu-dim-offset-y: 5px;
 }
 
 /* Плашка имени портрета, всплывающая при наведении */
@@ -92,17 +99,13 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   pointer-events: auto;
 }
 
-/* Центрируем точку, вокруг которой зеркалим wrapper */
-.ginzzzu-portrait-wrapper {
-  transform-origin: center center;
-}
-
-/* Флип всей ячейки */
+/* Флип всей ячейки: меняем только переменную, а не transform */
 .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped {
-  transform: scaleX(-1);
+  --ginzzzu-flip-scale-x: -1;
 }
 
-/* А подпись флипнем обратно, чтобы текст не был зеркальным */
+/* Подпись флипнем обратно, чтобы текст не был зеркальным
+   (это оставляем как есть, как у тебя и было) */
 .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
   transform: scaleX(-1);
 }

@@ -153,7 +153,62 @@ Hooks.once("init", () => {
     range: { min: 0, max: 1, step: 0.05 },
     requiresReload: true
   });
+  
+    reg("portraitFlipAccess", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      gm:     game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.gm"),
+      owners: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.owners")
+    },
+    default: "gm",
+    requiresReload: false
+  });
 
+  // === Панель эмоций на портретах ===
+  reg("emotionPanelVisibility", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      none: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.none"),
+      gm:   game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.gm"),
+      all:  game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.all")
+    },
+    default: "gm",
+    requiresReload: false
+  });
+
+  reg("emotionPanelScale", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 1,
+    range: { min: 0.6, max: 1.6, step: 0.05 },
+    requiresReload: false
+  });
+
+  reg("emotionPanelPosition", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelPosition.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelPosition.hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      top:   game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelPosition.top"),
+      left:  game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelPosition.left"),
+      right: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelPosition.right")
+    },
+    default: "top",
+    requiresReload: false
+  });
 
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {

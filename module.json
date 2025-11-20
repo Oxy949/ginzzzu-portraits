@@ -29,12 +29,14 @@
     "requires": []
   },
   "esmodules": [
-    "scripts/entry.js"
+    "scripts/entry.js",
+    "scripts/features/portraits-emotions.js"
   ],
   "scripts": [],
   "styles": [
     "styles/threeO-portraits.css",
-    "styles/threeO-npc-dock.css"
+    "styles/threeO-npc-dock.css",
+    "styles/threeO-portraits-emotions.css"
   ],
   "languages": [
     {
