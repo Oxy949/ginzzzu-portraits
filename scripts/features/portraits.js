@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
 import { configurePortrait } from "./portraitConfig.js";
 
 
@@ -906,52 +906,52 @@ function _onPortraitClick(ev) {
 
   // Скрытие одного портрета и отключение эмоций (удаление DOM + FLIP остальных)
   function closeLocalPortrait(actorId) {
-  const map = domStore();
-  const el = map.get(actorId);
-  if (!el) return;
+    const map = domStore();
+    const el = map.get(actorId);
+    if (!el) return;
 
-  if (_focusedActorId === actorId) {
-    setSharedPortraitFocus(null);
-  }
-
-  const firstRects = collectFirstRects();
-
-  // --- Сброс эмоции при скрытии портрета (только у тех, у кого есть права) ---
-  try {
-    const actor = game.actors?.get(actorId);
-    if (actor) {
-      const canEdit =
-        (game.user?.isGM) ||
-        !!actor.isOwner;
-
-      if (canEdit) {
-        actor.update({
-          [`flags.${MODULE_ID}.portraitEmotion`]: null
-        }).catch(e => console.error("[ginzzzu-portraits] failed to reset emotion:", e));
-      }
+    if (_focusedActorId === actorId) {
+      setSharedPortraitFocus(null);
     }
-  } catch (e) {
-    console.error("[ginzzzu-portraits] error clearing emotion flag:", e);
-  }
 
-  // Анимация удаляемого
-  el.style.transform = "translateY(12px)";
-  el.style.opacity = "0";
+    const firstRects = collectFirstRects();
 
-  const timeout = Math.max(_ANIM.fadeMs, _ANIM.moveMs) + 80;
-  setTimeout(() => {
+    // --- Сброс эмоции при скрытии портрета (только у тех, у кого есть права) ---
     try {
-      const wrapper = el.parentElement;
-      if (wrapper && wrapper.classList.contains("ginzzzu-portrait-wrapper")) {
-        wrapper.remove();
-      } else {
-        el.remove();
+      const actor = game.actors?.get(actorId);
+      if (actor) {
+        const canEdit =
+          (game.user?.isGM) ||
+          !!actor.isOwner;
+
+        if (canEdit) {
+          actor.update({
+            [FLAG_PORTRAIT_EMOTION]: null
+          }).catch(e => console.error("[ginzzzu-portraits] failed to reset emotion:", e));
+        }
       }
-    } catch {}
-    map.delete(actorId);
-    relayoutDomHud(firstRects);
-  }, timeout);
-}
+    } catch (e) {
+      console.error("[ginzzzu-portraits] error clearing emotion flag:", e);
+    }
+
+    // Анимация удаляемого
+    el.style.transform = "translateY(12px)";
+    el.style.opacity = "0";
+
+    const timeout = Math.max(_ANIM.fadeMs, _ANIM.moveMs) + 80;
+    setTimeout(() => {
+      try {
+        const wrapper = el.parentElement;
+        if (wrapper && wrapper.classList.contains("ginzzzu-portrait-wrapper")) {
+          wrapper.remove();
+        } else {
+          el.remove();
+        }
+      } catch {}
+      map.delete(actorId);
+      relayoutDomHud(firstRects);
+    }, timeout);
+  }
 
   // ---- Реакция всех клиентов на смену флага актёра ----
   Hooks.on("updateActor", (actor, changes) => {
