@@ -1,7 +1,7 @@
 /* Extracted from threeO-npc-dock.js */
 #ginzzzu-npc-dock {
   position: fixed;
-  left: 50%; 
+  left: 50%;
   transform: translateX(-50%);
   bottom: 80px;                 /* по ТЗ */
   width: 40vw;                 /* по ТЗ */
@@ -23,6 +23,17 @@
   transform: none;
   background: rgba(12, 8, 16, 0.5);
   border-radius: 6px 6px 0 0;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Когда правая панель скрыта */
+body:has(#sidebar-content:not(.expanded)) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - 52px - 56px);
+}
+
+/* Когда текстовое поле НЕ скрыто (класс input-hidden отсутствует) */
+body:has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - 52px - 366px);
 }
 
 #ginzzzu-npc-dock.collapsed .content {
