@@ -912,41 +912,54 @@ function _onPortraitClick(ev) {
     }
   }
 
-  // Скрытие одного портрета (удаление DOM + FLIP остальных)
+  // Скрытие одного портрета и отключение эмоций (удаление DOM + FLIP остальных)
   function closeLocalPortrait(actorId) {
-    const map = domStore();
-    const el = map.get(actorId);
-    if (!el) return;
+  const map = domStore();
+  const el = map.get(actorId);
+  if (!el) return;
 
-    // если закрываем портрет, который был в фокусе — снять фокус
-    if (_focusedActorId === actorId) {
-      setSharedPortraitFocus(null);
-    }
-
-    // FIRST до изменения DOM (для плавного сдвига остальных)
-    const firstRects = collectFirstRects();
-
-    // Анимация удаляемого (CSS-transition)
-    el.style.transform = "translateY(12px)";
-    el.style.opacity = "0";
-
-    const timeout = Math.max(_ANIM.fadeMs, _ANIM.moveMs) + 80; // чуть больше — надёжнее
-    setTimeout(() => {
-      try { 
-        // Удаляем обертку вместе с изображением
-        const wrapper = el.parentElement;
-        if (wrapper && wrapper.classList.contains('ginzzzu-portrait-wrapper')) {
-          wrapper.remove();
-        } else {
-          el.remove();
-        }
-      } catch {}
-      map.delete(actorId);
-
-      // Переложим оставшихся по снятому FIRST (FLIP через WAAPI)
-      relayoutDomHud(firstRects);
-    }, timeout);
+  if (_focusedActorId === actorId) {
+    setSharedPortraitFocus(null);
   }
+
+  const firstRects = collectFirstRects();
+
+  // --- Сброс эмоции при скрытии портрета (только у тех, у кого есть права) ---
+  try {
+    const actor = game.actors?.get(actorId);
+    if (actor) {
+      const canEdit =
+        (game.user?.isGM) ||
+        !!actor.isOwner;
+
+      if (canEdit) {
+        actor.update({
+          [`flags.${MODULE_ID}.portraitEmotion`]: null
+        }).catch(e => console.error("[ginzzzu-portraits] failed to reset emotion:", e));
+      }
+    }
+  } catch (e) {
+    console.error("[ginzzzu-portraits] error clearing emotion flag:", e);
+  }
+
+  // Анимация удаляемого
+  el.style.transform = "translateY(12px)";
+  el.style.opacity = "0";
+
+  const timeout = Math.max(_ANIM.fadeMs, _ANIM.moveMs) + 80;
+  setTimeout(() => {
+    try {
+      const wrapper = el.parentElement;
+      if (wrapper && wrapper.classList.contains("ginzzzu-portrait-wrapper")) {
+        wrapper.remove();
+      } else {
+        el.remove();
+      }
+    } catch {}
+    map.delete(actorId);
+    relayoutDomHud(firstRects);
+  }, timeout);
+}
 
   // ---- Реакция всех клиентов на смену флага актёра ----
   Hooks.on("updateActor", (actor, changes) => {
