@@ -105,6 +105,17 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     root.style.display = "none";
     document.body.appendChild(root);
 
+    // Mini dock: above toolbar, shows currently active portraits as circles
+    const mini = document.createElement("div");
+    mini.className = "mini-dock";
+    // Basic inline styles so it appears above toolbar even without CSS changes
+    mini.style.display = "flex";
+    mini.style.gap = "8px";
+    mini.style.alignItems = "center";
+    mini.style.padding = "6px";
+    mini.style.flexWrap = "wrap";
+    root.appendChild(mini);
+
     // Toolbar
     const toolbar = document.createElement("div");
     toolbar.className = "toolbar";
@@ -571,11 +582,67 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
   }
 
 
+    // Мини-док: кружочки текущих активных портретов (и NPC, и PC)
+    function buildMiniDock() {
+      const root = ensureDock();
+      const mini = root.querySelector('.mini-dock');
+      if (!mini) return;
+      mini.innerHTML = "";
+
+      // собираем актёров с поднятым флагом портрета
+      let active = (game.actors?.contents ?? []).filter(a => !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN) && (isNPC(a) || isPC(a)));
+      if (!active.length) {
+        mini.style.display = 'none';
+        return;
+      }
+      active.sort((a,b) => (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity: 'base' }));
+      mini.style.display = '';
+
+      for (const a of active) {
+        const btn = document.createElement('div');
+        btn.className = 'mini-item';
+        btn.dataset.actorId = a.id;
+        btn.title = makeTooltip(a) || (a.name || "");
+
+        const img = document.createElement('img');
+        img.src = a.img || a.prototypeToken?.texture?.src || 'icons/svg/mystery-man.svg';
+        img.alt = a.name || '';
+        img.style.width = '34px';
+        img.style.height = '34px';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '50%';
+        img.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)';
+        img.style.cursor = 'pointer';
+        btn.appendChild(img);
+
+        // Left click: toggle portrait (hide)
+        btn.addEventListener('click', async (ev) => {
+          ev.preventDefault();
+          const actor = game.actors.get(btn.dataset.actorId);
+          if (!actor) return;
+          const shown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
+          try { await actor.update({ [FLAG_PORTRAIT_SHOWN]: !shown }); } catch(e) { console.error('[threeO-dock] mini toggle error', e); }
+        });
+
+        // Right click: open actor sheet (like main panel)
+        btn.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const actor = game.actors.get(btn.dataset.actorId);
+          if (actor) setTimeout(() => actor.sheet?.render(true), 50);
+        });
+
+        mini.appendChild(btn);
+      }
+    }
+
+
   // Построение всего дока
   function buildDock() {
     if (!game.user?.isGM) return;
     const root = ensureDock();
-
+    // rebuild mini-dock first so it's visible above the toolbar
+    try { buildMiniDock(); } catch(e) { /* ignore */ }
     refreshFolderSelectOptions();
 
     const playersBox = root.querySelector(".players");
@@ -604,6 +671,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
       el.classList.toggle("is-on", shown);
       el.title = makeTooltip(actor);
     }
+    // keep mini-dock in sync
+    try { buildMiniDock(); } catch(e) { /* ignore */ }
   }
 
   // Снять показ портретов у ВСЕХ актёров (NPC + PLAYER) по одному — надёжно
