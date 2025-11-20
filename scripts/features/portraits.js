@@ -98,22 +98,14 @@ const FRAME = {
     }
   };
 
-  // Respect system "prefers-reduced-motion"
-  const REDUCE_MOTION = !!(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
   // Wrap ANIM getters so they respect reduced motion
   const _ANIM = {
-    get fadeMs() { return REDUCE_MOTION ? 0 : ANIM.fadeMs; },
-    get moveMs() { return REDUCE_MOTION ? 0 : ANIM.moveMs; },
+    get fadeMs() { return ANIM.fadeMs; },
+    get moveMs() { return ANIM.moveMs; },
     get easing()  { return ANIM.easing ?? "ease"; }
   };
 
   const isGM = () => !!game.user?.isGM;
-
-  // Для уважения системной настройки "уменьшение движения"
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-    ANIM.fadeMs = 0;
-    ANIM.moveMs = 0;
-  }
 
   // ---- DOM HUD внутри #interface ----
   function getDomHud() {
