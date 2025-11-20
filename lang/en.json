@@ -151,6 +151,11 @@
         "name": "NPC Dock: default sorting",
         "hint": "Example: 'name-asc' or 'name-desc'."
       }
+      ,
+      "showActivePortraits": {
+        "name": "Show Active Portraits Dock",
+        "hint": "When enabled, a mini dock with active portrait circles is shown above the NPC dock."
+      }
     }
   }
 }

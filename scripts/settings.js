@@ -111,6 +111,17 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+    // Show/hide active portrait mini-dock (client setting)
+  reg("showActivePortraits", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.showActivePortraits.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.showActivePortraits.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
   reg("portraitToneEnabled", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitToneEnabled.hint"),

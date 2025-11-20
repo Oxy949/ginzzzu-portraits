@@ -39,6 +39,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
   const setSearchText = (v) => { try { game.settings.set(MODULE_ID, "npcDockSearch", v); } catch {} };
   const getIsCollapsed = () => { try { return game.settings.get(MODULE_ID, "npcDockCollapsed"); } catch { return false; } };
   const setIsCollapsed = (v) => { try { game.settings.set(MODULE_ID, "npcDockCollapsed", v); } catch {} };
+  const getShowActivePortraits = () => { try { return !!game.settings.get(MODULE_ID, "showActivePortraits"); } catch { return true; } };
+  const setShowActivePortraits = (v) => { try { game.settings.set(MODULE_ID, "showActivePortraits", !!v); } catch {} };
 
   // ── COLORS (folder-based) ────────────────────────────────────────────────────
   function hexToRgb(hex) {
@@ -108,6 +110,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     // Mini dock container (CSS handles layout) — shows currently active portraits as circles
     const mini = document.createElement("div");
     mini.className = "active-portraits";
+    // visibility controlled by user setting
+    mini.style.display = getShowActivePortraits() ? "" : "none";
     root.appendChild(mini);
 
     // Toolbar
@@ -638,8 +642,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
   function buildDock() {
     if (!game.user?.isGM) return;
     const root = ensureDock();
-    // rebuild mini-dock first so it's visible above the toolbar
-    try { buildMiniDock(); } catch(e) { /* ignore */ }
+    // rebuild mini-dock first so it's visible above the toolbar (only if enabled)
+    try { if (getShowActivePortraits()) buildMiniDock(); } catch(e) { /* ignore */ }
     refreshFolderSelectOptions();
 
     const playersBox = root.querySelector(".players");
@@ -668,8 +672,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
       el.classList.toggle("is-on", shown);
       el.title = makeTooltip(actor);
     }
-    // keep mini-dock in sync
-    try { buildMiniDock(); } catch(e) { /* ignore */ }
+    // keep mini-dock in sync (only when enabled)
+    try { if (getShowActivePortraits()) buildMiniDock(); } catch(e) { /* ignore */ }
   }
 
   // Снять показ портретов у ВСЕХ актёров (NPC + PLAYER) по одному — надёжно
