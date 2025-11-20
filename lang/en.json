@@ -96,7 +96,7 @@
         "hint": "Controls who can see the emotion panel when hovering over a portrait.",
         "none": "No one",
         "gm": "GM only",
-        "all": "GM and Players"
+        "all": "GM and Owners"
       },
 
       "emotionPanelScale": {
