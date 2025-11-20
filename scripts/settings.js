@@ -230,7 +230,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 1,
     range: { min: 0, max: 1, step: 0.01 },
-    requiresReload: true
+    requiresReload: false
   });
 
   // === Источник изображения актёра (CSV путей) ===

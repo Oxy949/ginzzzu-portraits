@@ -141,50 +141,52 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
     if (!wrap || !actorId) return;
 
     const actor = game.actors?.get(actorId);
-    if (!actor || !_canUseToolbar(actor)) {
-      // На всякий случай — убрать возможную старую панель
-      wrap.querySelector(".threeo-emo-toolbar")?.remove();
-      return;
-    }
+    const canUse = !!actor && _canUseToolbar(actor);
 
-    // Если уже есть панель — просто обновим (не плодим копии)
+    // Если пользователь не может использовать тулбар — удаляем его (если был),
+    // но НЕ выходим: нужно всегда применить позицию/масштаб/интенсивность и классы
     let bar = wrap.querySelector(".threeo-emo-toolbar");
-    if (!bar) {
-      bar = document.createElement("div");
-      bar.className = "threeo-emo-toolbar";
-      bar.innerHTML = _buildEmotionToolbarHTML();
-      wrap.appendChild(bar);
+    if (!canUse) {
+      bar?.remove();
+    } else {
+      // Если уже есть панель — просто обновим (не плодим копии)
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.className = "threeo-emo-toolbar";
+        bar.innerHTML = _buildEmotionToolbarHTML();
+        wrap.appendChild(bar);
 
         bar.addEventListener("click", async ev => {
-        const btn = ev.target.closest(".threeo-emo-btn");
-        if (!btn) return;
+          const btn = ev.target.closest(".threeo-emo-btn");
+          if (!btn) return;
 
-        // по какой эмоции кликнули
-        const clickedKey = String(btn.dataset.emo || "none");
-        // какая эмоция сейчас у актёра (из флага)
-        const currentKey = _getActorEmotionKey(actor);
+          // по какой эмоции кликнули
+          const clickedKey = String(btn.dataset.emo || "none");
+          // какая эмоция сейчас у актёра (из флага)
+          const currentKey = _getActorEmotionKey(actor);
 
-        // если кликнули по уже активной — снимаем эмоцию (становится "none")
-        const nextKey = (clickedKey === currentKey) ? "none" : clickedKey;
+          // если кликнули по уже активной — снимаем эмоцию (становится "none")
+          const nextKey = (clickedKey === currentKey) ? "none" : clickedKey;
 
-        const def = EMO[nextKey] || EMO.none;
-        const newFlagValue = def.key === "none" ? null : def.key;
+          const def = EMO[nextKey] || EMO.none;
+          const newFlagValue = def.key === "none" ? null : def.key;
 
-        // МГНОВЕННЫЙ локальный отклик: классы + активная кнопка
-        _applyEmotionClasses(wrap, def.key);
+          // МГНОВЕННЫЙ локальный отклик: классы + активная кнопка
+          _applyEmotionClasses(wrap, def.key);
 
-        try {
+          try {
             // Аккуратно обновляем только наш флаг
             await actor.update({
-            [FLAG_PORTRAIT_EMOTION]: newFlagValue
+              [FLAG_PORTRAIT_EMOTION]: newFlagValue
             });
-        } catch (e) {
+          } catch (e) {
             console.error("[GinzzzuPortraitEmotions] failed to update portraitEmotion", e);
-        }
+          }
         });
+      }
     }
 
-    // Позиция и масштаб
+    // Позиция и масштаб — всегда применяем к wrapper'у, даже когда тулбар скрыт
     const pos = _getPosition();
     const scale = _getScale();
 
@@ -197,8 +199,14 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
     // интенсивность цветового эффекта (0..1)
     const intensity = _getColorIntensity();
     wrap.style.setProperty("--threeo-emo-intensity", String(intensity));
+    // Если интенсивность = 0, отключаем фильтры эмоций (чтобы не менять цвет тени)
+    if (intensity <= 0) {
+      wrap.classList.add("threeo-emo-no-shadow");
+    } else {
+      wrap.classList.remove("threeo-emo-no-shadow");
+    }
 
-    // начальная подсветка активной эмоции
+    // начальная подсветка активной эмоции (safe при actor == null)
     const key = _getActorEmotionKey(actor);
     _applyEmotionClasses(wrap, key);
   }
