@@ -61,6 +61,7 @@ How to use:
 
 ## Useful tips
 - Folder colors match each portrait’s background or outline for quick visual grouping.
+- Filter player characters by placing them in different folders and choose certait folder in the module settings. Drag the actor into the selected folder so it will instantly appear in the dock — no reload required. 
 - Use the `(Scene)` option to show portraits only for characters with tokens on the current scene.
 - Dynamic lighting support: portraits dim with scene darkness for deeper immersion (adjustable in `Settings`).
 - Right-click an actor in the **Actors** list (top-right panel) and select **“Show portrait”**, or use the top-right button in the character sheet to instantly display the portrait.
