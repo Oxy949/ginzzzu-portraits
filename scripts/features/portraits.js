@@ -1267,13 +1267,13 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
   );
 });
 
-Hooks.on("getHeaderControlsActorSheetV2", (app, buttons) => {
+Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
   if (!game.user.isGM) {
     return;
   }
   const removeLabelSheetHeader = false;
   let theatreButtons = [];
-  if (app.document.isOwner) {
+  if (app.document.isOwner && app.document.documentName === "Actor") {
     if (!app.document.token) {
       theatreButtons.push({
         action: "configure-theatre",
