@@ -41,6 +41,9 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
   const setIsCollapsed = (v) => { try { game.settings.set(MODULE_ID, "npcDockCollapsed", v); } catch {} };
   const getShowActivePortraits = () => { try { return !!game.settings.get(MODULE_ID, "showActivePortraits"); } catch { return true; } };
   const setShowActivePortraits = (v) => { try { game.settings.set(MODULE_ID, "showActivePortraits", !!v); } catch {} };
+  const getPCFolderSel  = () => { try { return game.settings.get(MODULE_ID, "pcDockFolder") || "all"; } catch { return "all"; } };
+  const setPCFolderSel  = (v) => { try { game.settings.set(MODULE_ID, "pcDockFolder", v); } catch {} };
+
 
   // ── COLORS (folder-based) ────────────────────────────────────────────────────
   function hexToRgb(hex) {
@@ -81,6 +84,19 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     return folderPath ? `${name}\n${folderPath}` : name;
   }
 
+  function collectActorFoldersWithPC() {
+    const actors = (game.actors?.contents ?? []).filter(a => isPC(a));
+    const usedFolderIds = new Set();
+    for (const a of actors) {
+      let f = a.folder ?? null;
+      while (f) { usedFolderIds.add(f.id); f = f.folder ?? null; }
+    }
+    const folders = (game.folders?.filter(f => f.type === "Actor") ?? [])
+      .filter(f => usedFolderIds.has(f.id))
+      .map(f => ({ id: f.id, name: f.name, path: getFolderPath({ folder: f }) || f.name }));
+    folders.sort((x,y) => (x.path||"").localeCompare(y.path||"", game.i18n.lang || undefined, { sensitivity:"base" }));
+    return folders;
+  }
 
   function collectActorFoldersWithNPC() {
     const actors = (game.actors?.contents ?? []).filter(a => isNPC(a));
@@ -329,10 +345,27 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     try { delete btn.dataset.dragging; } catch(e) { btn.removeAttribute && btn.removeAttribute('data-dragging'); }
   }
 
-  // Построить карточки players (type "player")
+  // Построить карточки players (type "player") с учетом фильтра по папке
   function buildPlayers(container) {
     container.innerHTML = "";
-    const pcs = (game.actors?.contents ?? []).filter(a => isPC(a));
+    let pcs = (game.actors?.contents ?? []).filter(a => isPC(a));
+
+    // Фильтр по выбранной папке игроков
+    const pcFolderSel = getPCFolderSel();
+    if (pcFolderSel === "no-folder") {
+      // только игроки без папки
+      pcs = pcs.filter(a => !a.folder);
+    } else if (pcFolderSel !== "all") {
+      // только игроки из выбранной папки (учитывая вложенность)
+      pcs = pcs.filter(a => {
+        let f = a.folder ?? null;
+        while (f) {
+          if (f.id === pcFolderSel) return true;
+          f = f.folder ?? null;
+        }
+        return false;
+      });
+    }
     // порядок: сначала избранное, потом по имени
     pcs.sort((a, b) => {
       // сначала по избранному
