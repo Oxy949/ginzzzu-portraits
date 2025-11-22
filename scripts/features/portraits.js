@@ -1269,7 +1269,7 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
 
 
 Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
-    if (!game.user.isGM && game.settings.get(CONSTANTS.MODULE_ID, "gmOnly")) {
+    if (!game.user.isGM) {
         return;
     }
 
@@ -1300,7 +1300,7 @@ Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
   if (!game.user.isGM) {
     return;
   }
-  const removeLabelSheetHeader = false;
+  
   let theatreButtons = [];
   if (app.document.isOwner && app.document.documentName === "Actor") {
     if (!app.document.token) {
