@@ -1267,6 +1267,35 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
   );
 });
 
+
+Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
+    if (!game.user.isGM && game.settings.get(CONSTANTS.MODULE_ID, "gmOnly")) {
+        return;
+    }
+
+    let theatreButtons = [];
+    if (app.document.isOwner) {
+        // Only prototype actors
+        if (!app.document.token) {
+            theatreButtons.push({
+              action: "configure-theatre",
+              label: "GINZZZUPORTRAITS.configurePortrait",
+              class: "configure-theatre",
+              icon: "fas fa-user-edit",
+              onclick: (ev) => globalThis.GinzzzuPortraits.configurePortrait(ev, app.document.sheet)
+            });
+        }
+        theatreButtons.push({
+          action: "add-to-theatre-navbar",
+          label: "GINZZZUPORTRAITS.toggleCharacterPortrait",
+          class: "add-to-theatre-navbar",
+          icon: "fas fa-theater-masks",
+          onclick: (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document)
+        });
+    }
+    buttons.unshift(...theatreButtons);
+});
+
 Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
   if (!game.user.isGM) {
     return;

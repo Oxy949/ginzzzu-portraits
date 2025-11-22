@@ -210,6 +210,11 @@ body:has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
   grid-template-columns: repeat(1, 1fr);
 }
 
+#ginzzzu-npc-dock .players:not(:has(.item:nth-child(1))) {
+    display: none;
+    visibility: hidden;
+}
+
 /* Правая колонка: NPC-лента как раньше, со скроллом колёсиком */
 #ginzzzu-npc-dock .npcs {
   flex:1 1 auto; 
