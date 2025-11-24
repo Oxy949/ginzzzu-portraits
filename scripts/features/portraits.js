@@ -648,11 +648,32 @@ function _onPortraitClick(ev) {
       // Get base transform
       const base = getComputedStyle(el).transform;
       const baseTransform = (base && base !== "none") ? base : "none";
-      
+      // If the wrapper (or ancestor) is flipped horizontally (scaleX < 0),
+      // the horizontal delta should be inverted so the visual direction
+      // of the animation matches the actual layout change.
+      let dxAdj = dx;
+      try {
+        const wrapper = el.closest && el.closest('.ginzzzu-portrait-wrapper');
+        if (wrapper) {
+          const wcs = getComputedStyle(wrapper).transform;
+          if (wcs && wcs !== 'none') {
+            const m = wcs.match(/matrix(3d)?\(([^)]+)\)/);
+            if (m && m[2]) {
+              const parts = m[2].split(',').map(s => parseFloat(s.trim()));
+              // For both matrix() and matrix3d(), the first element is scaleX (or contains it)
+              const scaleX = Number.isFinite(parts[0]) ? parts[0] : 1;
+              if (scaleX < 0) dxAdj = -dxAdj;
+            }
+          }
+        }
+      } catch (e) {
+        // ignore and use unadjusted dx
+      }
+
       // Prepare transforms
       const fromTransform = baseTransform === "none"
-        ? `translate3d(${dx}px, ${dy}px, 0)`
-        : `${baseTransform} translate3d(${dx}px, ${dy}px, 0)`;
+        ? `translate3d(${dxAdj}px, ${dy}px, 0)`
+        : `${baseTransform} translate3d(${dxAdj}px, ${dy}px, 0)`;
       const toTransform = baseTransform === "none" 
         ? "translate3d(0,0,0)" 
         : baseTransform;
