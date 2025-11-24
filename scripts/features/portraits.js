@@ -1346,4 +1346,44 @@ Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
   buttons.unshift(...theatreButtons);
 });
 
+// Add a function to save the current portrait sequence to module settings
+function savePortraitSequence() {
+  const root = getDomHud();
+  if (!root) return;
+
+  const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
+  const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
+
+  const sequence = imgs.map(img => img.dataset.actorId).filter(Boolean);
+  game.settings.set(MODULE_ID, "portraitSequence", sequence);
+}
+
+// Add a function to load the portrait sequence from module settings
+function loadPortraitSequence() {
+  const sequence = game.settings.get(MODULE_ID, "portraitSequence") || [];
+  const root = getDomHud();
+  if (!root) return;
+
+  const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
+  const map = domStore();
+
+  sequence.forEach(actorId => {
+    const img = map.get(actorId);
+    if (img) {
+      rail.appendChild(img.closest(".ginzzzu-portrait-wrapper"));
+    }
+  });
+
+  relayoutDomHud();
+}
+
+// Hook into the ready event to load the sequence on startup
+Hooks.once("ready", () => {
+  loadPortraitSequence();
+
+  // Save the sequence whenever the DOM HUD is relaid out
+  Hooks.on("canvasReady", savePortraitSequence);
+  Hooks.on("updateActor", savePortraitSequence);
+});
+
 })();
