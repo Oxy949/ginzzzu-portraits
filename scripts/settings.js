@@ -54,6 +54,17 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  reg("portraitBottomOffset", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0,                    // отступ снизу в пикселях
+    range: { min: 0, max: 800, step: 1 },
+    requiresReload: true
+  });
+
   reg("portraitNameVertical", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNameVertical.hint"),
