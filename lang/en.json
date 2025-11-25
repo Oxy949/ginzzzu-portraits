@@ -47,6 +47,10 @@
         "name": "Portraits: height",
         "hint": "0 - bottom strip, 1 - full height. Used if GM hasn't forced a value."
       },
+      "portraitBottomOffset": {
+       "name": "Bottom Offset (px)",
+       "hint": "How many pixels to lift the portraits above the bottom of the screen. Portrait height is recalculated based on the remaining screen height."
+      },
       "portraitNameVertical": {
         "name": "Portrait: name badge vertical position",
         "hint": "Vertical position of the name badge on the portrait (0 — top, 100 — bottom)."
