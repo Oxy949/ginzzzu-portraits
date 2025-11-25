@@ -137,12 +137,11 @@ const FRAME = {
       alignItems: "flex-end",
       justifyContent: "center",
       gap: "24px",
-      paddingBottom: `${FRAME.bottomPx}px`,
+      paddingBottom: `${getBottomOffsetPx()}px`,  // ← берём из настройки
       // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
       transform: "translateZ(0)", // Force GPU layer
       backfaceVisibility: "hidden"
     });
-
 
     const rail = document.createElement("div");
     rail.id = "ginzzzu-portrait-rail";
@@ -152,7 +151,7 @@ const FRAME = {
         left: "0",
         right: "0",
         top: "0",
-        bottom: "0",
+        bottom: `${getBottomOffsetPx()}px`,
         display: "flex",
         flexDirection: "row",
         alignItems: "end",
@@ -172,7 +171,7 @@ const FRAME = {
         left: "0",
         right: "0",
         top: "0",
-        bottom: "0",
+        bottom: `${getBottomOffsetPx()}px`,
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
@@ -220,6 +219,17 @@ const FRAME = {
     if (rail) {
       rail.style.paddingLeft = `${leftPad}px`;
       rail.style.paddingRight = `${rightPad}px`;
+    }
+  }
+
+  function getBottomOffsetPx() {
+    try {
+      let v = Number(game.settings.get(MODULE_ID, "portraitBottomOffset") ?? 0);
+      if (!Number.isFinite(v)) v = 0;
+      return Math.max(0, v);
+    } catch (e) {
+      // fallback на значение из FRAME, если что-то пошло не так
+      return FRAME.bottomPx ?? 0;
     }
   }
 
@@ -580,6 +590,28 @@ function _onPortraitClick(ev) {
       porHeight = game.settings.get(MODULE_ID, "gmPortraitHeight");
     }
 
+    // актуализируем боковые паддинги
+    syncSidePadding(root, rail);
+
+    // актуализируем нижний паддинг по настройке
+    const bottomOffsetPx = getBottomOffsetPx();
+    rail.style.bottom = `${bottomOffsetPx}px`;
+
+    // Коэффициент «доступной высоты» (0..1) относительно всего окна
+    const viewportH = Math.max(
+      document.documentElement.clientHeight || 0,
+      window.innerHeight || 0
+    ) || 1;
+
+    const usableFraction = Math.max(
+      0,
+      Math.min(1, (viewportH - bottomOffsetPx) / viewportH)
+    );
+
+    // Итоговая высота портрета = (настройка) * (доступная доля экрана)
+    const effectivePorHeight = porHeight * usableFraction;
+
+
     // Настройки плашки имени
     let nameV = 50;
     try {
@@ -602,8 +634,8 @@ function _onPortraitClick(ev) {
       const wrapper = el.parentElement;
       if (!wrapper) return;
       
-      wrapper.style.height    = `${porHeight * 100}vh`;
-      wrapper.style.maxHeight = `${porHeight * 100}vh`;
+      wrapper.style.height    = `${effectivePorHeight * 100}vh`;
+      wrapper.style.maxHeight = `${effectivePorHeight * 100}vh`;
       wrapper.style.width     = `${widthPx}px`;
       wrapper.style.maxWidth  = `${widthPx}px`;
       wrapper.style.flex      = "0 0 auto";
