@@ -3,7 +3,7 @@
 ![Image](./preview.webp)
 
 # Ginzzzu's Portraits & NPC Dock
-A system-independent Foundry VTT module that brings a cinematic layer to your Foundry VTT games.
+A system-agnostic Foundry VTT module that brings a cinematic layer to your Foundry VTT games.
 It displays character and NPC portraits directly on screen — much like a visual novel or dialogue-driven RPG. 
 
 The module provides:
