@@ -10,7 +10,8 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
   function _parsePathsCSV(v) {
     return String(v ?? "").split(",").map(s => s.trim()).filter(Boolean);
   }
-  function _getActorImage(actor) {
+  function _getActorBaseImage(actor) {
+    if (!actor) return "";
     try {
       const csv = game.settings.get(MODULE_ID, "actorImagePaths"); // CSV of dot-paths
       const paths = _parsePathsCSV(csv);
@@ -21,6 +22,43 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
     } catch {}
     // Fallbacks
     return actor.img || actor.prototypeToken?.texture?.src || actor?.texture?.src || "";
+  }
+
+  /**
+   * Get current portrait image for actor, taking into account custom emotions.
+   * If a custom emotion with a non-empty imagePath is active, that path overrides the base image.
+   */
+  function _getActorImage(actor) {
+    if (!actor) return "";
+
+    // 1) Базовая картинка по стандартным правилам
+    const baseImg = _getActorBaseImage(actor);
+
+    // 2) Пытаемся переопределить её картинкой кастомной эмоции (если есть)
+    try {
+      // Текущий ключ эмоции для актёра (например "joy", "custom_0", "none")
+      const rawKey = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION);
+      const emoKey = rawKey == null ? "none" : String(rawKey);
+
+      // Интересуют только custom_* эмоции
+      const m = /^custom_(\d+)$/.exec(emoKey);
+      if (!m) return baseImg;
+
+      const idx = Number(m[1]);
+      if (!Number.isInteger(idx) || idx < 0) return baseImg;
+
+      const customEmotions = actor.getFlag(MODULE_ID, "customEmotions") || [];
+      if (!Array.isArray(customEmotions) || !customEmotions[idx]) return baseImg;
+
+      const path = customEmotions[idx]?.imagePath;
+      if (typeof path === "string" && path.trim().length > 0) {
+        return path.trim();
+      }
+    } catch (e) {
+      console.error("[threeO-portraits] Failed to resolve custom emotion image:", e);
+    }
+
+    return baseImg;
   }
 
   // ---- Adaptive tone (по темноте сцены) ----
@@ -1108,6 +1146,36 @@ Hooks.once("ready", () => {
   } catch (e) {
     console.error(e);
   }
+
+    // React to emotion / customEmotions changes to keep portrait image in sync with active emotion
+  Hooks.on("updateActor", (actor, changes) => {
+    try {
+      if (!actor?.id) return;
+
+      // Только если у этого актёра уже есть HUD-портрет
+      const root = getDomHud?.();
+      if (!root) return;
+
+      const wrapper = root.querySelector(`.ginzzzu-portrait-wrapper[data-actor-id="${actor.id}"]`);
+      if (!wrapper) return;
+
+      // Проверяем, что изменилось именно то, что влияет на картинку эмоции
+      const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
+      const customEmotionsChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.customEmotions`);
+
+      if (!emotionChanged && !customEmotionsChanged) return;
+
+      const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
+      if (!imgEl) return;
+
+      const newImg = _getActorImage(actor);
+      if (typeof newImg === "string" && newImg && imgEl.src !== newImg) {
+        imgEl.src = newImg;
+      }
+    } catch (e) {
+      console.error("[threeO-portraits] updateActor hook (emotion image) failed:", e);
+    }
+  });
 
   // Приём socket-запросов на флип от игроков (обрабатывает только ГМ)
   if (game.socket) {

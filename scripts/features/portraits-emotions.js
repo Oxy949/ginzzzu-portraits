@@ -1,4 +1,5 @@
-import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+
 
 /**
  * Общая логика панели эмоций для HUD-портретов.
@@ -196,22 +197,24 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES
 
     let bar = wrap.querySelector(".threeo-emo-toolbar");
     if (!canUse) {
+      // Если панель недоступна — убираем
       bar?.remove();
     } else {
+      // Панель должна быть — создаём при необходимости
       if (!bar) {
         bar = document.createElement("div");
         bar.className = "threeo-emo-toolbar";
-        bar.innerHTML = _buildEmotionToolbarHTML(actor);
         wrap.appendChild(bar);
 
+        // Делегированный клик по кнопкам эмоций
         bar.addEventListener("click", async ev => {
           const btn = ev.target.closest(".threeo-emo-btn");
           if (!btn) return;
 
           const clickedKey = String(btn.dataset.emo || "none");
           const currentKey = _getActorEmotionKey(actor);
-
           const nextKey = (clickedKey === currentKey) ? "none" : clickedKey;
+
           const allEmotions = _getAllEmotionsForActor(actor);
           const def = allEmotions[nextKey] || allEmotions.none;
           const newFlagValue = def.key === "none" ? null : def.key;
@@ -227,6 +230,9 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES
           }
         });
       }
+
+      // 🔧 КЛЮЧЕВАЯ СТРОКА: всегда пересобираем список эмоций
+      bar.innerHTML = _buildEmotionToolbarHTML(actor);
     }
 
     const pos = _getPosition();
@@ -248,6 +254,8 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES
     const key = _getActorEmotionKey(actor);
     _applyEmotionClasses(wrap, key, actor);
   }
+
+
 
   function refreshAllHudToolbars() {
     const root = document.getElementById("ginzzzu-portrait-layer");
