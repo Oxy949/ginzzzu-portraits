@@ -76,7 +76,8 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES
 
     // Add custom emotions
     try {
-      const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
+      const customEmotions = actor.getFlag(MODULE_ID, "customEmotions") || [];
+      console.log(`[${MODULE_ID}] Loading custom emotions for ${actor.name}:`, customEmotions);
       if (Array.isArray(customEmotions)) {
         customEmotions.forEach((custom, idx) => {
           // Create unique key for custom emotion
@@ -262,12 +263,19 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES
   // Реакция на изменение актёров
   Hooks.on("updateActor", (actor, diff, options, userId) => {
     if (!actor?.id) return;
-    if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_EMOTION) || foundry.utils.hasProperty(diff, FLAG_CUSTOM_EMOTIONS)) {
+    
+    const hasEmotionChange = foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.portraitEmotion`);
+    const hasCustomEmotionsChange = foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.customEmotions`);
+    
+    if (hasEmotionChange) {
+      console.log(`[${MODULE_ID}] Emotion changed for ${actor.name}`);
       applyEmotionToHudDom(actor.id);
-      // Refresh toolbar if custom emotions changed
-      if (foundry.utils.hasProperty(diff, FLAG_CUSTOM_EMOTIONS)) {
-        refreshAllHudToolbars();
-      }
+    }
+    
+    // Refresh toolbar if custom emotions changed
+    if (hasCustomEmotionsChange) {
+      console.log(`[${MODULE_ID}] Custom emotions changed for ${actor.name}, refreshing toolbars`);
+      refreshAllHudToolbars();
     }
   });
 

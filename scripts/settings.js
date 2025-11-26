@@ -54,6 +54,16 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // Saved order of portraits (per-client)
+  reg("portraitSequence", {
+    name: "Portrait Sequence",
+    hint: "Internal: saved order of portraits in the HUD (not configurable)",
+    scope: "client",
+    config: false,
+    type: Object,
+    default: []
+  });
+
   reg("portraitBottomOffset", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.hint"),

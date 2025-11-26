@@ -1,6 +1,6 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
-import { getCustomEmotions, updateCustomEmotion, removeCustomEmotion, addCustomEmotion } from "./customEmotions.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, ANIMATION_TYPES, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+import { getCustomEmotions } from "./customEmotions.js";
 
 const isGM = () => !!game.user?.isGM;
 
@@ -30,6 +30,7 @@ export async function configurePortrait(ev, actorSheet) {
 
   // Get custom emotions
   const customEmotions = getCustomEmotions(actor);
+  console.log(`[${MODULE_ID}] Loaded ${customEmotions.length} custom emotions for actor ${actor.name}:`, customEmotions);
 
   // Build emotion list HTML
   let emotionListHTML = '';
@@ -269,6 +270,8 @@ export async function configurePortrait(ev, actorSheet) {
     </style>`;
 
   return new Promise((resolve) => {
+    let isResolved = false;
+    
     const dialog = new Dialog({
       title,
       content,
@@ -277,6 +280,9 @@ export async function configurePortrait(ev, actorSheet) {
           icon: '<i class="fas fa-eraser"></i>',
           label: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.clear"),
           callback: async () => {
+            if (isResolved) return;
+            isResolved = true;
+            console.log(`[${MODULE_ID}] Clearing portrait display name for ${actor.name}`);
             await actor.unsetFlag(MODULE_ID, "displayName");
             resolve();
           }
@@ -285,7 +291,12 @@ export async function configurePortrait(ev, actorSheet) {
           icon: '<i class="fas fa-save"></i>',
           label: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.save"),
           callback: async (html) => {
+            if (isResolved) return;
+            isResolved = true;
+            
             try {
+              console.log(`[${MODULE_ID}] Saving portrait config for ${actor.name}`);
+              
               // Save display name
               const input = html.find('input[name="displayName"]').val();
               const value = String(input ?? "").trim();
@@ -301,24 +312,35 @@ export async function configurePortrait(ev, actorSheet) {
               const emotions = [];
               emotionItems.each((idx, elem) => {
                 const $elem = $(elem);
-                const emoji = $elem.find('.emotion-emoji').val()?.trim() || '';
-                const name = $elem.find('.emotion-name').val()?.trim() || '';
-                const imagePath = $elem.find('.emotion-path').val()?.trim() || '';
-                const animation = $elem.find('.emotion-animation').val() || 'none';
-                const colorIntensity = $elem.find('.emotion-color').val() || 'high';
+                const emoji = $elem.find('input.emotion-emoji').val()?.trim() || '';
+                const name = $elem.find('input.emotion-name').val()?.trim() || '';
+                const imagePath = $elem.find('input.emotion-path').val()?.trim() || '';
+                const animation = $elem.find('select.emotion-animation').val() || 'none';
+                const colorIntensity = $elem.find('select.emotion-color').val() || 'high';
 
-                if (emoji && name) {
+                console.log(`[${MODULE_ID}] Emotion ${idx}:`, { emoji, name, imagePath, animation, colorIntensity });
+
+                // Accept an emotion when at least one meaningful field is provided
+                const hasAny = (String(emoji).trim().length > 0) || (String(name).trim().length > 0) || (String(imagePath).trim().length > 0);
+                if (hasAny) {
                   emotions.push({ emoji, name, imagePath, animation, colorIntensity });
+                } else {
+                  console.log(`[${MODULE_ID}] Ignoring empty emotion at index ${idx}`);
                 }
               });
 
+              console.log(`[${MODULE_ID}] Saving ${emotions.length} emotions for actor ${actor.name}:`, emotions);
+
               if (emotions.length > 0) {
+                console.log(`[${MODULE_ID}] Calling setFlag with customEmotions`);
                 await actor.setFlag(MODULE_ID, "customEmotions", emotions);
-                console.log(`[${MODULE_ID}] Saved ${emotions.length} custom emotions for ${actor.name}`);
+                console.log(`[${MODULE_ID}] Successfully saved ${emotions.length} custom emotions`);
               } else {
+                console.log(`[${MODULE_ID}] Clearing customEmotions flag (no emotions)`);
                 await actor.unsetFlag(MODULE_ID, "customEmotions");
               }
 
+              console.log(`[${MODULE_ID}] Portrait config save complete`);
               resolve();
             } catch (e) {
               console.error(`[${MODULE_ID}] Error saving portrait config:`, e);
@@ -328,7 +350,13 @@ export async function configurePortrait(ev, actorSheet) {
         }
       },
       default: "save",
-      close: () => resolve(),
+      close: () => {
+        if (!isResolved) {
+          isResolved = true;
+          console.log(`[${MODULE_ID}] Dialog closed without saving`);
+          resolve();
+        }
+      },
       render: (html) => {
         // Add emotion button handler
         html.find('.emotion-add-btn').on('click', (e) => {

@@ -10,15 +10,19 @@ import { MODULE_ID, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES, COLOR_INTENSITY_OPTIO
  * @returns {Object[]} Array of custom emotion objects
  */
 export function getCustomEmotions(actor) {
-  if (!actor) return [];
+  if (!actor) {
+    console.warn(`[${MODULE_ID}] getCustomEmotions called with null actor`);
+    return [];
+  }
 
   try {
-    const emotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS);
+    const emotions = actor.getFlag(MODULE_ID, "customEmotions");
+    console.log(`[${MODULE_ID}] getCustomEmotions for ${actor.name}: found ${Array.isArray(emotions) ? emotions.length : 0} emotions`, emotions);
     if (Array.isArray(emotions)) {
       return emotions;
     }
   } catch (e) {
-    console.error(`[${MODULE_ID}] Error getting custom emotions:`, e);
+    console.error(`[${MODULE_ID}] Error getting custom emotions for ${actor.name}:`, e);
   }
 
   return [];
@@ -37,8 +41,10 @@ export async function setCustomEmotions(actor, emotions) {
     // Validate emotions before saving
     const validated = emotions.map(validateEmotion).filter(e => e !== null);
     await actor.setFlag(MODULE_ID, "customEmotions", validated);
+    console.log(`[${MODULE_ID}] Custom emotions saved for ${actor.name}:`, validated);
   } catch (e) {
     console.error(`[${MODULE_ID}] Error setting custom emotions:`, e);
+    throw e;
   }
 }
 
