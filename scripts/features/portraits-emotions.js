@@ -66,14 +66,32 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
     return !!actor.isOwner;
   }
 
+  function _shouldShowStandardEmotions(actor) {
+    if (!actor) return true;
+    const raw = actor.getFlag(MODULE_ID, "showStandardEmotions");
+    // По умолчанию — показываем стандартные эмоции.
+    // Только явный false скрывает их.
+    return raw !== false;
+  }
+
+
   /**
    * Get all emotions (built-in + custom) for an actor
    */
   function _getAllEmotionsForActor(actor) {
     if (!actor) return EMO;
 
-    // Start with built-in emotions
-    const allEmotions = { ...EMO };
+    const allEmotions = {};
+
+    const showStandard = _shouldShowStandardEmotions(actor);
+    if (showStandard) {
+      // Все стандартные эмоции (включая "none")
+      Object.assign(allEmotions, EMO);
+    } else {
+      // Если стандартные отключены — всё равно оставляем "none",
+      // чтобы можно было сбросить эмоцию.
+      allEmotions.none = EMO.none;
+    }
 
     // Add custom emotions
     try {
@@ -101,6 +119,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
 
     return allEmotions;
   }
+
 
   function _buildEmotionToolbarHTML(actor) {
     const allEmotions = _getAllEmotionsForActor(actor);
@@ -272,20 +291,22 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
   Hooks.on("updateActor", (actor, diff, options, userId) => {
     if (!actor?.id) return;
     
-    const hasEmotionChange = foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.portraitEmotion`);
+    const hasEmotionChange        = foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.portraitEmotion`);
     const hasCustomEmotionsChange = foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.customEmotions`);
+    const hasShowStdChange        = foundry.utils.hasProperty(diff, `flags.${MODULE_ID}.showStandardEmotions`);
     
     if (hasEmotionChange) {
       console.log(`[${MODULE_ID}] Emotion changed for ${actor.name}`);
       applyEmotionToHudDom(actor.id);
     }
     
-    // Refresh toolbar if custom emotions changed
-    if (hasCustomEmotionsChange) {
-      console.log(`[${MODULE_ID}] Custom emotions changed for ${actor.name}, refreshing toolbars`);
+    // Refresh toolbar if custom emotions or visibility of standard emotions changed
+    if (hasCustomEmotionsChange || hasShowStdChange) {
+      console.log(`[${MODULE_ID}] Emotions config changed for ${actor.name}, refreshing toolbars`);
       refreshAllHudToolbars();
     }
   });
+
 
   // Реакция на изменения настроек панели
   Hooks.on("updateSetting", setting => {

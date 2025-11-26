@@ -28,6 +28,11 @@ export async function configurePortrait(ev, actorSheet) {
   const notes = game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.note");
   const title = game.i18n.format("GINZZZUPORTRAITS.PortraitConfig.title", { name: actor.name });
 
+    // Per-actor option: show/hide standard emotions in toolbar (default: true)
+  const showStandardRaw = actor.getFlag(MODULE_ID, "showStandardEmotions");
+  const showStandardEffective = (showStandardRaw !== false); // undefined / true -> показываем
+  const showStandardCheckedAttr = showStandardEffective ? "checked" : "";
+
   // Get custom emotions
   const customEmotions = getCustomEmotions(actor);
   console.log(`[${MODULE_ID}] Loaded ${customEmotions.length} custom emotions for actor ${actor.name}:`, customEmotions);
@@ -96,6 +101,13 @@ export async function configurePortrait(ev, actorSheet) {
 
       <div class="emotions-section">
         <h3 style="margin: 0 0 15px 0; font-size: 1.1em;">${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel")}</h3>
+        <div class="form-group emotion-show-standard" style="margin-bottom: 10px;">
+          <label style="display: flex; align-items: center; gap: 0.4em;">
+            <input type="checkbox" name="showStandardEmotions" value="1" ${showStandardCheckedAttr}>
+            ${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.showStandardEmotions")}
+          </label>
+        </div>
+
         <div class="emotions-list">
           ${emotionListHTML}
         </div>
@@ -306,6 +318,10 @@ export async function configurePortrait(ev, actorSheet) {
               } else {
                 await actor.setFlag(MODULE_ID, "displayName", value);
               }
+
+              // Save "show standard emotions" toggle (default true)
+              const showStd = html.find('input[name="showStandardEmotions"]').is(':checked');
+              await actor.setFlag(MODULE_ID, "showStandardEmotions", !!showStd);
 
               // Save custom emotions
               const emotionItems = html.find('.ginzzzu-emotion-item');
