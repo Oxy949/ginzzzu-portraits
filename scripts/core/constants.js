@@ -11,21 +11,111 @@ export const FLAG_FAVORITE          = `${FLAG_MODULE}.favorite`;
 export const FLAG_PORTRAIT_EMOTION  = `${FLAG_MODULE}.portraitEmotion`;
 export const FLAG_CUSTOM_EMOTIONS   = `${FLAG_MODULE}.customEmotions`;
 
-// Animation and color intensity options for emotions
-export const ANIMATION_TYPES = {
-  none:   { key: "none",   label: "None",     value: "none" },
-  shake:  { key: "shake",  label: "Shake",    value: "anger-jitter" },
-  sag:    { key: "sag",    label: "Sag",      value: "sad-sag" },
-  shiver: { key: "shiver", label: "Shiver",   value: "fear-shiver" },
-  bob:    { key: "bob",    label: "Bob",      value: "joy-bob" },
-  beat:   { key: "beat",   label: "Heartbeat", value: "heart-beat" },
-  tired:  { key: "tired",  label: "Tired",    value: "tired-bob" },
-  pulse:  { key: "pulse",  label: "Pulse",    value: "hurt-pulse" }
+// --------------------------------------------
+// 1) СПИСОК ЦВЕТОВ (цветкоры)
+// --------------------------------------------
+// Тут задаются только ключ и CSS-класс для цветкора.
+// В CSS ты прописываешь сами правила для .emo-*-color.
+export const EMOTION_COLORS = {
+  none:  { key: "none",  label: "None",  className: "" },
+
+  joy:   { key: "joy",   label: "Joy",   className: "emo-joy-color" },
+  anger: { key: "anger", label: "Anger", className: "emo-anger-color" },
+  sad:   { key: "sad",   label: "Sad",   className: "emo-sad-color" },
+  love:  { key: "love",  label: "Love",  className: "emo-love-color" },
+  fear:  { key: "fear",  label: "Fear",  className: "emo-fear-color" },
+  tired: { key: "tired", label: "Tired", className: "emo-tired-color" },
+  hurt:  { key: "hurt",  label: "Hurt",  className: "emo-hurt-color" }
+
+  // Хочешь новый цветкор — добавляешь ещё одну запись здесь
+  // и создаёшь .emo-<key>-color в CSS.
 };
 
-export const COLOR_INTENSITY_OPTIONS = [
-  { key: "none",   label: "None",    value: 0 },
-  { key: "low",    label: "Low",     value: 0.3 },
-  { key: "medium", label: "Medium",  value: 0.6 },
-  { key: "high",   label: "High",    value: 1 }
-];
+// --------------------------------------------
+// 2) СПИСОК ДВИЖЕНИЙ (анимации)
+// --------------------------------------------
+// key      — то, что хранится в данных (custom эмоции и т.п.)
+// label    — подпись в выпадающих списках
+// value    — имя @keyframes (или другое значение для --emotion-animation)
+// className — CSS-класс движения (.emo-*-motion)
+export const EMOTION_MOTIONS = {
+  none:   { key: "none",   label: "None",      value: "none",         className: "" },
+
+  shake:  { key: "shake",  label: "Shake",     value: "anger-jitter", className: "emo-shake-motion" },
+  sag:    { key: "sag",    label: "Sag",       value: "sad-sag",      className: "emo-sag-motion" },
+  shiver: { key: "shiver", label: "Shiver",    value: "fear-shiver",  className: "emo-shiver-motion" },
+  bob:    { key: "bob",    label: "Bob",       value: "joy-bob",      className: "emo-bob-motion" },
+  beat:   { key: "beat",   label: "Heartbeat", value: "heart-beat",   className: "emo-beat-motion" },
+  tired:  { key: "tired",  label: "Tired",     value: "tired-bob",    className: "emo-tired-motion" },
+  pulse:  { key: "pulse",  label: "Pulse",     value: "hurt-pulse",   className: "emo-pulse-motion" }
+
+  // Новое движение? Добавляешь сюда и делаешь .emo-<key>-motion в CSS,
+  // плюс @keyframes с именем из value.
+};
+
+// --------------------------------------------
+// 3) СПИСОК ЭМОЦИЙ (пресеты = цвет + движение)
+// --------------------------------------------
+// Всё, что знает UI про стандартные эмоции: ключ, подпись, эмодзи,
+// и связка colorKey + motionKey.
+export const EMOTIONS = {
+  none: {
+    key: "none",
+    label: "None",
+    emoji: "✖",
+    colorKey: "none",
+    motionKey: "none"
+  },
+
+  joy: {
+    key: "joy",
+    label: "Joy",
+    emoji: "😊",
+    colorKey: "joy",
+    motionKey: "bob"
+  },
+  anger: {
+    key: "anger",
+    label: "Anger",
+    emoji: "😠",
+    colorKey: "anger",
+    motionKey: "shake"
+  },
+  sad: {
+    key: "sad",
+    label: "Sad",
+    emoji: "😢",
+    colorKey: "sad",
+    motionKey: "sag"
+  },
+  love: {
+    key: "love",
+    label: "Love",
+    emoji: "💖",
+    colorKey: "love",
+    motionKey: "beat"
+  },
+  fear: {
+    key: "fear",
+    label: "Fear",
+    emoji: "😱",
+    colorKey: "fear",
+    motionKey: "shiver"
+  },
+  tired: {
+    key: "tired",
+    label: "Tired",
+    emoji: "😪",
+    colorKey: "tired",
+    motionKey: "tired"
+  },
+  hurt: {
+    key: "hurt",
+    label: "Hurt",
+    emoji: "🤕",
+    colorKey: "hurt",
+    motionKey: "pulse"
+  }
+
+  // Новая эмоция? Добавляешь сюда запись с существующим colorKey и motionKey.
+};

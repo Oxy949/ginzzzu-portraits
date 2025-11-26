@@ -1,5 +1,5 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, ANIMATION_TYPES, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, EMOTION_MOTIONS, EMOTION_COLORS } from "../core/constants.js";
 import { getCustomEmotions } from "./customEmotions.js";
 
 const isGM = () => !!game.user?.isGM;
@@ -44,7 +44,7 @@ export async function configurePortrait(ev, actorSheet) {
     const safeName = (emotion.name ?? "").replace(/"/g, "&quot;");
     const safePath = (emotion.imagePath ?? "").replace(/"/g, "&quot;");
     
-    const animOptions = Object.values(ANIMATION_TYPES).map(anim => 
+    const animOptions = Object.values(EMOTION_MOTIONS).map(anim => 
       `<option value="${anim.key}" ${emotion.animation === anim.key ? 'selected' : ''}>${anim.label}</option>`
     ).join('');
     
@@ -417,13 +417,13 @@ export async function configurePortrait(ev, actorSheet) {
                 <div class="form-group">
                   <label>Animation</label>
                   <select class="emotion-animation">
-                    ${Object.values(ANIMATION_TYPES).map(anim => `<option value="${anim.key}">${anim.label}</option>`).join('')}
+                    ${Object.values(EMOTION_MOTIONS).map(anim => `<option value="${anim.key}">${anim.label}</option>`).join('')}
                   </select>
                 </div>
                 <div class="form-group">
                   <label>Color Intensity</label>
                   <select class="emotion-color">
-                    ${COLOR_INTENSITY_OPTIONS.map(color => `<option value="${color.key}">${color.label}</option>`).join('')}
+                    ${Object.values(EMOTION_COLORS).map(color => `<option value="${color.key}">${color.label}</option>`).join('')}
                   </select>
                 </div>
                 <button type="button" class="emotion-remove-btn">

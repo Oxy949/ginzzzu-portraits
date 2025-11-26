@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS } from "../core/constants.js";
 
 
 /**
@@ -24,9 +24,9 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
    * готовые пресеты цвета от Joy/Anger/Sad/... .
    */
   function _getStandardEmotionColorOptions() {
-    return Object.values(EMO).map(e => ({
-      key: e.key,
-      label: e.label
+    return Object.values(EMOTION_COLORS).map(c => ({
+      key: c.key,
+      label: c.label
     }));
   }
 
@@ -91,51 +91,68 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
    * Get all emotions (built-in + custom) for an actor
    */
   function _getAllEmotionsForActor(actor) {
-    if (!actor) return EMO;
-
     const allEmotions = {};
 
     const showStandard = _shouldShowStandardEmotions(actor);
     if (showStandard) {
-      // Все стандартные эмоции (включая "none")
-      Object.assign(allEmotions, EMO);
+      // Все стандартные эмоции из EMOTIONS (включая "none")
+      for (const [key, preset] of Object.entries(EMOTIONS)) {
+        allEmotions[key] = {
+          key: preset.key,
+          label: preset.label,
+          emoji: preset.emoji,
+          // новые поля: ключи цветов/движений
+          colorKey: preset.colorKey,
+          motionKey: preset.motionKey,
+          // legacy-поля — чтобы остальной код не ломать
+          colorIntensity: preset.colorKey || "none",
+          animation: preset.motionKey || "none",
+          imagePath: null,
+          isCustom: false
+        };
+      }
     } else {
-      // Если стандартные отключены — всё равно оставляем "none",
-      // чтобы можно было сбросить эмоцию.
-      allEmotions.none = EMO.none;
+      // Если стандартные выключены — оставляем только "none"
+      const preset = EMOTIONS.none;
+      allEmotions.none = {
+        key: preset.key,
+        label: preset.label,
+        emoji: preset.emoji,
+        colorKey: preset.colorKey,
+        motionKey: preset.motionKey,
+        colorIntensity: preset.colorKey || "none",
+        animation: preset.motionKey || "none",
+        imagePath: null,
+        isCustom: false
+      };
     }
 
-    // Add custom emotions
+    // Кастомные эмоции с актёра
+    if (!actor) return allEmotions;
+
     try {
       const customEmotions = actor.getFlag(MODULE_ID, "customEmotions") || [];
       console.log(`[${MODULE_ID}] Loading custom emotions for ${actor.name}:`, customEmotions);
+
       if (Array.isArray(customEmotions)) {
         customEmotions.forEach((custom, idx) => {
-          // Create unique key for custom emotion
           const key = `custom_${idx}`;
 
-          // colorIntensity у кастомных эмоций теперь хранит "ключ пресета".
-          // Если он совпадает с ключом стандартной эмоции (joy/anger/...),
-          // используем её CSS-класс и базовый цветкор.
-          const rawColorKey = custom.colorIntensity || "high";
-          let className = "";
-          let colorIntensity = rawColorKey || "high";
-
-          const preset = EMO[rawColorKey];
-          if (preset) {
-            className = preset.className || "";
-            colorIntensity = preset.colorIntensity || "high";
-          }
+          // colorIntensity у кастомных эмоций теперь = ключ пресета цвета
+          const colorKey = String(custom.colorIntensity || "none");
+          const motionKey = String(custom.animation || "none");
 
           allEmotions[key] = {
             key,
             label: custom.name || `Custom ${idx}`,
             emoji: custom.emoji || "•",
-            className,
-            animation: custom.animation || "none",
-            colorIntensity,
             imagePath: custom.imagePath || null,
-            isCustom: true
+            isCustom: true,
+            colorKey,
+            motionKey,
+            // legacy:
+            colorIntensity: colorKey,
+            animation: motionKey
           };
         });
       }
@@ -175,7 +192,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
   function _applyEmotionClasses(wrap, emoKey, actor) {
     if (!wrap) return;
 
-    // 1) Снимаем все старые emo-* классы (и color, и motion)
+    // 1) Снимаем все старые emo-* классы (и цвет, и движение)
     for (const cls of Array.from(wrap.classList)) {
       if (cls.startsWith("emo-")) {
         wrap.classList.remove(cls);
@@ -183,64 +200,47 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
     }
 
     const allEmotions = _getAllEmotionsForActor(actor);
-    const def = allEmotions[emoKey] || allEmotions.none || EMO.none;
+    const def = allEmotions[emoKey] || allEmotions.none || {
+      key: "none",
+      colorKey: "none",
+      motionKey: "none"
+    };
 
     // -------------------------
     // 2) ЦВЕТ (emo-XXX-color)
     // -------------------------
-    let colorPresetKey = null;
-
-    if (def?.isCustom) {
-      // Сначала пробуем вытащить пресет из className "emo-anger"
-      if (def.className && def.className.startsWith("emo-")) {
-        colorPresetKey = def.className.replace(/^emo-/, "");
-      } else if (def.colorIntensity && def.colorIntensity !== "none" && EMO[def.colorIntensity]) {
-        // Фолбэк: если colorIntensity совпадает с ключом стандартной эмоции
-        colorPresetKey = def.colorIntensity;
-      }
-    } else {
-      // Стандартные эмоции: цвет по key (joy/anger/...)
-      if (def.key && def.key !== "none") {
-        colorPresetKey = def.key;
-      }
+    let colorKey = def.colorKey || def.colorIntensity || "none";
+    if (!EMOTION_COLORS[colorKey]) {
+      // Старые значения вроде "high/medium" нам не подходят — просто не красим
+      colorKey = "none";
     }
 
-    if (colorPresetKey) {
-      wrap.classList.add(`emo-${colorPresetKey}-color`);
+    if (colorKey !== "none") {
+      const colorDef = EMOTION_COLORS[colorKey];
+      const colorClass = colorDef.className || `emo-${colorKey}-color`;
+      if (colorClass) {
+        wrap.classList.add(colorClass);
+      }
     }
 
     // -------------------------
-    // 3) ДВИЖЕНИЕ (emo-XXX-motion / emo-custom-motion)
+    // 3) ДВИЖЕНИЕ (emo-XXX-motion)
     // -------------------------
-    let motionPresetKey = null;
-    let cssAnimKey = null;
-    const animRaw = def?.animation || "none";
+    let motionKey = def.motionKey || def.animation || "none";
+    let cssAnimKey = "none";
 
-    if (animRaw && animRaw !== "none") {
-      if (EMO[animRaw]) {
-        // animRaw = ключ стандартной эмоции (joy/anger/...)
-        const preset = EMO[animRaw];
-        motionPresetKey = preset.key;
-        cssAnimKey = preset.animation || "none";
-      } else {
-        // animRaw = имя "чистой" анимации (shake/sag/...)
-        cssAnimKey = animRaw;
+    const motionDef = EMOTION_MOTIONS[motionKey];
+    if (motionDef) {
+      const motionClass =
+        motionDef.className || (motionKey !== "none" ? `emo-${motionKey}-motion` : "");
+      if (motionClass) {
+        wrap.classList.add(motionClass);
       }
-    }
-
-    // Для встроенных эмоций — если preset не нашли, всё равно подцепляем motion по ключу
-    if (!motionPresetKey && !def?.isCustom) {
-      if (def.key && def.key !== "none") {
-        motionPresetKey = def.key;
-      }
-    }
-
-    if (motionPresetKey) {
-      // Класс движения по пресету: emo-joy-motion, emo-anger-motion и т.д.
-      wrap.classList.add(`emo-${motionPresetKey}-motion`);
-    } else if (cssAnimKey) {
-      // Чисто кастомная анимация — используем общий класс
+      cssAnimKey = motionDef.value || motionDef.cssVar || "none";
+    } else if (motionKey && motionKey !== "none") {
+      // На всякий случай: неизвестный ключ — считаем, что это имя @keyframes
       wrap.classList.add("emo-custom-motion");
+      cssAnimKey = motionKey;
     }
 
     // Переменная с именем keyframes
@@ -250,16 +250,11 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
       wrap.style.removeProperty("--emotion-animation");
     }
 
+
     // -------------------------
     // 4) Интенсивность цвета
     // -------------------------
     let intensityKey = def?.colorIntensity || "high";
-
-    // Если у кастомной эмоции сюда зачем-то попал пресет (joy/anger/...),
-    // то COLOR_INTENSITY_OPTIONS его не знает — подменяем на "high".
-    if (def?.isCustom && !COLOR_INTENSITY_OPTIONS.some(opt => opt.key === intensityKey)) {
-      intensityKey = "high";
-    }
 
     const intensityValue = _getColorIntensityValue(intensityKey);
     wrap.style.setProperty("--threeo-emo-intensity", String(intensityValue));

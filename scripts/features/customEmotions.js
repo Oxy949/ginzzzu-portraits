@@ -2,7 +2,7 @@
  * Custom emotions management module
  * Handles reading, writing, and validating custom emotions for actors
  */
-import { MODULE_ID, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES } from "../core/constants.js";
 
 /**
  * Get all custom emotions for an actor
