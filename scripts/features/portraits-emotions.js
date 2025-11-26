@@ -270,6 +270,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
     _syncToolbarActive(wrap, def.key);
   }
 
+
   function _getColorIntensityValue(intensityKey) {
     const option = COLOR_INTENSITY_OPTIONS.find(opt => opt.key === intensityKey);
     return option ? option.value : 1;
@@ -346,8 +347,29 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
         });
       }
 
+      
       // 🔧 КЛЮЧЕВАЯ СТРОКА: всегда пересобираем список эмоций
       bar.innerHTML = _buildEmotionToolbarHTML(actor);
+      
+      // Конфиг портрета — только для ГМа
+      if (game.user.isGM) {
+        const configBtn = document.createElement("button");
+        configBtn.classList.add("threeo-emo-btn", "threeo-emo-config");
+        configBtn.innerHTML = `<span class="threeo-emo-emoji"><i class="fas fa-user-edit"></i></span>`;
+
+        configBtn.title = "Настройки портрета";
+
+        configBtn.onclick = (ev) => {
+          ev.stopPropagation();
+          try {
+            globalThis.GinzzzuPortraits.configurePortrait(ev, actor.sheet);
+          } catch (err) {
+            console.error("Portrait config error:", err);
+          }
+        };
+
+        bar.appendChild(configBtn);
+      }
     }
 
     const pos = _getPosition();
