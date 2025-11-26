@@ -1,5 +1,5 @@
 import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
-import { configurePortrait } from "./portraitConfig.js";
+import { configurePortrait } from "./portrait-config.js";
 
 
 var __defProp = Object.defineProperty;

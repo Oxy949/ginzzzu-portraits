@@ -35,8 +35,8 @@
   "styles": [
     "styles/portraits.css",
     "styles/npc-dock.css",
-    "styles/portraits-config.css",
-    "styles/portraits-emotions.css"
+    "styles/portrait-config.css",
+    "styles/emotions.css"
   ],
   "languages": [
     {
