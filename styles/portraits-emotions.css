@@ -1,4 +1,3 @@
-/* Общий контейнер панели эмоций для HUD */
 #ginzzzu-portrait-layer .threeo-emo-toolbar {
   position: absolute;
   z-index: 9999;
@@ -15,21 +14,15 @@
     opacity 160ms ease,
     transform 160ms ease;
 
-  /* по умолчанию панель не перевёрнута */
   --threeo-emo-inner-flip: 1;
 }
 
-
-/* Масштаб берём из CSS-переменной, которую ставим с JS */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
   --threeo-emo-scale: 1;
-  /* интенсивность цветовых изменений эмоций: 0 = нет, 1 = полная */
   --threeo-emo-intensity: 1;
-  /* Анимация эмоции (по умолчанию none) */
   --emotion-animation: none;
 }
 
-/* Позиции — сверху / слева / справа */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-top .threeo-emo-toolbar {
   top: 0;
   left: 50%;
@@ -61,14 +54,10 @@
   --threeo-emo-inner-flip: -1;
 }
 
-/* Показываем панель при наведении на портрет */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper:hover .threeo-emo-toolbar {
   opacity: 1;
   pointer-events: auto;
 }
-
-/* Кнопки эмоций и внешний вид — берём из threeO-portraits-free.css,
-   но на всякий случай дублируем базу, чтобы модуль был самодостаточным */
 
 #ginzzzu-portrait-layer .threeo-emo-btn {
   position: relative;
@@ -112,15 +101,13 @@
   padding-left: 10px;
 }
 
-
-/* ----------------------------------------------------
-   ЭФФЕКТЫ ЭМОЦИЙ ДЛЯ ПОРТРЕТОВ
----------------------------------------------------- */
-
-/* БАЗА: эффект поверх текущего filter (тон, яркость и т.п.) */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="emo-"] img {
   transition: filter 200ms ease, transform 200ms ease;
 }
+
+/* ----------------------------------------------------
+   ЭФФЕКТЫ ЦВЕТКОРА ДЛЯ ПОРТРЕТОВ
+---------------------------------------------------- */
 
 /* Если пользователь установил интенсивность цвета эмоций = 0,
    добавляем класс .threeo-emo-no-shadow — эмоционные filter'ы не применяются
@@ -184,27 +171,26 @@
           drop-shadow(0 0 22px rgba(221, 32, 32, calc(0.55 * var(--threeo-emo-intensity)))) !important;
 }
 
-/* Кастомные эмоции — базовая поддержка с текущей интенсивностью */
+/* Тут могла быть ваша эмоция */
+
+/* ----------------------------------------------------
+   КОНЕЦ ЦВЕТКОРА ДЛЯ ПОРТРЕТОВ
+---------------------------------------------------- */
+
+
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="custom-emo"]:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 + 0.1 * var(--threeo-emo-intensity)))
           saturate(calc(1 + 0.15 * var(--threeo-emo-intensity))) !important;
 }
 
-/* ----------------------------------------------------
-   БАЗА ДЛЯ АНИМАЦИЙ ЭМОЦИЙ
----------------------------------------------------- */
-
-/* Базовые значения переменных движения/пульса и флипа */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
   --shakeX: 0px;
   --bobY: 0px;
   --pulse: 1;
   --tilt: 0deg;
-  /* значение по умолчанию, если модуль ещё не задал --flip-scale-x */
   --flip-scale-x: var(--flip-scale-x, 1);
 }
 
-/* Применяем смещения, "просадку" dimmed и флип к рамке портрета */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
   transform:
     translate3d(
@@ -217,24 +203,35 @@
     scaleX(var(--ginzzzu-flip-scale-x, 1));
 }
 
-/* Динамическая привязка анимаций на основе переменной --emotion-animation */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger-motion {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-custom-motion {
+  animation: var(--emotion-animation, none) 0.45s ease-in-out infinite;
+}
+
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="custom-emo"] {
+  animation: var(--emotion-animation, none) 0.45s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------
+   ЭФФЕКТЫ ДВИЖЕНИЯ ДЛЯ ПОРТРЕТОВ
+---------------------------------------------------- */
+
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-shake-motion {
   animation: var(--emotion-animation, anger-jitter) 0.22s linear infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad-motion {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sag-motion {
   animation: var(--emotion-animation, sad-sag) 2.4s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear-motion {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-shiver-motion {
   animation: var(--emotion-animation, fear-shiver) 0.58s linear infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy-motion {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-bob-motion {
   animation: var(--emotion-animation, joy-bob) 0.3s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love-motion {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-beat-motion {
   animation: var(--emotion-animation, heart-beat) 1.2s ease-in-out infinite;
 }
 
@@ -242,21 +239,18 @@
   animation: var(--emotion-animation, tired-bob) 2.8s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt-motion {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-pulse-motion {
   animation: var(--emotion-animation, hurt-pulse) 0.5s ease-in-out infinite;
 }
 
-/* Общий класс для пользовательских движений */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-custom-motion {
-  animation: var(--emotion-animation, none) 0.45s ease-in-out infinite;
-}
+/* Тут могла быть ваша аниммация */
 
-/* Альтернативный селектор, если ты где-то используешь custom-emo-* на обёртке */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="custom-emo"] {
-  animation: var(--emotion-animation, none) 0.45s ease-in-out infinite;
-}
+/* ----------------------------------------------------
+   КОНЕЦ ЭФФЕКТОВ ДВИЖЕНИЯ ДЛЯ ПОРТРЕТОВ
+---------------------------------------------------- */
 
-/* Альтернативные анимации, используемые в пользовательских эмоциях */
+
+/* Кейфреймы, используемые эмоциями */
 @keyframes shake {
   0%   { --shakeX: 0px; }
   20%  { --shakeX: -2px; }
@@ -306,7 +300,6 @@
   100% { --pulse: 1; }
 }
 
-/* Кейфреймы, используемые встроенными эмоциями */
 @keyframes hurt-pulse {
   0%   { --pulse: 1; }
   50%  { --pulse: 1.02; }

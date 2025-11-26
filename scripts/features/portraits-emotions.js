@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS, EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
 
 
 /**
@@ -254,9 +254,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS } from "../core/consta
     // -------------------------
     // 4) Интенсивность цвета
     // -------------------------
-    let intensityKey = def?.colorIntensity || "high";
-
-    const intensityValue = _getColorIntensityValue(intensityKey);
+    const intensityValue = _getColorIntensityValue();
     wrap.style.setProperty("--threeo-emo-intensity", String(intensityValue));
 
     // -------------------------
@@ -266,9 +264,8 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS } from "../core/consta
   }
 
 
-  function _getColorIntensityValue(intensityKey) {
-    const option = COLOR_INTENSITY_OPTIONS.find(opt => opt.key === intensityKey);
-    return option ? option.value : 1;
+  function _getColorIntensityValue() {
+    return _getColorIntensity();
   }
 
   function _getActorEmotionKey(actor) {

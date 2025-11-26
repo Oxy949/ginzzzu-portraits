@@ -2,7 +2,7 @@
  * Custom emotions management module
  * Handles reading, writing, and validating custom emotions for actors
  */
-import { MODULE_ID, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES } from "../core/constants.js";
+import { MODULE_ID, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
 
 /**
  * Get all custom emotions for an actor
@@ -121,7 +121,7 @@ export function validateEmotion(emotion) {
   if (!validated.emoji || !validated.name) return null;
 
   // Validate animation type
-  if (!ANIMATION_TYPES[validated.animation]) {
+  if (!EMOTION_MOTIONS[validated.animation]) {
     validated.animation = "none";
   }
 
@@ -143,15 +143,7 @@ export function validateEmotion(emotion) {
  * @returns {Object[]} Array of animation options
  */
 export function getAnimationOptions() {
-  return Object.values(ANIMATION_TYPES);
-}
-
-/**
- * Get color intensity options for select dropdowns
- * @returns {Object[]} Array of color intensity options
- */
-export function getColorIntensityOptions() {
-  return COLOR_INTENSITY_OPTIONS;
+  return Object.values(EMOTION_MOTIONS);
 }
 
 /**
@@ -160,18 +152,8 @@ export function getColorIntensityOptions() {
  * @returns {string} The animation key or "none"
  */
 export function getAnimationKeyByLabel(label) {
-  const option = Object.values(ANIMATION_TYPES).find(opt => opt.label === label);
+  const option = Object.values(EMOTION_MOTIONS).find(opt => opt.label === label);
   return option ? option.key : "none";
-}
-
-/**
- * Get key by label for color intensity
- * @param {string} label - The label to search for
- * @returns {string} The color intensity key or "high"
- */
-export function getColorIntensityKeyByLabel(label) {
-  const option = COLOR_INTENSITY_OPTIONS.find(opt => opt.label === label);
-  return option ? option.key : "high";
 }
 
 // Export as global API
@@ -183,7 +165,5 @@ globalThis.GinzzzuCustomEmotions = {
   updateCustomEmotion,
   validateEmotion,
   getAnimationOptions,
-  getColorIntensityOptions,
-  getAnimationKeyByLabel,
-  getColorIntensityKeyByLabel
+  getAnimationKeyByLabel
 };

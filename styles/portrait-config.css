@@ -1,0 +1,18 @@
+.ginzzzu-portrait-config .emotion-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ginzzzu-portrait-config .emotion-emoji-group {
+  flex: 0 0 auto;
+}
+
+.ginzzzu-portrait-config .emotion-name {
+  flex: 1;
+  min-width: 150px;
+}
+
+.emotion-path {
+  flex: 1 1 100%;
+}

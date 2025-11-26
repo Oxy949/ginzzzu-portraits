@@ -1,6 +1,6 @@
 // features/portraitConfig.js
 import { MODULE_ID, FLAG_DISPLAY_NAME, EMOTION_MOTIONS, EMOTION_COLORS } from "../core/constants.js";
-import { getCustomEmotions } from "./customEmotions.js";
+import { getCustomEmotions } from "./custom-emotions.js";
 
 const isGM = () => !!game.user?.isGM;
 
@@ -60,42 +60,60 @@ export async function configurePortrait(ev, actorSheet) {
     } catch (e) {
       console.error(`[${MODULE_ID}] Failed to get standard emotion color options`, e);
     }
-    if (!Array.isArray(colorPresetOptions) || colorPresetOptions.length === 0) {
-      // fallback: старое поведение
-      colorPresetOptions = COLOR_INTENSITY_OPTIONS.map(c => ({ key: c.key, label: c.label }));
-    }
     const colorOptions = colorPresetOptions.map(color => 
       `<option value="${color.key}" ${emotion.colorIntensity === color.key ? 'selected' : ''}>${color.label}</option>`
     ).join('');
 
     emotionListHTML += `
       <div class="ginzzzu-emotion-item" data-emotion-index="${idx}">
-        <div class="emotion-row">
+        <!-- Первая строка: эмодзи + имя + путь к картинке -->
+        <div class="emotion-row emotion-main">
           <div class="form-group emotion-emoji-group">
             <label>Emoji</label>
-            <input type="text" class="emotion-emoji" value="${safeEmoji}" maxlength="10" placeholder="😊">
+            <input
+              type="text"
+              class="emotion-emoji"
+              value="${safeEmoji}"
+              maxlength="10"
+              placeholder="😊">
           </div>
+
           <div class="form-group emotion-name">
             <label>Name</label>
-            <input type="text" class="emotion-name" value="${safeName}" maxlength="50" placeholder="Name">
+            <input
+              type="text"
+              class="emotion-name"
+              value="${safeName}"
+              maxlength="50"
+              placeholder="Name">
           </div>
-        </div>
-        <div class="emotion-row">
+
           <div class="form-group emotion-path">
             <label>Image Path</label>
-            <input type="text" class="emotion-path" value="${safePath}" placeholder="path/to/image.png">
+            <input
+              type="text"
+              class="emotion-path"
+              value="${safePath}"
+              placeholder="path/to/image.png">
           </div>
         </div>
+
+        <!-- Вторая строка: анимация + цвет + удалить -->
         <div class="emotion-row emotion-controls">
           <div class="form-group">
             <label>Animation</label>
             <select class="emotion-animation">${animOptions}</select>
           </div>
+
           <div class="form-group">
             <label>Color Intensity</label>
             <select class="emotion-color">${colorOptions}</select>
           </div>
-          <button type="button" class="emotion-remove-btn" data-index="${idx}">
+
+          <button
+            type="button"
+            class="emotion-remove-btn"
+            data-index="${idx}">
             <i class="fas fa-trash"></i> Remove
           </button>
         </div>
