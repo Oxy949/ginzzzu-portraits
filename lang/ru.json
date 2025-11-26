@@ -29,7 +29,8 @@
         "clear": "Сбросить",
         "save": "Сохранить",
         "customEmotionsLabel": "Пользовательские эмоции",
-        "addEmotion": "Добавить эмоцию"
+        "addEmotion": "Добавить эмоцию",
+        "showStandardEmotions": "Показать стандартные эмоции"
       },
 
       "Settings": {

@@ -125,10 +125,15 @@ export function validateEmotion(emotion) {
     validated.animation = "none";
   }
 
-  // Validate color intensity
-  if (!COLOR_INTENSITY_OPTIONS.find(opt => opt.key === validated.colorIntensity)) {
+  // Validate color intensity / preset key
+  // Раньше здесь допускались только значения из COLOR_INTENSITY_OPTIONS
+  // (low/medium/high). Теперь это поле может хранить и ключ стандартной
+  // эмоции (joy/anger/sad/...), поэтому не трогаем любые непустые строки
+  // и лишь подставляем значение по умолчанию, если оно пустое.
+  if (!validated.colorIntensity) {
     validated.colorIntensity = "high";
   }
+
 
   return validated;
 }

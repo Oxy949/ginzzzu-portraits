@@ -18,6 +18,18 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
     hurt:  { key:"hurt",  label:"Hurt",       emoji:"🤕", className:"emo-hurt", animation: "pulse", colorIntensity: "high" }
   };
 
+    /**
+   * Стандартные варианты цветокора — по встроенным эмоциям.
+   * Используется конфигом портрета, чтобы давать кастомным эмоциям
+   * готовые пресеты цвета от Joy/Anger/Sad/... .
+   */
+  function _getStandardEmotionColorOptions() {
+    return Object.values(EMO).map(e => ({
+      key: e.key,
+      label: e.label
+    }));
+  }
+
   function _getVisibilityMode() {
     try {
       return game.settings.get(MODULE_ID, "emotionPanelVisibility") || "gm";
@@ -101,13 +113,27 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
         customEmotions.forEach((custom, idx) => {
           // Create unique key for custom emotion
           const key = `custom_${idx}`;
+
+          // colorIntensity у кастомных эмоций теперь хранит "ключ пресета".
+          // Если он совпадает с ключом стандартной эмоции (joy/anger/...),
+          // используем её CSS-класс и базовый цветкор.
+          const rawColorKey = custom.colorIntensity || "high";
+          let className = "";
+          let colorIntensity = rawColorKey || "high";
+
+          const preset = EMO[rawColorKey];
+          if (preset) {
+            className = preset.className || "";
+            colorIntensity = preset.colorIntensity || "high";
+          }
+
           allEmotions[key] = {
             key,
             label: custom.name || `Custom ${idx}`,
             emoji: custom.emoji || "•",
-            className: "",
+            className,
             animation: custom.animation || "none",
-            colorIntensity: custom.colorIntensity || "high",
+            colorIntensity,
             imagePath: custom.imagePath || null,
             isCustom: true
           };
@@ -148,29 +174,99 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
 
   function _applyEmotionClasses(wrap, emoKey, actor) {
     if (!wrap) return;
-    // сбрасываем старые emo-* классы
+
+    // 1) Снимаем все старые emo-* классы (и color, и motion)
     for (const cls of Array.from(wrap.classList)) {
-      if (cls.startsWith("emo-")) wrap.classList.remove(cls);
+      if (cls.startsWith("emo-")) {
+        wrap.classList.remove(cls);
+      }
     }
 
     const allEmotions = _getAllEmotionsForActor(actor);
-    const def = allEmotions[emoKey] || allEmotions.none;
-    if (def.className) {
-      wrap.classList.add(def.className);
+    const def = allEmotions[emoKey] || allEmotions.none || EMO.none;
+
+    // -------------------------
+    // 2) ЦВЕТ (emo-XXX-color)
+    // -------------------------
+    let colorPresetKey = null;
+
+    if (def?.isCustom) {
+      // Сначала пробуем вытащить пресет из className "emo-anger"
+      if (def.className && def.className.startsWith("emo-")) {
+        colorPresetKey = def.className.replace(/^emo-/, "");
+      } else if (def.colorIntensity && def.colorIntensity !== "none" && EMO[def.colorIntensity]) {
+        // Фолбэк: если colorIntensity совпадает с ключом стандартной эмоции
+        colorPresetKey = def.colorIntensity;
+      }
+    } else {
+      // Стандартные эмоции: цвет по key (joy/anger/...)
+      if (def.key && def.key !== "none") {
+        colorPresetKey = def.key;
+      }
     }
 
-    // Apply animation and color intensity
-    if (def.animation && def.animation !== "none") {
-      wrap.style.setProperty("--emotion-animation", `${def.animation}`);
+    if (colorPresetKey) {
+      wrap.classList.add(`emo-${colorPresetKey}-color`);
+    }
+
+    // -------------------------
+    // 3) ДВИЖЕНИЕ (emo-XXX-motion / emo-custom-motion)
+    // -------------------------
+    let motionPresetKey = null;
+    let cssAnimKey = null;
+    const animRaw = def?.animation || "none";
+
+    if (animRaw && animRaw !== "none") {
+      if (EMO[animRaw]) {
+        // animRaw = ключ стандартной эмоции (joy/anger/...)
+        const preset = EMO[animRaw];
+        motionPresetKey = preset.key;
+        cssAnimKey = preset.animation || "none";
+      } else {
+        // animRaw = имя "чистой" анимации (shake/sag/...)
+        cssAnimKey = animRaw;
+      }
+    }
+
+    // Для встроенных эмоций — если preset не нашли, всё равно подцепляем motion по ключу
+    if (!motionPresetKey && !def?.isCustom) {
+      if (def.key && def.key !== "none") {
+        motionPresetKey = def.key;
+      }
+    }
+
+    if (motionPresetKey) {
+      // Класс движения по пресету: emo-joy-motion, emo-anger-motion и т.д.
+      wrap.classList.add(`emo-${motionPresetKey}-motion`);
+    } else if (cssAnimKey) {
+      // Чисто кастомная анимация — используем общий класс
+      wrap.classList.add("emo-custom-motion");
+    }
+
+    // Переменная с именем keyframes
+    if (cssAnimKey && cssAnimKey !== "none") {
+      wrap.style.setProperty("--emotion-animation", String(cssAnimKey));
     } else {
       wrap.style.removeProperty("--emotion-animation");
     }
 
-    if (def.colorIntensity && def.colorIntensity !== "high") {
-      const intensityValue = _getColorIntensityValue(def.colorIntensity);
-      wrap.style.setProperty("--threeo-emo-intensity", String(intensityValue));
+    // -------------------------
+    // 4) Интенсивность цвета
+    // -------------------------
+    let intensityKey = def?.colorIntensity || "high";
+
+    // Если у кастомной эмоции сюда зачем-то попал пресет (joy/anger/...),
+    // то COLOR_INTENSITY_OPTIONS его не знает — подменяем на "high".
+    if (def?.isCustom && !COLOR_INTENSITY_OPTIONS.some(opt => opt.key === intensityKey)) {
+      intensityKey = "high";
     }
 
+    const intensityValue = _getColorIntensityValue(intensityKey);
+    wrap.style.setProperty("--threeo-emo-intensity", String(intensityValue));
+
+    // -------------------------
+    // 5) Подсветка активной кнопки
+    // -------------------------
     _syncToolbarActive(wrap, def.key);
   }
 
@@ -328,6 +424,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, COLOR_INTENSITY_OPTIONS } from "../co
   globalThis.GinzzzuPortraitEmotions = {
     attachToolbarToHudWrapper,
     applyEmotionToHudDom,
-    refreshAllHudToolbars
+    refreshAllHudToolbars,
+    getStandardEmotionColorOptions: _getStandardEmotionColorOptions
   };
 })();

@@ -29,7 +29,8 @@
       "clear": "Reset",
       "save": "Save",
       "customEmotionsLabel": "Custom Emotions",
-      "addEmotion": "Add Custom Emotion"
+      "addEmotion": "Add Custom Emotion",
+      "showStandardEmotions": "Show standard emotions"
     },
 
     "Settings": {

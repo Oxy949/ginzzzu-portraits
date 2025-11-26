@@ -48,7 +48,23 @@ export async function configurePortrait(ev, actorSheet) {
       `<option value="${anim.key}" ${emotion.animation === anim.key ? 'selected' : ''}>${anim.label}</option>`
     ).join('');
     
-    const colorOptions = COLOR_INTENSITY_OPTIONS.map(color => 
+    // Варианты цветкора теперь завязаны на стандартные эмоции.
+    // Пытаемся спросить их у GinzzzuPortraitEmotions, а при провале
+    // откатываемся к старым пресетам интенсивности.
+    const emotionApi = globalThis.GinzzzuPortraitEmotions;
+    let colorPresetOptions = [];
+    try {
+      if (emotionApi?.getStandardEmotionColorOptions) {
+        colorPresetOptions = emotionApi.getStandardEmotionColorOptions();
+      }
+    } catch (e) {
+      console.error(`[${MODULE_ID}] Failed to get standard emotion color options`, e);
+    }
+    if (!Array.isArray(colorPresetOptions) || colorPresetOptions.length === 0) {
+      // fallback: старое поведение
+      colorPresetOptions = COLOR_INTENSITY_OPTIONS.map(c => ({ key: c.key, label: c.label }));
+    }
+    const colorOptions = colorPresetOptions.map(color => 
       `<option value="${color.key}" ${emotion.colorIntensity === color.key ? 'selected' : ''}>${color.label}</option>`
     ).join('');
 

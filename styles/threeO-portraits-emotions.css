@@ -122,14 +122,14 @@
    (внимание: правило реализовано через :not() у самих селекторов эмоций) */
 
 /* 😊 Радость — тёплая желтоватая подсветка */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 + 0.15 * var(--threeo-emo-intensity)))
           saturate(calc(1 + 0.25 * var(--threeo-emo-intensity)))
           drop-shadow(0 0 18px rgba(255, 215, 80, calc(0.6 * var(--threeo-emo-intensity)))) !important;
 }
 
 /* 😠 Агрессия — красное свечение и лёгкое увеличение контраста */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 + 0.1 * var(--threeo-emo-intensity)))
           contrast(calc(1 + 0.4 * var(--threeo-emo-intensity)))
           saturate(calc(1 + 0.3 * var(--threeo-emo-intensity)))
@@ -137,7 +137,7 @@
 }
 
 /* 😢 Печаль — холодное голубое свечение, затемнение */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 - 0.15 * var(--threeo-emo-intensity)))
           saturate(calc(1 - 0.1 * var(--threeo-emo-intensity)))
           contrast(calc(1 + 0.1 * var(--threeo-emo-intensity)))
@@ -146,14 +146,14 @@
 }
 
 /* 💖 Симпатия — розово-лиловое мягкое сияние */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 + 0.15 * var(--threeo-emo-intensity)))
           saturate(calc(1 + 0.2 * var(--threeo-emo-intensity)))
           drop-shadow(0 0 22px rgba(255, 120, 200, calc(0.55 * var(--threeo-emo-intensity)))) !important;
 }
 
 /* 😱 Страх — синеватое холодное свечение и повышенный контраст */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 - 0.1 * var(--threeo-emo-intensity)))
           saturate(calc(1 - 0.7 * var(--threeo-emo-intensity)))
           contrast(calc(1 + 0.35 * var(--threeo-emo-intensity)))
@@ -162,7 +162,7 @@
 }
 
 /* 😪 Усталость — мягкое приглушение, легкий серо-жёлтый тон */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 - 0.15 * var(--threeo-emo-intensity)))
           saturate(calc(1 - 0.88 * var(--threeo-emo-intensity)))
           contrast(calc(1 + 0.92 * var(--threeo-emo-intensity)))
@@ -171,7 +171,7 @@
 }
 
 /* 🤕 Боль — фиолетово-красноватый оттенок + контраст */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt:not(.threeo-emo-no-shadow) img {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt-color:not(.threeo-emo-no-shadow) img {
   filter: brightness(calc(1 - 0.1 * var(--threeo-emo-intensity)))
           saturate(calc(1 + 0.4 * var(--threeo-emo-intensity)))
           contrast(calc(1 + 0.15 * var(--threeo-emo-intensity)))
@@ -213,37 +213,42 @@
 }
 
 /* Динамическая привязка анимаций на основе переменной --emotion-animation */
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger-motion {
   animation: var(--emotion-animation, anger-jitter) 0.22s linear infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad-motion {
   animation: var(--emotion-animation, sad-sag) 2.4s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear-motion {
   animation: var(--emotion-animation, fear-shiver) 0.58s linear infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy-motion {
   animation: var(--emotion-animation, joy-bob) 0.3s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love-motion {
   animation: var(--emotion-animation, heart-beat) 1.2s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired-motion {
   animation: var(--emotion-animation, tired-bob) 2.8s ease-in-out infinite;
 }
 
-#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt {
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt-motion {
   animation: var(--emotion-animation, hurt-pulse) 0.5s ease-in-out infinite;
 }
 
-/* Поддержка пользовательских анимаций */
+/* Общий класс для пользовательских движений */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-custom-motion {
+  animation: var(--emotion-animation, none) 0.45s ease-in-out infinite;
+}
+
+/* Альтернативный селектор, если ты где-то используешь custom-emo-* на обёртке */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="custom-emo"] {
-  animation: var(--emotion-animation, none);
+  animation: var(--emotion-animation, none) 0.45s ease-in-out infinite;
 }
 
 /* Альтернативные анимации, используемые в пользовательских эмоциях */
