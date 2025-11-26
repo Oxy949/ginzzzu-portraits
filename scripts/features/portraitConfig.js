@@ -1,5 +1,6 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, ANIMATION_TYPES, COLOR_INTENSITY_OPTIONS } from "../core/constants.js";
+import { getCustomEmotions, updateCustomEmotion, removeCustomEmotion, addCustomEmotion } from "./customEmotions.js";
 
 const isGM = () => !!game.user?.isGM;
 
@@ -27,19 +28,248 @@ export async function configurePortrait(ev, actorSheet) {
   const notes = game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.note");
   const title = game.i18n.format("GINZZZUPORTRAITS.PortraitConfig.title", { name: actor.name });
 
+  // Get custom emotions
+  const customEmotions = getCustomEmotions(actor);
+
+  // Build emotion list HTML
+  let emotionListHTML = '';
+  customEmotions.forEach((emotion, idx) => {
+    const safeEmoji = (emotion.emoji ?? "").replace(/"/g, "&quot;");
+    const safeName = (emotion.name ?? "").replace(/"/g, "&quot;");
+    const safePath = (emotion.imagePath ?? "").replace(/"/g, "&quot;");
+    
+    const animOptions = Object.values(ANIMATION_TYPES).map(anim => 
+      `<option value="${anim.key}" ${emotion.animation === anim.key ? 'selected' : ''}>${anim.label}</option>`
+    ).join('');
+    
+    const colorOptions = COLOR_INTENSITY_OPTIONS.map(color => 
+      `<option value="${color.key}" ${emotion.colorIntensity === color.key ? 'selected' : ''}>${color.label}</option>`
+    ).join('');
+
+    emotionListHTML += `
+      <div class="ginzzzu-emotion-item" data-emotion-index="${idx}">
+        <div class="emotion-row">
+          <div class="form-group emotion-emoji-group">
+            <label>Emoji</label>
+            <input type="text" class="emotion-emoji" value="${safeEmoji}" maxlength="10" placeholder="😊">
+          </div>
+          <div class="form-group emotion-name">
+            <label>Name</label>
+            <input type="text" class="emotion-name" value="${safeName}" maxlength="50" placeholder="Name">
+          </div>
+        </div>
+        <div class="emotion-row">
+          <div class="form-group emotion-path">
+            <label>Image Path</label>
+            <input type="text" class="emotion-path" value="${safePath}" placeholder="path/to/image.png">
+          </div>
+        </div>
+        <div class="emotion-row emotion-controls">
+          <div class="form-group">
+            <label>Animation</label>
+            <select class="emotion-animation">${animOptions}</select>
+          </div>
+          <div class="form-group">
+            <label>Color Intensity</label>
+            <select class="emotion-color">${colorOptions}</select>
+          </div>
+          <button type="button" class="emotion-remove-btn" data-index="${idx}">
+            <i class="fas fa-trash"></i> Remove
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
   const content = `
     <form class="ginzzzu-portrait-config">
-      <div class="form-group">
+      <div class="form-group display-name-section">
         <label>${label}</label>
         <input type="text" name="displayName" value="${safeValue}" placeholder="${placeholder}">
         <p class="notes">
           ${notes}
         </p>
       </div>
-    </form>`;
+
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #666;">
+
+      <div class="emotions-section">
+        <h3 style="margin: 0 0 15px 0; font-size: 1.1em;">${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel")}</h3>
+        <div class="emotions-list">
+          ${emotionListHTML}
+        </div>
+        <button type="button" class="emotion-add-btn">
+          <i class="fas fa-plus"></i> ${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.addEmotion")}
+        </button>
+      </div>
+    </form>
+
+    <style>
+      .ginzzzu-portrait-config {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .ginzzzu-portrait-config .display-name-section {
+        margin-bottom: 0;
+      }
+
+      .ginzzzu-portrait-config .emotions-section {
+        margin-top: 10px;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+      }
+
+      .ginzzzu-portrait-config .emotions-list {
+        margin: 0 0 15px 0;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+      }
+
+      .ginzzzu-portrait-config .emotions-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .ginzzzu-portrait-config .emotions-list::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+      }
+
+      .ginzzzu-portrait-config .emotions-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+      }
+
+      .ginzzzu-portrait-config .emotions-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .ginzzzu-portrait-config .ginzzzu-emotion-item {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 4px;
+        border-left: 3px solid #6ba8db;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .ginzzzu-portrait-config .ginzzzu-emotion-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .ginzzzu-portrait-config .emotion-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .ginzzzu-portrait-config .emotion-row:last-child {
+        align-items: flex-end;
+      }
+
+      .ginzzzu-portrait-config .emotion-row .form-group {
+        flex: 1;
+        margin: 0;
+        min-width: 120px;
+      }
+
+      .ginzzzu-portrait-config .emotion-row .form-group label {
+        display: block;
+        font-size: 0.8em;
+        margin-bottom: 4px;
+        color: #ccc;
+        font-weight: 500;
+      }
+
+      .ginzzzu-portrait-config .emotion-row input,
+      .ginzzzu-portrait-config .emotion-row select {
+        width: 100%;
+        padding: 6px;
+        font-size: 0.9em;
+        border: 1px solid #555;
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        border-radius: 3px;
+        box-sizing: border-box;
+      }
+
+      .ginzzzu-portrait-config .emotion-row input:focus,
+      .ginzzzu-portrait-config .emotion-row select:focus {
+        outline: none;
+        border-color: #6ba8db;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .ginzzzu-portrait-config .emotion-emoji-group {
+        flex: 0 0 auto;
+      }
+
+      .ginzzzu-portrait-config .emotion-emoji {
+        max-width: 70px !important;
+      }
+
+      .ginzzzu-portrait-config .emotion-name {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .ginzzzu-portrait-config .emotion-path {
+        flex: 1 1 100%;
+      }
+
+      .ginzzzu-portrait-config .emotion-controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .ginzzzu-portrait-config .emotion-animation,
+      .ginzzzu-portrait-config .emotion-color {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .emotion-remove-btn {
+        background: #cc4125 !important;
+        border: none !important;
+        color: white;
+        padding: 6px 10px !important;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.9em;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+
+      .emotion-remove-btn:hover {
+        background: #a63520 !important;
+      }
+
+      .emotion-add-btn {
+        background: #2d5016 !important;
+        border: 1px solid #4a7c20 !important;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 0.95em;
+        font-weight: 500;
+      }
+
+      .emotion-add-btn:hover {
+        background: #3a9c2d !important;
+      }
+    </style>`;
 
   return new Promise((resolve) => {
-    new Dialog({
+    const dialog = new Dialog({
       title,
       content,
       buttons: {
@@ -55,20 +285,107 @@ export async function configurePortrait(ev, actorSheet) {
           icon: '<i class="fas fa-save"></i>',
           label: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.save"),
           callback: async (html) => {
-            const input = html.find('input[name="displayName"]').val();
-            const value = String(input ?? "").trim(); // пробелы считаем пустым именем
+            try {
+              // Save display name
+              const input = html.find('input[name="displayName"]').val();
+              const value = String(input ?? "").trim();
 
-            if (!value) {
-              await actor.unsetFlag(MODULE_ID, "displayName");
-            } else {
-              await actor.setFlag(MODULE_ID, "displayName", value);
+              if (!value) {
+                await actor.unsetFlag(MODULE_ID, "displayName");
+              } else {
+                await actor.setFlag(MODULE_ID, "displayName", value);
+              }
+
+              // Save custom emotions
+              const emotionItems = html.find('.ginzzzu-emotion-item');
+              const emotions = [];
+              emotionItems.each((idx, elem) => {
+                const $elem = $(elem);
+                const emoji = $elem.find('.emotion-emoji').val()?.trim() || '';
+                const name = $elem.find('.emotion-name').val()?.trim() || '';
+                const imagePath = $elem.find('.emotion-path').val()?.trim() || '';
+                const animation = $elem.find('.emotion-animation').val() || 'none';
+                const colorIntensity = $elem.find('.emotion-color').val() || 'high';
+
+                if (emoji && name) {
+                  emotions.push({ emoji, name, imagePath, animation, colorIntensity });
+                }
+              });
+
+              if (emotions.length > 0) {
+                await actor.setFlag(MODULE_ID, "customEmotions", emotions);
+                console.log(`[${MODULE_ID}] Saved ${emotions.length} custom emotions for ${actor.name}`);
+              } else {
+                await actor.unsetFlag(MODULE_ID, "customEmotions");
+              }
+
+              resolve();
+            } catch (e) {
+              console.error(`[${MODULE_ID}] Error saving portrait config:`, e);
+              resolve();
             }
-            resolve();
           }
         }
       },
       default: "save",
-      close: () => resolve()
+      close: () => resolve(),
+      render: (html) => {
+        // Add emotion button handler
+        html.find('.emotion-add-btn').on('click', (e) => {
+          e.preventDefault();
+          const emotionsList = html.find('.emotions-list');
+          const newIndex = html.find('.ginzzzu-emotion-item').length;
+          const newEmotionHTML = `
+            <div class="ginzzzu-emotion-item" data-emotion-index="${newIndex}">
+              <div class="emotion-row">
+                <div class="form-group emotion-emoji-group">
+                  <label>Emoji</label>
+                  <input type="text" class="emotion-emoji" maxlength="10" placeholder="😊">
+                </div>
+                <div class="form-group emotion-name">
+                  <label>Name</label>
+                  <input type="text" class="emotion-name" maxlength="50" placeholder="Name">
+                </div>
+              </div>
+              <div class="emotion-row">
+                <div class="form-group emotion-path">
+                  <label>Image Path</label>
+                  <input type="text" class="emotion-path" placeholder="path/to/image.png">
+                </div>
+              </div>
+              <div class="emotion-row emotion-controls">
+                <div class="form-group">
+                  <label>Animation</label>
+                  <select class="emotion-animation">
+                    ${Object.values(ANIMATION_TYPES).map(anim => `<option value="${anim.key}">${anim.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Color Intensity</label>
+                  <select class="emotion-color">
+                    ${COLOR_INTENSITY_OPTIONS.map(color => `<option value="${color.key}">${color.label}</option>`).join('')}
+                  </select>
+                </div>
+                <button type="button" class="emotion-remove-btn">
+                  <i class="fas fa-trash"></i> Remove
+                </button>
+              </div>
+            </div>
+          `;
+          emotionsList.append(newEmotionHTML);
+          
+          // Attach remove handler to new button
+          emotionsList.find('.ginzzzu-emotion-item:last-child .emotion-remove-btn').on('click', removeEmotionHandler);
+        });
+
+        // Remove emotion button handler
+        html.find('.emotion-remove-btn').on('click', removeEmotionHandler);
+
+        function removeEmotionHandler(e) {
+          e.preventDefault();
+          $(e.target).closest('.ginzzzu-emotion-item').remove();
+        }
+      }
     }).render(true);
   });
 }

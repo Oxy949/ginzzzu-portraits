@@ -25,6 +25,8 @@
   --threeo-emo-scale: 1;
   /* интенсивность цветовых изменений эмоций: 0 = нет, 1 = полная */
   --threeo-emo-intensity: 1;
+  /* Анимация эмоции (по умолчанию none) */
+  --emotion-animation: none;
 }
 
 /* Позиции — сверху / слева / справа */
@@ -177,6 +179,12 @@
           drop-shadow(0 0 22px rgba(221, 32, 32, calc(0.55 * var(--threeo-emo-intensity)))) !important;
 }
 
+/* Кастомные эмоции — базовая поддержка с текущей интенсивностью */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="custom-emo"]:not(.threeo-emo-no-shadow) img {
+  filter: brightness(calc(1 + 0.1 * var(--threeo-emo-intensity)))
+          saturate(calc(1 + 0.15 * var(--threeo-emo-intensity))) !important;
+}
+
 /* ----------------------------------------------------
    БАЗА ДЛЯ АНИМАЦИЙ ЭМОЦИЙ
 ---------------------------------------------------- */
@@ -204,56 +212,97 @@
     scaleX(var(--ginzzzu-flip-scale-x, 1));
 }
 
-/* ----------------------------------------------------
-   ПРИВЯЗКА АНИМАЦИЙ К ЭМОЦИЯМ
----------------------------------------------------- */
-
-/* Агрессия — дрожь */
+/* Динамическая привязка анимаций на основе переменной --emotion-animation */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-anger {
-  animation: anger-jitter 0.22s linear infinite;
+  animation: var(--emotion-animation, anger-jitter) 0.22s linear infinite;
 }
 
-/* Печаль — медленное оседание */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sad {
-  animation: sad-sag 2.4s ease-in-out infinite;
+  animation: var(--emotion-animation, sad-sag) 2.4s ease-in-out infinite;
 }
 
-/* Страх — тремор + проседание */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-fear {
-  animation: fear-shiver 0.58s linear infinite;
+  animation: var(--emotion-animation, fear-shiver) 0.58s linear infinite;
 }
 
-/* Радость — подпрыгивание */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-joy {
-  animation: joy-bob 0.3s ease-in-out infinite;
+  animation: var(--emotion-animation, joy-bob) 0.3s ease-in-out infinite;
 }
 
-/* Любовь — сердцебиение */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-love {
-  animation: heart-beat 1.2s ease-in-out infinite;
+  animation: var(--emotion-animation, heart-beat) 1.2s ease-in-out infinite;
 }
 
-/* Усталость — ленивое покачивание */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired {
-  animation: tired-bob 2.8s ease-in-out infinite;
+  animation: var(--emotion-animation, tired-bob) 2.8s ease-in-out infinite;
 }
 
-/* Боль — пульсация */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-hurt {
-  animation: hurt-pulse 0.5s ease-in-out infinite;
+  animation: var(--emotion-animation, hurt-pulse) 0.5s ease-in-out infinite;
 }
 
-/* ----------------------------------------------------
-   КЕЙФРЕЙМЫ 
----------------------------------------------------- */
+/* Поддержка пользовательских анимаций */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper[class*="custom-emo"] {
+  animation: var(--emotion-animation, none);
+}
 
+/* Альтернативные анимации, используемые в пользовательских эмоциях */
+@keyframes shake {
+  0%   { --shakeX: 0px; }
+  20%  { --shakeX: -2px; }
+  40%  { --shakeX: 2px; }
+  60%  { --shakeX: -1px; }
+  80%  { --shakeX: 1px; }
+  100% { --shakeX: 0px; }
+}
+
+@keyframes sag {
+  0%,100% { --bobY: 0px; }
+  50%     { --bobY: 3px; }
+}
+
+@keyframes shiver {
+  0%   { --shakeX: 0px;     --bobY: 0px; }
+  10%  { --shakeX: -1px;  --bobY: -0.5px; }
+  20%  { --shakeX: 1px;   --bobY: 0.5px; }
+  30%  { --shakeX: -1.2px;  --bobY: -0.8px; }
+  40%  { --shakeX: 1.2px;   --bobY: 0.8px; }
+  50%  { --shakeX: -1px;    --bobY: -1px; }
+  60%  { --shakeX: 1px;     --bobY: 1px; }
+  80%  { --shakeX: -1px;    --bobY: 0.5px; }
+  100% { --shakeX: 0px;     --bobY: 0px; }
+}
+
+@keyframes bob {
+  0%, 100% { --bobY: 0px; }
+  50%      { --bobY: 10px; }
+}
+
+@keyframes beat {
+  0%, 100% { --pulse: 1; }
+  25%      { --pulse: 1.02; }
+  50%      { --pulse: 1.04; }
+  75%      { --pulse: 1.02; }
+}
+
+@keyframes tired {
+  0%,100% { --bobY: 0px;   --tilt: 0deg; }
+  50%     { --bobY: 2px;   --tilt: -0.6deg; }
+}
+
+@keyframes pulse {
+  0%   { --pulse: 1; }
+  50%  { --pulse: 1.02; }
+  100% { --pulse: 1; }
+}
+
+/* Кейфреймы, используемые встроенными эмоциями */
 @keyframes hurt-pulse {
   0%   { --pulse: 1; }
   50%  { --pulse: 1.02; }
   100% { --pulse: 1; }
 }
 
-/* Агрессивная дрожь */
 @keyframes anger-jitter {
   0%   { --shakeX: 0px; }
   20%  { --shakeX: -2px; }
@@ -263,7 +312,6 @@
   100% { --shakeX: 0px; }
 }
 
-/* Сердцебиение */
 @keyframes heart-beat {
   0%, 100% { --pulse: 1; }
   25%      { --pulse: 1.02; }
@@ -271,13 +319,11 @@
   75%      { --pulse: 1.02; }
 }
 
-/* Усталое «покачивание» */
 @keyframes tired-bob {
   0%,100% { --bobY: 0px;   --tilt: 0deg; }
   50%     { --bobY: 2px;   --tilt: -0.6deg; }
 }
 
-/* Испуг — микро-тремор + лёгкое проседание */
 @keyframes fear-shiver {
   0%   { --shakeX: 0px;     --bobY: 0px; }
   10%  { --shakeX: -1px;  --bobY: -0.5px; }
@@ -290,13 +336,11 @@
   100% { --shakeX: 0px;     --bobY: 0px; }
 }
 
-/* Радость — подпрыгивание */
 @keyframes joy-bob {
   0%, 100% { --bobY: 0px; }
   50%      { --bobY: 10px; }
 }
 
-/* Печаль — чуть-чуть «проседает» */
 @keyframes sad-sag {
   0%,100% { --bobY: 0px; }
   50%     { --bobY: 3px; }

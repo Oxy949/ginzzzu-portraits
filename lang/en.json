@@ -27,7 +27,9 @@
       "label": "Portrait display name",
       "note": "This name will be used in notifications and can differ from the actor's system name. Leave the field empty to use the actor name.",
       "clear": "Reset",
-      "save": "Save"
+      "save": "Save",
+      "customEmotionsLabel": "Custom Emotions",
+      "addEmotion": "Add Custom Emotion"
     },
 
     "Settings": {

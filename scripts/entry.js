@@ -3,6 +3,7 @@
  * Loads settings and features.
  */
 import "./settings.js";
+import "./features/customEmotions.js";
 import "./features/portraits.js";
 import "./features/npcDock.js";
 import "./features/portraits-emotions.js";
