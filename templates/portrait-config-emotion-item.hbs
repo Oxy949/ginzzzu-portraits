@@ -1,0 +1,78 @@
+<div class="ginzzzu-emotion-item" data-emotion-index="{{idx}}">
+  <!-- Первая строка: эмодзи + имя -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmoji"}}</label>
+      <input
+        type="text"
+        class="emotion-emoji"
+        value="{{emotion.emoji}}"
+        maxlength="10"
+        placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmojiPlaceholder"}}"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionName"}}</label>
+      <input
+        type="text"
+        class="emotion-name"
+        value="{{emotion.name}}"
+        maxlength="50"
+        placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionNamePlaceholder"}}"
+      />
+    </div>
+
+    <button type="button" class="emotion-remove-btn">
+      <i class="fas fa-trash"></i> {{localize "GINZZZUPORTRAITS.PortraitConfig.removeEmotion"}}
+    </button>
+  </div>
+
+  <!-- Вторая строка: путь к картинке + кнопка выбора -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionImagePath"}}</label>
+      <div class="form-fields">
+        <input
+          type="text"
+          class="emotion-path"
+          value="{{emotion.imagePath}}"
+          placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionImagePathPlaceholder"}}"
+        />
+        <button
+          type="button"
+          class="file-picker emotion-path-picker"
+          data-type="image"
+          title="{{localize 'GINZZZUPORTRAITS.PortraitConfig.emotionImageButtonHint'}}"
+        >
+          <i class="fas fa-file-import"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Третья строка: анимация + цвет -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionAnimation"}}</label>
+      <select class="emotion-animation">
+        {{!-- motions: [{ key, label }] --}}
+        {{selectOptions motions
+                        selected=emotion.animation
+                        nameAttr="key"
+                        labelAttr="label"}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionColor"}}</label>
+      <select class="emotion-color">
+        {{!-- colors: [{ key, label }] --}}
+        {{selectOptions colors
+                        selected=emotion.colorIntensity
+                        nameAttr="key"
+                        labelAttr="label"}}
+      </select>
+    </div>
+  </div>
+</div>

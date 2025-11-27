@@ -1,5 +1,5 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
-import { configurePortrait } from "./portraitConfig.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
+import { configurePortrait } from "./portrait-config.js";
 
 
 var __defProp = Object.defineProperty;
@@ -10,7 +10,8 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
   function _parsePathsCSV(v) {
     return String(v ?? "").split(",").map(s => s.trim()).filter(Boolean);
   }
-  function _getActorImage(actor) {
+  function _getActorBaseImage(actor) {
+    if (!actor) return "";
     try {
       const csv = game.settings.get(MODULE_ID, "actorImagePaths"); // CSV of dot-paths
       const paths = _parsePathsCSV(csv);
@@ -21,6 +22,43 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
     } catch {}
     // Fallbacks
     return actor.img || actor.prototypeToken?.texture?.src || actor?.texture?.src || "";
+  }
+
+  /**
+   * Get current portrait image for actor, taking into account custom emotions.
+   * If a custom emotion with a non-empty imagePath is active, that path overrides the base image.
+   */
+  function _getActorImage(actor) {
+    if (!actor) return "";
+
+    // 1) Базовая картинка по стандартным правилам
+    const baseImg = _getActorBaseImage(actor);
+
+    // 2) Пытаемся переопределить её картинкой кастомной эмоции (если есть)
+    try {
+      // Текущий ключ эмоции для актёра (например "joy", "custom_0", "none")
+      const rawKey = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION);
+      const emoKey = rawKey == null ? "none" : String(rawKey);
+
+      // Интересуют только custom_* эмоции
+      const m = /^custom_(\d+)$/.exec(emoKey);
+      if (!m) return baseImg;
+
+      const idx = Number(m[1]);
+      if (!Number.isInteger(idx) || idx < 0) return baseImg;
+
+      const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
+      if (!Array.isArray(customEmotions) || !customEmotions[idx]) return baseImg;
+
+      const path = customEmotions[idx]?.imagePath;
+      if (typeof path === "string" && path.trim().length > 0) {
+        return path.trim();
+      }
+    } catch (e) {
+      console.error("[threeO-portraits] Failed to resolve custom emotion image:", e);
+    }
+
+    return baseImg;
   }
 
   // ---- Adaptive tone (по темноте сцены) ----
@@ -106,6 +144,28 @@ const FRAME = {
   };
 
   const isGM = () => !!game.user?.isGM;
+
+  // Simple image preloader with timeout
+  function _preloadImage(src, timeoutMs = 6000) {
+    return new Promise((resolve, reject) => {
+      if (!src) return reject(new Error("No src"));
+      const img = new Image();
+      let done = false;
+      const onDone = (err) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        img.onload = img.onerror = null;
+        if (err) reject(err); else resolve(src);
+      };
+      img.onload = () => onDone();
+      img.onerror = (e) => onDone(new Error("Image load error"));
+      // try set crossOrigin to allow CORS'd images where possible
+      try { img.crossOrigin = "anonymous"; } catch {}
+      img.src = src;
+      const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
+    });
+  }
 
   // ---- DOM HUD внутри #interface ----
   function getDomHud() {
@@ -783,40 +843,21 @@ function _onPortraitClick(ev) {
     const displayName = _getDisplayName(actorId);
     const safeName = String(displayName || rawName);
 
-    // Уже есть с тем же src — показать и переложить
-    if (existing && existing.dataset.src === img) {
-      existing.style.opacity = "1";
-      existing.style.transform = "translateY(0)";
-      relayoutDomHud();
-      return;
+    // Уже есть с тем же src — ничего не делаем
+    if (existing) {
+      const wrapper = existing.closest(".ginzzzu-portrait-wrapper");
+      if (wrapper && wrapper.dataset.src === img) {
+        existing.style.opacity = "1";
+        existing.style.transform = "translateY(0)";
+        relayoutDomHud();
+        return;
+      }
     }
 
     // FIRST до изменения DOM (для плавного сдвига остальных)
     const firstRects = collectFirstRects();
 
     if (existing) { try { existing.remove(); } catch {} ; map.delete(actorId); }
-
-    // Simple image preloader with timeout
-    function _preloadImage(src, timeoutMs = 6000) {
-      return new Promise((resolve, reject) => {
-        if (!src) return reject(new Error("No src"));
-        const img = new Image();
-        let done = false;
-        const onDone = (err) => {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          img.onload = img.onerror = null;
-          if (err) reject(err); else resolve(src);
-        };
-        img.onload = () => onDone();
-        img.onerror = (e) => onDone(new Error("Image load error"));
-        // try set crossOrigin to allow CORS'd images where possible
-        try { img.crossOrigin = "anonymous"; } catch {}
-        img.src = src;
-        const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
-      });
-    }
 
     // Preload image before inserting into DOM to avoid flashing broken images
     let finalSrc = img;
@@ -843,6 +884,7 @@ function _onPortraitClick(ev) {
         wrapper.dataset.actorId = actorId;
         wrapper.dataset.rawName = rawName;
         wrapper.dataset.displayName = safeName;
+        wrapper.dataset.src = img;  // Сохраняем src на wrapper для сравнения
 
         // позволяем кликать по портрету
         Object.assign(wrapper.style, {
@@ -1009,10 +1051,229 @@ function _onPortraitClick(ev) {
     }, timeout);
   }
 
+  async function _applyEmotionImageWithTransition(wrapper, imgEl, newSrc) {
+      if (!wrapper || !imgEl || !newSrc) return;
+
+      const duration = Number(game.settings.get(MODULE_ID, "emotionImageTransitionMs")) || 0;
+
+      // If no transition requested, keep original quick behaviour (preload then swap)
+      if (!duration) {
+        try {
+          await _preloadImage(newSrc);
+        } catch (e) {
+          console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
+        }
+        imgEl.src = newSrc;
+        imgEl.dataset.src = newSrc;
+        return;
+      }
+
+      // Prevent concurrent transitions on same element
+      const lockKey = "threeoEmotionTransitionToken";
+      const token = String(Date.now()) + ":" + Math.random();
+      imgEl.dataset[lockKey] = token;
+
+      const half = Math.max(1, Math.floor(duration / 2));
+
+      // Preserve inline transition & transform so we can restore them later
+      const prevTransition = imgEl.style.transition || "";
+      const prevTransform = imgEl.style.transform || "";
+      // Ensure we add opacity + transform transitions without removing other transitions
+      const opacityTransition = `opacity ${half}ms ${_ANIM.easing}`;
+      const transformTransition = `transform ${half}ms ${_ANIM.easing}`;
+      imgEl.style.transition = prevTransition ? `${prevTransition}, ${opacityTransition}, ${transformTransition}` : `${opacityTransition}, ${transformTransition}`;
+
+      // Ensure will-change set for smoother animation (minimal touch)
+      const prevWillChange = imgEl.style.willChange || "";
+      try { imgEl.style.willChange = prevWillChange ? `${prevWillChange}, opacity, transform` : "opacity, transform"; } catch (e) {}
+
+      // Helper: wait for opacity transition or timeout
+      const awaitOpacity = (timeoutMs) => new Promise((resolve) => {
+        let done = false;
+        const onEnd = (ev) => {
+          if (ev && ev.propertyName && ev.propertyName !== "opacity") return;
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          imgEl.removeEventListener("transitionend", onEnd);
+          resolve();
+        };
+        imgEl.addEventListener("transitionend", onEnd);
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          imgEl.removeEventListener("transitionend", onEnd);
+          resolve();
+        }, timeoutMs + 50);
+      });
+
+      // Start fade-out
+      // If opacity is not explicitly set, compute current computed value then set it inline to ensure transition works
+      try {
+        const comp = window.getComputedStyle(imgEl).opacity;
+        imgEl.style.opacity = comp ?? "1";
+      } catch (e) {}
+
+      // Compose a subtle "pose" transform for fade-out so the character appears to shift/pose
+      let baseTransform = imgEl.dataset.baseTransform || getComputedStyle(imgEl).transform || "none";
+      const extraOut = "translate3d(0,-6px,0) scale(1.03)";
+      const composedOut = baseTransform && baseTransform !== "none" ? `${baseTransform} ${extraOut}` : extraOut;
+
+      // Trigger paint then change opacity + transform to start fade-out pose
+      await new Promise((r) => requestAnimationFrame(r));
+      imgEl.style.transform = composedOut;
+      imgEl.style.opacity = "0";
+
+      // Wait for fade-out to complete
+      await awaitOpacity(half + 20);
+
+      // If another transition started meanwhile, abort to avoid stomping it
+      if (imgEl.dataset[lockKey] !== token) {
+        // restore transition/will-change cleanup
+        imgEl.style.transition = prevTransition;
+        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+        return;
+      }
+
+      // Preload new image (best-effort). If preload fails we'll still try to set src.
+      try {
+        await _preloadImage(newSrc);
+      } catch (e) {
+        console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
+      }
+
+      // If token changed while preloading, abort
+      if (imgEl.dataset[lockKey] !== token) {
+        imgEl.style.transition = prevTransition;
+        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+        return;
+      }
+
+      // Instead of swapping src on the same <img> (which on some clients briefly shows
+      // the new image before the fade-out completes), create an overlay image and
+      // cross-fade it in. This keeps the old image visible during out-animation.
+      const actorIdForMap = imgEl.dataset.actorId;
+      const map = domStore();
+
+      // Create overlay image and copy important attributes/styles
+      const newImgEl = document.createElement("img");
+      newImgEl.className = imgEl.className || "ginzzzu-portrait";
+      newImgEl.alt = imgEl.alt || "Portrait";
+      try { newImgEl.style.cssText = imgEl.style.cssText || ""; } catch (e) {}
+      // start hidden
+      newImgEl.style.opacity = "0";
+      newImgEl.style.pointerEvents = "none";
+      newImgEl.style.willChange = "transform, opacity";
+      newImgEl.dataset.actorId = actorIdForMap;
+      newImgEl.dataset.rawName = imgEl.dataset.rawName || "";
+      newImgEl.dataset.baseTransform = imgEl.dataset.baseTransform || "";
+      newImgEl.dataset.baseFilter = imgEl.dataset.baseFilter || "";
+      newImgEl.dataset.src = newSrc;
+
+      // Insert overlay right after the current image so positioning/stacking stays consistent
+      try {
+        imgEl.parentElement.insertBefore(newImgEl, imgEl.nextSibling);
+      } catch (e) {
+        imgEl.parentElement.appendChild(newImgEl);
+      }
+
+      // Ensure the new element uses the same transition settings we just prepared
+      newImgEl.style.transition = imgEl.style.transition || prevTransition;
+
+      // Helper to await opacity transition on arbitrary element
+      const awaitOpacityOn = (el, timeoutMs) => new Promise((resolve) => {
+        let done = false;
+        const onEnd = (ev) => {
+          if (ev && ev.propertyName && ev.propertyName !== "opacity") return;
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          el.removeEventListener("transitionend", onEnd);
+          resolve();
+        };
+        el.addEventListener("transitionend", onEnd);
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          el.removeEventListener("transitionend", onEnd);
+          resolve();
+        }, timeoutMs + 50);
+      });
+
+      // Load the overlay image and wait for it to finish loading (timeout fallback).
+      const loadTimeoutMs = Math.max(2000, half * 3);
+      const loadedOk = await new Promise((resolve) => {
+        let done = false;
+        const onLoad = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          newImgEl.removeEventListener("load", onLoad);
+          newImgEl.removeEventListener("error", onErr);
+          resolve(true);
+        };
+        const onErr = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          newImgEl.removeEventListener("load", onLoad);
+          newImgEl.removeEventListener("error", onErr);
+          resolve(false);
+        };
+        newImgEl.addEventListener("load", onLoad);
+        newImgEl.addEventListener("error", onErr);
+        // Start loading
+        try { newImgEl.src = newSrc; } catch (e) { onErr(); }
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          newImgEl.removeEventListener("load", onLoad);
+          newImgEl.removeEventListener("error", onErr);
+          resolve(false);
+        }, loadTimeoutMs);
+      });
+
+      // Force reflow so transitions will apply
+      // eslint-disable-next-line no-unused-expressions
+      newImgEl.offsetWidth;
+
+      // For fade-in, use a slightly different 'settle' pose so it looks like a changed stance
+      const extraIn = "translate3d(0,6px,0) scale(0.985)";
+      const composedIn = baseTransform && baseTransform !== "none" ? `${baseTransform} ${extraIn}` : extraIn;
+
+      // Fade in overlay while keeping the old image faded-out. If loading failed/timed out
+      // we still perform the transition to avoid leaving the slot empty too long.
+      await new Promise((r) => requestAnimationFrame(r));
+      newImgEl.style.transform = composedIn;
+      newImgEl.style.opacity = "1";
+
+      // Wait for fade-in to complete on the overlay
+      await awaitOpacityOn(newImgEl, half + 20);
+
+      // Replace map entry and remove old element
+      try {
+        imgEl.remove();
+      } catch (e) {}
+      if (actorIdForMap) map.set(actorIdForMap, newImgEl);
+
+      // Restore transition/will-change on the new element
+      newImgEl.style.transition = prevTransition;
+      try { newImgEl.style.willChange = prevWillChange; } catch (e) {}
+
+      // Restore prior transform after a tiny delay to avoid abruptly snapping
+      setTimeout(() => {
+        try { newImgEl.style.transform = prevTransform; } catch (e) {}
+      }, 20);
+
+      // Clear lock token
+      if (imgEl.dataset[lockKey] === token) delete imgEl.dataset[lockKey];
+    }
+
   // ---- Реакция всех клиентов на смену флага актёра ----
   Hooks.on("updateActor", (actor, changes) => {
-    if (!foundry.utils.hasProperty(changes, FLAG_PORTRAIT_SHOWN))
-      return;
+    // Проверяем только если FLAG_PORTRAIT_SHOWN РЕАЛЬНО изменился
+    const hasFlagChange = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_SHOWN);
+    if (!hasFlagChange) return;
 
     let shown = foundry.utils.getProperty(changes, FLAG_PORTRAIT_SHOWN);
     if (typeof shown === "undefined")
@@ -1108,6 +1369,47 @@ Hooks.once("ready", () => {
   } catch (e) {
     console.error(e);
   }
+
+    // React to emotion / customEmotions changes to keep portrait image in sync with active emotion
+  Hooks.on("updateActor", (actor, changes) => {
+    try {
+      if (!actor?.id) return;
+
+      // Только если у этого актёра уже есть HUD-портрет
+      const root = getDomHud?.();
+      if (!root) return;
+
+      const wrapper = root.querySelector(`.ginzzzu-portrait-wrapper[data-actor-id="${actor.id}"]`);
+      if (!wrapper) return;
+
+      // Проверяем, что изменилось именно то, что влияет на картинку эмоции
+      const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
+      const customEmotionsChanged = foundry.utils.hasProperty(changes, FLAG_CUSTOM_EMOTIONS);
+
+      if (!emotionChanged && !customEmotionsChanged) return;
+
+      const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
+      if (!imgEl) return;
+
+      const newImg = _getActorImage(actor);
+      console.log("[threeO-portraits] updating emotion image for actor", imgEl.src, " newImg=", newImg);
+      if (typeof newImg === "string" && newImg) {
+        let resolvedNewImg = newImg;
+        try {
+          // Resolve relative paths against document base so they compare correctly
+          resolvedNewImg = new URL(newImg, document.baseURI).href;
+        } catch (e) {
+          try { resolvedNewImg = new URL(newImg, window.location.href).href; } catch (e2) {}
+        }
+        if (imgEl.src !== resolvedNewImg) {
+          _applyEmotionImageWithTransition(wrapper, imgEl, newImg);
+        }
+      }
+
+    } catch (e) {
+      console.error("[threeO-portraits] updateActor hook (emotion image) failed:", e);
+    }
+  });
 
   // Приём socket-запросов на флип от игроков (обрабатывает только ГМ)
   if (game.socket) {

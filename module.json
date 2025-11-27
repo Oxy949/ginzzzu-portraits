@@ -33,9 +33,10 @@
   ],
   "scripts": [],
   "styles": [
-    "styles/threeO-portraits.css",
-    "styles/threeO-npc-dock.css",
-    "styles/threeO-portraits-emotions.css"
+    "styles/portraits.css",
+    "styles/npc-dock.css",
+    "styles/portrait-config.css",
+    "styles/emotions.css"
   ],
   "languages": [
     {

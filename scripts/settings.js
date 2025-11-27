@@ -54,6 +54,16 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // Saved order of portraits (per-client)
+  reg("portraitSequence", {
+    name: "Portrait Sequence",
+    hint: "Internal: saved order of portraits in the HUD (not configurable)",
+    scope: "client",
+    config: false,
+    type: Object,
+    default: []
+  });
+
   reg("portraitBottomOffset", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.hint"),
@@ -271,6 +281,19 @@ Hooks.once("init", () => {
     range: { min: 0, max: 1, step: 0.01 },
     requiresReload: false
   });
+
+  // === Скорость анимации смены изображения при эмоциях (мс, клиент) ===
+  reg("emotionImageTransitionMs", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionImageTransitionMs.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionImageTransitionMs.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 320,
+    range: { min: 0, max: 2000, step: 10 },
+    requiresReload: false
+  });
+
 
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {

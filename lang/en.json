@@ -22,12 +22,25 @@
     "pcFoldersAll": "All players",
     "pcFoldersNoFolder": "Players without folder",
 
-    "PortraitConfig": {
-      "title": "Portrait: name for players — {name}",
+      "PortraitConfig": {
+      "title": "Portrait: {name}",
       "label": "Portrait display name",
-      "note": "This name will be used in notifications and can differ from the actor's system name. Leave the field empty to use the actor name.",
-      "clear": "Reset",
-      "save": "Save"
+      "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
+      "clear": "Reset name",
+      "save": "Save",
+      "customEmotionsLabel": "Custom Emotions",
+      "addEmotion": "Add Custom Emotion",
+      "showStandardEmotions": "Show standard emotions",
+      "emotionEmoji": "Emoji",
+      "emotionEmojiPlaceholder": "😊",
+      "emotionName": "Name",
+      "emotionNamePlaceholder": "Name",
+      "emotionImagePath": "Image Path",
+      "emotionImagePathPlaceholder": "path/to/image.webp",
+      "emotionImageButtonHint": "Select Image",
+      "emotionAnimation": "Animation",
+      "emotionColor": "Color correction",
+      "removeEmotion": "Remove"
     },
 
     "Settings": {
@@ -125,6 +138,10 @@
       "emotionColorIntensity": {
         "name": "Emotion Color Intensity",
         "hint": "0 - no color changes from emotions, 1 - full (default)"
+      },
+      "emotionImageTransitionMs": {
+        "name": "Portrait image transition speed",
+        "hint": "Duration of the image transition animation for emotions (in milliseconds). 0 means no animation."
       },
       "displayNameSeparators": {
         "name": "Name: public-part separators",
