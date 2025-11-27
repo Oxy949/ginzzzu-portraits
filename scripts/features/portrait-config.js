@@ -215,10 +215,40 @@ export async function configurePortrait(ev, actorSheet) {
             .on('click.ginzzzuRemoveEmotion', removeEmotionHandler);
         };
 
+        // === НОВОЕ: выбор изображения через FilePicker ===
+        const bindFilePickers = (root) => {
+          root.find('.emotion-path-picker')
+            .off('click.ginzzzuEmotionFile')
+            .on('click.ginzzzuEmotionFile', async (e) => {
+              e.preventDefault();
+
+              const $btn   = $(e.currentTarget);
+              const $item  = $btn.closest('.ginzzzu-emotion-item');
+              const $input = $item.find('.emotion-path');
+
+              if ($input.length === 0) return;
+
+              const current = $input.val() || "";
+
+              const fp = new FilePicker({
+                type: "image",
+                current,
+                callback: (path) => {
+                  $input.val(path);
+                  // чтобы твоя логика сохранения на change тоже отработала
+                  $input.trigger("change");
+                }
+              });
+
+              fp.render(true);
+            });
+        };
+
         // Уже отрендеренные эмоции
         bindRemoveHandlers(html);
+        bindFilePickers(html);
 
-        // Кнопка добавления эмоции — теперь рендерит Handlebars-шаблон
+        // Кнопка добавления эмоции — рендерит Handlebars-шаблон
         html.find('.emotion-add-btn').on('click', async (e) => {
           e.preventDefault();
 
@@ -243,8 +273,10 @@ export async function configurePortrait(ev, actorSheet) {
           const $item = $(newEmotionHtml);
           emotionsList.append($item);
           bindRemoveHandlers($item);
+          bindFilePickers($item); // <-- важно для новых элементов
         });
       }
+
     }, {
       width: dialogWidth,
       resizable: true
