@@ -1,4 +1,5 @@
 import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } from "../core/constants.js";
+import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/index.js";
 
 (()=>{
   // ── Actor type utilities (configurable) ─────────────────────────────────────
@@ -44,6 +45,11 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
   const getPCFolderSel  = () => { try { return game.settings.get(MODULE_ID, "pcDockFolder") || "all"; } catch { return "all"; } };
   const setPCFolderSel  = (v) => { try { game.settings.set(MODULE_ID, "pcDockFolder", v); } catch {} };
 
+  // Контролы
+    let searchEl;
+    let sortEl;
+    let folderEl;
+    let clearBtn;
 
   // ── COLORS (folder-based) ────────────────────────────────────────────────────
   function hexToRgb(hex) {
@@ -212,12 +218,11 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
         ev.preventDefault();
       }
     });
-
-    // Контролы
-    const searchEl = toolbar.querySelector("#ginzzzu-npc-search");
-    const sortEl   = toolbar.querySelector("#ginzzzu-npc-sort");
-    const folderEl = toolbar.querySelector("#ginzzzu-npc-folder");
-    const clearBtn = toolbar.querySelector("#ginzzzu-npc-clear");
+    
+    searchEl = toolbar.querySelector("#ginzzzu-npc-search");
+    sortEl   = toolbar.querySelector("#ginzzzu-npc-sort");
+    folderEl = toolbar.querySelector("#ginzzzu-npc-folder");
+    clearBtn = toolbar.querySelector("#ginzzzu-npc-clear");
 
     searchEl.value = getSearchText();
     sortEl.value   = getSortMode();
@@ -267,6 +272,8 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
       opt.textContent = f.path || f.name || "(без имени)";
       sel.appendChild(opt);
     }
+    
+    addNpcDockOptions(sel);    
 
     sel.value = current;
     if (sel.value !== current) { sel.value = "all"; setFolderSel("all"); }
@@ -453,11 +460,16 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
       );
       npcs = npcs.filter(a => actorIdsOnScene.has(a.id));
     } else if (folderSel !== "all") {
-      npcs = npcs.filter(a => {
-        let f = a.folder ?? null;
-        while (f) { if (f.id === folderSel) return true; f = f.folder ?? null; }
-        return false;
-      });
+      const filterCriteria = getFilterCriteria(folderSel);
+      if (filterCriteria) {
+        npcs = filterNpcs(filterCriteria, npcs);
+      } else {
+        npcs = npcs.filter(a => {
+          let f = a.folder ?? null;
+          while (f) { if (f.id === folderSel) return true; f = f.folder ?? null; }
+          return false;
+        });
+      }
     }
 
     // поиск
@@ -765,8 +777,35 @@ import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } f
     Hooks.on("deleteToken",  () => scheduleRebuild());
   });
 
+   function selectMatching(sel, textToMtach) {
+    const arr = Array.from(sel.options);
+    const match = arr.findIndex(opt => opt.text === textToMtach);
+    if (match > -1) {
+      for (let idx = 0; idx < arr.length; idx++) {
+        sel.options[idx].selected = (idx === match);
+      }
+      sel.dispatchEvent(new Event('change'), { bubbles: true});
+    }
+  }
+  
+  function setDashboard(options) {
+    if (options) {
+      if (options.folder) {
+        selectMatching(folderEl, options.folder);
+      }
+      if (options.sort) {
+        selectMatching(sortEl, options.sort);
+      }
+      if (options.search) {
+        searchEl.value = options.search;
+        searchEl.dispatchEvent(new Event('input'), { bubbles: true});
+      }
+    }
+  }
+
   // Экспорт
   globalThis.GinzzzuNPCDock = {
+    setDashboard,
     rebuild: buildDock,
     refreshDisplayNames: () => buildDock(),
     show: () => { const r = ensureDock(); r.style.display = ""; },
