@@ -24,16 +24,26 @@
     </div>
   </div>
 
-  <!-- Вторая строка: путь к картинке -->
+  <!-- Вторая строка: путь к картинке + кнопка выбора -->
   <div class="emotion-row">
     <div class="form-group">
       <label>Image Path</label>
-      <input
-        type="text"
-        class="emotion-path"
-        value="{{emotion.imagePath}}"
-        placeholder="path/to/image.webp"
-      />
+      <div class="form-fields">
+        <input
+          type="text"
+          class="emotion-path"
+          value="{{emotion.imagePath}}"
+          placeholder="path/to/image.webp"
+        />
+        <button
+          type="button"
+          class="file-picker emotion-path-picker"
+          data-type="image"
+          title="{{localize 'FILES.BrowseFiles'}}"
+        >
+          <i class="fas fa-file-import"></i>
+        </button>
+      </div>
     </div>
   </div>
 

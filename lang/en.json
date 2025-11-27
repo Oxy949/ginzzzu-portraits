@@ -25,7 +25,7 @@
     "PortraitConfig": {
       "title": "Portrait: name for players — {name}",
       "label": "Portrait display name",
-      "note": "This name will be used in notifications and can differ from the actor's system name. Leave the field empty to use the actor name.",
+      "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
       "clear": "Reset name",
       "save": "Save",
       "customEmotionsLabel": "Custom Emotions",
