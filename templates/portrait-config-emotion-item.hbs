@@ -1,16 +1,16 @@
 <div class="ginzzzu-emotion-item" data-emotion-index="{{idx}}">
   <!-- Первая строка: эмодзи + имя -->
   <div class="emotion-row">
-      <div class="form-group">
-        <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmoji"}}</label>
-        <input
-          type="text"
-          class="emotion-emoji"
-          value="{{emotion.emoji}}"
-          maxlength="10"
-          placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmojiPlaceholder"}}"
-        />
-      </div>
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmoji"}}</label>
+      <input
+        type="text"
+        class="emotion-emoji"
+        value="{{emotion.emoji}}"
+        maxlength="10"
+        placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmojiPlaceholder"}}"
+      />
+    </div>
 
     <div class="form-group">
       <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionName"}}</label>
@@ -51,33 +51,27 @@
     </div>
   </div>
 
-  <!-- Третья строка: анимация + цвет + удалить -->
+  <!-- Третья строка: анимация + цвет -->
   <div class="emotion-row">
     <div class="form-group">
       <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionAnimation"}}</label>
       <select class="emotion-animation">
-        {{#each motions as |motion|}}
-          <option
-            value="{{motion.key}}"
-            {{#if (eq motion.key emotion.animation)}}selected{{/if}}
-          >
-            {{motion.label}}
-          </option>
-        {{/each}}
+        {{!-- motions: [{ key, label }] --}}
+        {{selectOptions motions
+                        selected=emotion.animation
+                        nameAttr="key"
+                        labelAttr="label"}}
       </select>
     </div>
 
     <div class="form-group">
       <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionColor"}}</label>
       <select class="emotion-color">
-        {{#each colors as |color|}}
-          <option
-            value="{{color.key}}"
-            {{#if (eq color.key emotion.colorIntensity)}}selected{{/if}}
-          >
-            {{color.label}}
-          </option>
-        {{/each}}
+        {{!-- colors: [{ key, label }] --}}
+        {{selectOptions colors
+                        selected=emotion.colorIntensity
+                        nameAttr="key"
+                        labelAttr="label"}}
       </select>
     </div>
   </div>
