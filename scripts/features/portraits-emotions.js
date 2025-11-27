@@ -403,14 +403,15 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
     
     const hasEmotionChange        = foundry.utils.hasProperty(diff, FLAG_PORTRAIT_EMOTION);
     const hasCustomEmotionsChange = foundry.utils.hasProperty(diff, FLAG_CUSTOM_EMOTIONS);
+    const hasShowStandardChange   = foundry.utils.hasProperty(diff, FLAG_SHOW_STANDARD_EMOTIONS);
     
     if (hasEmotionChange) {
       console.log(`[${MODULE_ID}] Emotion changed for ${actor.name}`);
       applyEmotionToHudDom(actor.id);
     }
     
-    // Refresh toolbar if custom emotions changed
-    if (hasCustomEmotionsChange) {
+    // Refresh toolbar if changed
+    if (hasCustomEmotionsChange || hasShowStandardChange) {
       console.log(`[${MODULE_ID}] Emotions config changed for ${actor.name}, refreshing toolbars`);
       refreshAllHudToolbars();
     }
