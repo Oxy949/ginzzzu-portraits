@@ -282,6 +282,19 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
+  // === Скорость анимации смены изображения при эмоциях (мс, клиент) ===
+  reg("emotionImageTransitionMs", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionImageTransitionMs.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionImageTransitionMs.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 320,
+    range: { min: 0, max: 2000, step: 10 },
+    requiresReload: false
+  });
+
+
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.actorImagePaths.name"),

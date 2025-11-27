@@ -145,6 +145,28 @@ const FRAME = {
 
   const isGM = () => !!game.user?.isGM;
 
+  // Simple image preloader with timeout
+  function _preloadImage(src, timeoutMs = 6000) {
+    return new Promise((resolve, reject) => {
+      if (!src) return reject(new Error("No src"));
+      const img = new Image();
+      let done = false;
+      const onDone = (err) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        img.onload = img.onerror = null;
+        if (err) reject(err); else resolve(src);
+      };
+      img.onload = () => onDone();
+      img.onerror = (e) => onDone(new Error("Image load error"));
+      // try set crossOrigin to allow CORS'd images where possible
+      try { img.crossOrigin = "anonymous"; } catch {}
+      img.src = src;
+      const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
+    });
+  }
+
   // ---- DOM HUD внутри #interface ----
   function getDomHud() {
     let root = document.getElementById("ginzzzu-portrait-layer");
@@ -821,40 +843,21 @@ function _onPortraitClick(ev) {
     const displayName = _getDisplayName(actorId);
     const safeName = String(displayName || rawName);
 
-    // Уже есть с тем же src — показать и переложить
-    if (existing && existing.dataset.src === img) {
-      existing.style.opacity = "1";
-      existing.style.transform = "translateY(0)";
-      relayoutDomHud();
-      return;
+    // Уже есть с тем же src — ничего не делаем
+    if (existing) {
+      const wrapper = existing.closest(".ginzzzu-portrait-wrapper");
+      if (wrapper && wrapper.dataset.src === img) {
+        existing.style.opacity = "1";
+        existing.style.transform = "translateY(0)";
+        relayoutDomHud();
+        return;
+      }
     }
 
     // FIRST до изменения DOM (для плавного сдвига остальных)
     const firstRects = collectFirstRects();
 
     if (existing) { try { existing.remove(); } catch {} ; map.delete(actorId); }
-
-    // Simple image preloader with timeout
-    function _preloadImage(src, timeoutMs = 6000) {
-      return new Promise((resolve, reject) => {
-        if (!src) return reject(new Error("No src"));
-        const img = new Image();
-        let done = false;
-        const onDone = (err) => {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          img.onload = img.onerror = null;
-          if (err) reject(err); else resolve(src);
-        };
-        img.onload = () => onDone();
-        img.onerror = (e) => onDone(new Error("Image load error"));
-        // try set crossOrigin to allow CORS'd images where possible
-        try { img.crossOrigin = "anonymous"; } catch {}
-        img.src = src;
-        const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
-      });
-    }
 
     // Preload image before inserting into DOM to avoid flashing broken images
     let finalSrc = img;
@@ -881,6 +884,7 @@ function _onPortraitClick(ev) {
         wrapper.dataset.actorId = actorId;
         wrapper.dataset.rawName = rawName;
         wrapper.dataset.displayName = safeName;
+        wrapper.dataset.src = img;  // Сохраняем src на wrapper для сравнения
 
         // позволяем кликать по портрету
         Object.assign(wrapper.style, {
@@ -1047,10 +1051,27 @@ function _onPortraitClick(ev) {
     }, timeout);
   }
 
+  async function _applyEmotionImageWithTransition(wrapper, imgEl, newSrc) {
+      if (!wrapper || !imgEl || !newSrc) return;
+
+      // Предзагрузка новой картинки, чтобы не было морганий / битых ссылок
+      try {
+        await _preloadImage(newSrc);
+      } catch (e) {
+        console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
+      }
+
+      const duration = Number(game.settings.get(MODULE_ID, "emotionImageTransitionMs")) || 0;
+      
+      imgEl.src = newSrc;
+      imgEl.dataset.src = newSrc;
+  }
+
   // ---- Реакция всех клиентов на смену флага актёра ----
   Hooks.on("updateActor", (actor, changes) => {
-    if (!foundry.utils.hasProperty(changes, FLAG_PORTRAIT_SHOWN))
-      return;
+    // Проверяем только если FLAG_PORTRAIT_SHOWN РЕАЛЬНО изменился
+    const hasFlagChange = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_SHOWN);
+    if (!hasFlagChange) return;
 
     let shown = foundry.utils.getProperty(changes, FLAG_PORTRAIT_SHOWN);
     if (typeof shown === "undefined")
@@ -1170,8 +1191,9 @@ Hooks.once("ready", () => {
 
       const newImg = _getActorImage(actor);
       if (typeof newImg === "string" && newImg && imgEl.src !== newImg) {
-        imgEl.src = newImg;
+        _applyEmotionImageWithTransition(wrapper, imgEl, newImg);
       }
+
     } catch (e) {
       console.error("[threeO-portraits] updateActor hook (emotion image) failed:", e);
     }

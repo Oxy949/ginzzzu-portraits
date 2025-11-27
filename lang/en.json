@@ -139,6 +139,10 @@
         "name": "Emotion Color Intensity",
         "hint": "0 - no color changes from emotions, 1 - full (default)"
       },
+      "emotionImageTransitionMs": {
+        "name": "Portrait image transition speed",
+        "hint": "Duration of the image transition animation for emotions (in milliseconds). 0 means no animation."
+      },
       "displayNameSeparators": {
         "name": "Name: public-part separators",
         "hint": "Characters to cut off NPC names for players. Comma-separated. Example: #,: — then \"Karl#Main boss\" will show players only \"Karl\"."
