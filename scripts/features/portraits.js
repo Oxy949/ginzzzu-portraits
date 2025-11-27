@@ -1149,35 +1149,123 @@ function _onPortraitClick(ev) {
         return;
       }
 
-      // Swap image source
-      imgEl.src = newSrc;
-      imgEl.dataset.src = newSrc;
+      // Instead of swapping src on the same <img> (which on some clients briefly shows
+      // the new image before the fade-out completes), create an overlay image and
+      // cross-fade it in. This keeps the old image visible during out-animation.
+      const actorIdForMap = imgEl.dataset.actorId;
+      const map = domStore();
 
-      // Force reflow so that following opacity change is animated
+      // Create overlay image and copy important attributes/styles
+      const newImgEl = document.createElement("img");
+      newImgEl.className = imgEl.className || "ginzzzu-portrait";
+      newImgEl.alt = imgEl.alt || "Portrait";
+      try { newImgEl.style.cssText = imgEl.style.cssText || ""; } catch (e) {}
+      // start hidden
+      newImgEl.style.opacity = "0";
+      newImgEl.style.pointerEvents = "none";
+      newImgEl.style.willChange = "transform, opacity";
+      newImgEl.dataset.actorId = actorIdForMap;
+      newImgEl.dataset.rawName = imgEl.dataset.rawName || "";
+      newImgEl.dataset.baseTransform = imgEl.dataset.baseTransform || "";
+      newImgEl.dataset.baseFilter = imgEl.dataset.baseFilter || "";
+      newImgEl.dataset.src = newSrc;
+
+      // Insert overlay right after the current image so positioning/stacking stays consistent
+      try {
+        imgEl.parentElement.insertBefore(newImgEl, imgEl.nextSibling);
+      } catch (e) {
+        imgEl.parentElement.appendChild(newImgEl);
+      }
+
+      // Ensure the new element uses the same transition settings we just prepared
+      newImgEl.style.transition = imgEl.style.transition || prevTransition;
+
+      // Helper to await opacity transition on arbitrary element
+      const awaitOpacityOn = (el, timeoutMs) => new Promise((resolve) => {
+        let done = false;
+        const onEnd = (ev) => {
+          if (ev && ev.propertyName && ev.propertyName !== "opacity") return;
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          el.removeEventListener("transitionend", onEnd);
+          resolve();
+        };
+        el.addEventListener("transitionend", onEnd);
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          el.removeEventListener("transitionend", onEnd);
+          resolve();
+        }, timeoutMs + 50);
+      });
+
+      // Load the overlay image and wait for it to finish loading (timeout fallback).
+      const loadTimeoutMs = Math.max(2000, half * 3);
+      const loadedOk = await new Promise((resolve) => {
+        let done = false;
+        const onLoad = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          newImgEl.removeEventListener("load", onLoad);
+          newImgEl.removeEventListener("error", onErr);
+          resolve(true);
+        };
+        const onErr = () => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          newImgEl.removeEventListener("load", onLoad);
+          newImgEl.removeEventListener("error", onErr);
+          resolve(false);
+        };
+        newImgEl.addEventListener("load", onLoad);
+        newImgEl.addEventListener("error", onErr);
+        // Start loading
+        try { newImgEl.src = newSrc; } catch (e) { onErr(); }
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          newImgEl.removeEventListener("load", onLoad);
+          newImgEl.removeEventListener("error", onErr);
+          resolve(false);
+        }, loadTimeoutMs);
+      });
+
+      // Force reflow so transitions will apply
       // eslint-disable-next-line no-unused-expressions
-      imgEl.offsetWidth;
+      newImgEl.offsetWidth;
 
       // For fade-in, use a slightly different 'settle' pose so it looks like a changed stance
       const extraIn = "translate3d(0,6px,0) scale(0.985)";
       const composedIn = baseTransform && baseTransform !== "none" ? `${baseTransform} ${extraIn}` : extraIn;
 
-      // Fade in with settle transform
+      // Fade in overlay while keeping the old image faded-out. If loading failed/timed out
+      // we still perform the transition to avoid leaving the slot empty too long.
       await new Promise((r) => requestAnimationFrame(r));
-      imgEl.style.transform = composedIn;
-      imgEl.style.opacity = "1";
+      newImgEl.style.transform = composedIn;
+      newImgEl.style.opacity = "1";
 
-      // Wait for fade-in to complete
-      await awaitOpacity(half + 20);
+      // Wait for fade-in to complete on the overlay
+      await awaitOpacityOn(newImgEl, half + 20);
 
-      // Restore previous transition, transform and will-change
-      imgEl.style.transition = prevTransition;
-      try { imgEl.style.willChange = prevWillChange; } catch (e) {}
-      // Restore prior transform after a tiny delay to avoid abruptly snapping if other code expects it
+      // Replace map entry and remove old element
+      try {
+        imgEl.remove();
+      } catch (e) {}
+      if (actorIdForMap) map.set(actorIdForMap, newImgEl);
+
+      // Restore transition/will-change on the new element
+      newImgEl.style.transition = prevTransition;
+      try { newImgEl.style.willChange = prevWillChange; } catch (e) {}
+
+      // Restore prior transform after a tiny delay to avoid abruptly snapping
       setTimeout(() => {
-        try { imgEl.style.transform = prevTransform; } catch (e) {}
+        try { newImgEl.style.transform = prevTransform; } catch (e) {}
       }, 20);
 
-      // Clear lock
+      // Clear lock token
       if (imgEl.dataset[lockKey] === token) delete imgEl.dataset[lockKey];
     }
 
