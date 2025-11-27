@@ -22,7 +22,7 @@
     "pcFoldersAll": "All players",
     "pcFoldersNoFolder": "Players without folder",
 
-    "PortraitConfig": {
+      "PortraitConfig": {
       "title": "Portrait: name for players — {name}",
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
@@ -30,7 +30,16 @@
       "save": "Save",
       "customEmotionsLabel": "Custom Emotions",
       "addEmotion": "Add Custom Emotion",
-      "showStandardEmotions": "Show standard emotions"
+      "showStandardEmotions": "Show standard emotions",
+      "emotionEmoji": "Emoji",
+      "emotionEmojiPlaceholder": "😊",
+      "emotionName": "Name",
+      "emotionNamePlaceholder": "Name",
+      "emotionImagePath": "Image Path",
+      "emotionImagePathPlaceholder": "path/to/image.webp",
+      "emotionAnimation": "Animation",
+      "emotionColor": "Color correction",
+      "removeEmotion": "Remove"
     },
 
     "Settings": {

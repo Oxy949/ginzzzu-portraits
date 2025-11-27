@@ -1,25 +1,25 @@
 <div class="ginzzzu-emotion-item" data-emotion-index="{{idx}}">
   <!-- Первая строка: эмодзи + имя -->
   <div class="emotion-row">
-    <div class="form-group">
-      <label>Emoji</label>
-      <input
-        type="text"
-        class="emotion-emoji"
-        value="{{emotion.emoji}}"
-        maxlength="10"
-        placeholder="😊"
-      />
-    </div>
+      <div class="form-group">
+        <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmoji"}}</label>
+        <input
+          type="text"
+          class="emotion-emoji"
+          value="{{emotion.emoji}}"
+          maxlength="10"
+          placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmojiPlaceholder"}}"
+        />
+      </div>
 
     <div class="form-group">
-      <label>Name</label>
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionName"}}</label>
       <input
         type="text"
         class="emotion-name"
         value="{{emotion.name}}"
         maxlength="50"
-        placeholder="Name"
+        placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionNamePlaceholder"}}"
       />
     </div>
   </div>
@@ -27,13 +27,13 @@
   <!-- Вторая строка: путь к картинке + кнопка выбора -->
   <div class="emotion-row">
     <div class="form-group">
-      <label>Image Path</label>
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionImagePath"}}</label>
       <div class="form-fields">
         <input
           type="text"
           class="emotion-path"
           value="{{emotion.imagePath}}"
-          placeholder="path/to/image.webp"
+          placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionImagePathPlaceholder"}}"
         />
         <button
           type="button"
@@ -50,7 +50,7 @@
   <!-- Третья строка: анимация + цвет + удалить -->
   <div class="emotion-row">
     <div class="form-group">
-      <label>Animation</label>
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionAnimation"}}</label>
       <select class="emotion-animation">
         {{#each motions as |motion|}}
           <option
@@ -64,7 +64,7 @@
     </div>
 
     <div class="form-group">
-      <label>Color Intensity</label>
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionColor"}}</label>
       <select class="emotion-color">
         {{#each colors as |color|}}
           <option
@@ -78,7 +78,7 @@
     </div>
 
     <button type="button" class="emotion-remove-btn">
-      <i class="fas fa-trash"></i> Remove
+      <i class="fas fa-trash"></i> {{localize "GINZZZUPORTRAITS.PortraitConfig.removeEmotion"}}
     </button>
   </div>
 </div>

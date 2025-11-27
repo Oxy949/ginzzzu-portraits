@@ -30,7 +30,16 @@
         "save": "Сохранить",
         "customEmotionsLabel": "Пользовательские эмоции",
         "addEmotion": "Добавить эмоцию",
-        "showStandardEmotions": "Показать стандартные эмоции"
+        "showStandardEmotions": "Показать стандартные эмоции",
+        "emotionEmoji": "Эмодзи",
+        "emotionEmojiPlaceholder": "😊",
+        "emotionName": "Имя",
+        "emotionNamePlaceholder": "Имя",
+        "emotionImagePath": "Путь к изображению",
+        "emotionImagePathPlaceholder": "path/to/image.webp",
+        "emotionAnimation": "Анимация",
+        "emotionColor": "Цвето-коррекция",
+        "removeEmotion": "Удалить"
       },
 
       "Settings": {
