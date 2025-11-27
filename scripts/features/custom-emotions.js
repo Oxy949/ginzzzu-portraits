@@ -16,7 +16,7 @@ export function getCustomEmotions(actor) {
   }
 
   try {
-    const emotions = actor.getFlag(MODULE_ID, "customEmotions");
+    const emotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS);;
     console.log(`[${MODULE_ID}] getCustomEmotions for ${actor.name}: found ${Array.isArray(emotions) ? emotions.length : 0} emotions`, emotions);
     if (Array.isArray(emotions)) {
       return emotions;
@@ -40,7 +40,7 @@ export async function setCustomEmotions(actor, emotions) {
   try {
     // Validate emotions before saving
     const validated = emotions.map(validateEmotion).filter(e => e !== null);
-    await actor.setFlag(MODULE_ID, "customEmotions", validated);
+    await actor.update({ [FLAG_CUSTOM_EMOTIONS]: validated });
     console.log(`[${MODULE_ID}] Custom emotions saved for ${actor.name}:`, validated);
   } catch (e) {
     console.error(`[${MODULE_ID}] Error setting custom emotions:`, e);

@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 
 
@@ -47,7 +47,7 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
       const idx = Number(m[1]);
       if (!Number.isInteger(idx) || idx < 0) return baseImg;
 
-      const customEmotions = actor.getFlag(MODULE_ID, "customEmotions") || [];
+      const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
       if (!Array.isArray(customEmotions) || !customEmotions[idx]) return baseImg;
 
       const path = customEmotions[idx]?.imagePath;

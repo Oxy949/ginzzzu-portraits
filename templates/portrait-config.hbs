@@ -1,0 +1,53 @@
+<form class="ginzzzu-portrait-config">
+  <!-- Отображаемое имя -->
+  <div class="form-group display-name-section">
+    <label>{{label}}</label>
+    <input
+      type="text"
+      name="displayName"
+      value="{{displayName}}"
+      placeholder="{{placeholder}}"
+    />
+    <p class="notes">{{notes}}</p>
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- Кастомные эмоции -->
+  <section class="emotions-section">
+    <header class="section-header">
+      <h3 class="section-title">{{customEmotionsLabel}}</h3>
+
+      <div class="form-group emotion-show-standard">
+        <label class="inline-checkbox">
+          <input
+            type="checkbox"
+            name="showStandardEmotions"
+            value="1"
+            {{#if showStandardEmotions}}checked{{/if}}
+          />
+          {{showStandardLabel}}
+        </label>
+      </div>
+    </header>
+
+    <!-- Список эмоций -->
+    <div class="emotions-list">
+    {{#each emotions as |emotion idx|}}
+        {{> "modules/ginzzzu-portraits/templates/portrait-config-emotion-item.hbs"
+        emotion=emotion
+        idx=idx
+        motions=../motions
+        colors=../colors
+        }}
+    {{/each}}
+    </div>
+
+
+
+    <!-- Кнопка добавления -->
+    <button type="button" class="emotion-add-btn">
+      <i class="fas fa-plus"></i> {{addEmotionLabel}}
+    </button>
+  </section>
+</form>

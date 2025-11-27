@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS, EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_CUSTOM_EMOTIONS, EMOTION_COLORS, EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
 
 
 /**
@@ -131,7 +131,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, EMOTION_COLORS, EMOTIONS, EMOTION_MOT
     if (!actor) return allEmotions;
 
     try {
-      const customEmotions = actor.getFlag(MODULE_ID, "customEmotions") || [];
+      const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
       console.log(`[${MODULE_ID}] Loading custom emotions for ${actor.name}:`, customEmotions);
 
       if (Array.isArray(customEmotions)) {

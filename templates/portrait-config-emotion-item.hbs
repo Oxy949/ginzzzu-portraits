@@ -1,0 +1,74 @@
+<div class="ginzzzu-emotion-item" data-emotion-index="{{idx}}">
+  <!-- Первая строка: эмодзи + имя -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>Emoji</label>
+      <input
+        type="text"
+        class="emotion-emoji"
+        value="{{emotion.emoji}}"
+        maxlength="10"
+        placeholder="😊"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>Name</label>
+      <input
+        type="text"
+        class="emotion-name"
+        value="{{emotion.name}}"
+        maxlength="50"
+        placeholder="Name"
+      />
+    </div>
+  </div>
+
+  <!-- Вторая строка: путь к картинке -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>Image Path</label>
+      <input
+        type="text"
+        class="emotion-path"
+        value="{{emotion.imagePath}}"
+        placeholder="path/to/image.webp"
+      />
+    </div>
+  </div>
+
+  <!-- Третья строка: анимация + цвет + удалить -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>Animation</label>
+      <select class="emotion-animation">
+        {{#each motions as |motion|}}
+          <option
+            value="{{motion.key}}"
+            {{#if (eq motion.key emotion.animation)}}selected{{/if}}
+          >
+            {{motion.label}}
+          </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Color Intensity</label>
+      <select class="emotion-color">
+        {{#each colors as |color|}}
+          <option
+            value="{{color.key}}"
+            {{#if (eq color.key emotion.colorIntensity)}}selected{{/if}}
+          >
+            {{color.label}}
+          </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <button type="button" class="emotion-remove-btn">
+      <i class="fas fa-trash"></i> Remove
+    </button>
+  </div>
+</div>

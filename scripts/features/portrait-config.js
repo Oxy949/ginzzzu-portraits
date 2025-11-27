@@ -1,11 +1,16 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, EMOTION_MOTIONS, EMOTION_COLORS } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
+
+const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
+const PORTRAIT_EMOTION_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config-emotion-item.hbs`;
+
 
 const isGM = () => !!game.user?.isGM;
 
 /**
  * Окно конфигурации портрета для конкретного актёра.
+ * Вариант с нормальным шаблоном и ресайзящимся диалогом.
  */
 export async function configurePortrait(ev, actorSheet) {
   if (!isGM()) return;
@@ -21,140 +26,68 @@ export async function configurePortrait(ev, actorSheet) {
   const currentRaw  = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME);
   const currentName = typeof currentRaw === "string" ? currentRaw : "";
 
-  const safeValue   = currentName.replace(/"/g, "&quot;");
-  const placeholder = (actor.name ?? "").replace(/"/g, "&quot;");
-
   const label = game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.label");
   const notes = game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.note");
   const title = game.i18n.format("GINZZZUPORTRAITS.PortraitConfig.title", { name: actor.name });
 
-    // Per-actor option: show/hide standard emotions in toolbar (default: true)
-  const showStandardRaw = actor.getFlag(MODULE_ID, "showStandardEmotions");
-  const showStandardEffective = (showStandardRaw !== false); // undefined / true -> показываем
-  const showStandardCheckedAttr = showStandardEffective ? "checked" : "";
+  // Per-actor option: show/hide standard emotions in toolbar (default: true)
+  const showStandardRaw      = actor.getFlag(MODULE_ID, "showStandardEmotions");
+  const showStandardEmotions = (showStandardRaw !== false); // undefined / true -> показываем
 
-  // Get custom emotions
-  const customEmotions = getCustomEmotions(actor);
+  // Текущие кастомные эмоции
+  const customEmotions = getCustomEmotions(actor) ?? [];
   console.log(`[${MODULE_ID}] Loaded ${customEmotions.length} custom emotions for actor ${actor.name}:`, customEmotions);
 
-  // Build emotion list HTML
-  let emotionListHTML = '';
-  customEmotions.forEach((emotion, idx) => {
-    const safeEmoji = (emotion.emoji ?? "").replace(/"/g, "&quot;");
-    const safeName = (emotion.name ?? "").replace(/"/g, "&quot;");
-    const safePath = (emotion.imagePath ?? "").replace(/"/g, "&quot;");
-    
-    const animOptions = Object.values(EMOTION_MOTIONS).map(anim => 
-      `<option value="${anim.key}" ${emotion.animation === anim.key ? 'selected' : ''}>${anim.label}</option>`
-    ).join('');
-    
-    // Варианты цветкора теперь завязаны на стандартные эмоции.
-    // Пытаемся спросить их у GinzzzuPortraitEmotions, а при провале
-    // откатываемся к старым пресетам интенсивности.
-    const emotionApi = globalThis.GinzzzuPortraitEmotions;
-    let colorPresetOptions = [];
-    try {
-      if (emotionApi?.getStandardEmotionColorOptions) {
-        colorPresetOptions = emotionApi.getStandardEmotionColorOptions();
-      }
-    } catch (e) {
-      console.error(`[${MODULE_ID}] Failed to get standard emotion color options`, e);
+  // Варианты цветкора – сначала пробуем спросить у GinzzzuPortraitEmotions,
+  // при неудаче откатываемся к своим пресетам.
+  const emotionApi = globalThis.GinzzzuPortraitEmotions;
+  let colorPresetOptions = [];
+  try {
+    if (emotionApi?.getStandardEmotionColorOptions) {
+      colorPresetOptions = emotionApi.getStandardEmotionColorOptions();
     }
-    const colorOptions = colorPresetOptions.map(color => 
-      `<option value="${color.key}" ${emotion.colorIntensity === color.key ? 'selected' : ''}>${color.label}</option>`
-    ).join('');
+  } catch (e) {
+    console.error(`[${MODULE_ID}] Failed to get standard emotion color options`, e);
+  }
+  if (!Array.isArray(colorPresetOptions) || colorPresetOptions.length === 0) {
+    colorPresetOptions = Object.values(EMOTION_COLORS ?? {});
+  }
 
-    emotionListHTML += `
-      <div class="ginzzzu-emotion-item" data-emotion-index="${idx}">
-        <!-- Первая строка: эмодзи + имя + путь к картинке -->
-        <div class="emotion-row emotion-main">
-          <div class="form-group emotion-emoji-group">
-            <label>Emoji</label>
-            <input
-              type="text"
-              class="emotion-emoji"
-              value="${safeEmoji}"
-              maxlength="10"
-              placeholder="😊">
-          </div>
+  const motionOptions = Object.values(EMOTION_MOTIONS ?? {});
+  const colorOptions  = colorPresetOptions;
 
-          <div class="form-group emotion-name">
-            <label>Name</label>
-            <input
-              type="text"
-              class="emotion-name"
-              value="${safeName}"
-              maxlength="50"
-              placeholder="Name">
-          </div>
+  const templateData = {
+    MODULE_ID,
 
-          <div class="form-group emotion-path">
-            <label>Image Path</label>
-            <input
-              type="text"
-              class="emotion-path"
-              value="${safePath}"
-              placeholder="path/to/image.png">
-          </div>
-        </div>
+    // Текст
+    label,
+    notes,
+    customEmotionsLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel"),
+    showStandardLabel:   game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.showStandardEmotions"),
+    addEmotionLabel:     game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.addEmotion"),
 
-        <!-- Вторая строка: анимация + цвет + удалить -->
-        <div class="emotion-row emotion-controls">
-          <div class="form-group">
-            <label>Animation</label>
-            <select class="emotion-animation">${animOptions}</select>
-          </div>
+    // Поля
+    displayName: currentName,
+    placeholder: actor.name ?? "",
+    showStandardEmotions,
 
-          <div class="form-group">
-            <label>Color Intensity</label>
-            <select class="emotion-color">${colorOptions}</select>
-          </div>
+    // Списки
+    emotions: customEmotions,
+    motions:  motionOptions,
+    colors:   colorOptions
+  };
 
-          <button
-            type="button"
-            class="emotion-remove-btn"
-            data-index="${idx}">
-            <i class="fas fa-trash"></i> Remove
-          </button>
-        </div>
-      </div>
-    `;
-  });
 
-  const content = `
-    <form class="ginzzzu-portrait-config">
-      <div class="form-group display-name-section">
-        <label>${label}</label>
-        <input type="text" name="displayName" value="${safeValue}" placeholder="${placeholder}">
-        <p class="notes">
-          ${notes}
-        </p>
-      </div>
+  // Рендерим нормальный шаблон
+  const content = await renderTemplate(PORTRAIT_CONFIG_TEMPLATE, templateData);
 
-      <hr style="margin: 20px 0; border: none; border-top: 1px solid #666;">
-
-      <div class="emotions-section">
-        <h3 style="margin: 0 0 15px 0; font-size: 1.1em;">${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel")}</h3>
-        <div class="form-group emotion-show-standard" style="margin-bottom: 10px;">
-          <label style="display: flex; align-items: center; gap: 0.4em;">
-            <input type="checkbox" name="showStandardEmotions" value="1" ${showStandardCheckedAttr}>
-            ${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.showStandardEmotions")}
-          </label>
-        </div>
-
-        <div class="emotions-list">
-          ${emotionListHTML}
-        </div>
-        <button type="button" class="emotion-add-btn">
-          <i class="fas fa-plus"></i> ${game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.addEmotion")}
-        </button>
-      </div>
-    </form>
-  `;
+  // Диалог с изменяемой шириной (адаптируется к окну и ресайзится мышкой)
+  const viewportWidth = window.innerWidth || 960;
+  const dialogWidth   = Math.max(480, Math.min(viewportWidth - 200, 900));
 
   return new Promise((resolve) => {
     let isResolved = false;
-    
+
     const dialog = new Dialog({
       title,
       content,
@@ -176,10 +109,10 @@ export async function configurePortrait(ev, actorSheet) {
           callback: async (html) => {
             if (isResolved) return;
             isResolved = true;
-            
+
             try {
               console.log(`[${MODULE_ID}] Saving portrait config for ${actor.name}`);
-              
+
               // Save display name
               const input = html.find('input[name="displayName"]').val();
               const value = String(input ?? "").trim();
@@ -197,18 +130,26 @@ export async function configurePortrait(ev, actorSheet) {
               // Save custom emotions
               const emotionItems = html.find('.ginzzzu-emotion-item');
               const emotions = [];
+
               emotionItems.each((idx, elem) => {
-                const $elem = $(elem);
-                const emoji = $elem.find('input.emotion-emoji').val()?.trim() || '';
-                const name = $elem.find('input.emotion-name').val()?.trim() || '';
-                const imagePath = $elem.find('input.emotion-path').val()?.trim() || '';
-                const animation = $elem.find('select.emotion-animation').val() || 'none';
-                const colorIntensity = $elem.find('select.emotion-color').val() || 'high';
+                const $elem          = $(elem);
+                const emoji          = String($elem.find('input.emotion-emoji').val() ?? "").trim();
+                const name           = String($elem.find('input.emotion-name').val() ?? "").trim();
+                const imagePath      = String($elem.find('input.emotion-path').val() ?? "").trim();
+                const animation      = String($elem.find('select.emotion-animation').val() ?? "none");
+                const colorIntensity = String($elem.find('select.emotion-color').val() ?? "high");
 
-                console.log(`[${MODULE_ID}] Emotion ${idx}:`, { emoji, name, imagePath, animation, colorIntensity });
+                console.log(
+                  `[${MODULE_ID}] Emotion ${idx}:`,
+                  { emoji, name, imagePath, animation, colorIntensity }
+                );
 
-                // Accept an emotion when at least one meaningful field is provided
-                const hasAny = (String(emoji).trim().length > 0) || (String(name).trim().length > 0) || (String(imagePath).trim().length > 0);
+                // Принимаем эмоцию, если заполнено хоть что-то осмысленное
+                const hasAny =
+                  emoji.length > 0 ||
+                  name.length > 0 ||
+                  imagePath.length > 0;
+
                 if (hasAny) {
                   emotions.push({ emoji, name, imagePath, animation, colorIntensity });
                 } else {
@@ -216,23 +157,39 @@ export async function configurePortrait(ev, actorSheet) {
                 }
               });
 
-              console.log(`[${MODULE_ID}] Saving ${emotions.length} emotions for actor ${actor.name}:`, emotions);
+              console.log(
+                `[${MODULE_ID}] Saving ${emotions.length} emotions for actor ${actor.name}:`,
+                emotions
+              );
 
               if (emotions.length > 0) {
                 console.log(`[${MODULE_ID}] Calling setFlag with customEmotions`);
-                await actor.setFlag(MODULE_ID, "customEmotions", emotions);
-                console.log(`[${MODULE_ID}] Successfully saved ${emotions.length} custom emotions`);
+                await actor.update({ [FLAG_CUSTOM_EMOTIONS]: emotions });
+                console.log(
+                  `[${MODULE_ID}] Successfully saved ${emotions.length} custom emotions`
+                );
               } else {
-                console.log(`[${MODULE_ID}] Clearing customEmotions flag (no emotions)`);
-                await actor.unsetFlag(MODULE_ID, "customEmotions");
+                console.log(
+                  `[${MODULE_ID}] Clearing customEmotions flag (no emotions)`
+                );
+                await actor.update({ [FLAG_CUSTOM_EMOTIONS]: [] });
               }
 
-              console.log(`[${MODULE_ID}] Portrait config save complete`);
-              resolve();
-            } catch (e) {
-              console.error(`[${MODULE_ID}] Error saving portrait config:`, e);
-              resolve();
+              console.log(
+                `[${MODULE_ID}] Portrait config saved successfully for ${actor.name}`
+              );
+            } catch (err) {
+              console.error(
+                `[${MODULE_ID}] Failed to save portrait config for ${actor.name}`,
+                err
+              );
+              ui.notifications?.error?.(
+                game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.saveError")
+                  ?? "Failed to save portrait config"
+              );
             }
+
+            resolve();
           }
         }
       },
@@ -245,62 +202,60 @@ export async function configurePortrait(ev, actorSheet) {
         }
       },
       render: (html) => {
-        // Add emotion button handler
-        html.find('.emotion-add-btn').on('click', (e) => {
+        // Хэндлер удаления эмоции
+        const removeEmotionHandler = (e) => {
           e.preventDefault();
+          $(e.currentTarget).closest('.ginzzzu-emotion-item').remove();
+        };
+
+        // Повесить обработчик удаления на указанный корень
+        const bindRemoveHandlers = (root) => {
+          root.find('.emotion-remove-btn')
+            .off('click.ginzzzuRemoveEmotion')
+            .on('click.ginzzzuRemoveEmotion', removeEmotionHandler);
+        };
+
+        // Уже отрендеренные эмоции
+        bindRemoveHandlers(html);
+
+        // Кнопка добавления эмоции — теперь рендерит Handlebars-шаблон
+        html.find('.emotion-add-btn').on('click', async (e) => {
+          e.preventDefault();
+
           const emotionsList = html.find('.emotions-list');
-          const newIndex = html.find('.ginzzzu-emotion-item').length;
-          const newEmotionHTML = `
-            <div class="ginzzzu-emotion-item" data-emotion-index="${newIndex}">
-              <div class="emotion-row">
-                <div class="form-group emotion-emoji-group">
-                  <label>Emoji</label>
-                  <input type="text" class="emotion-emoji" maxlength="10" placeholder="😊">
-                </div>
-                <div class="form-group emotion-name">
-                  <label>Name</label>
-                  <input type="text" class="emotion-name" maxlength="50" placeholder="Name">
-                </div>
-              </div>
-              <div class="emotion-row">
-                <div class="form-group emotion-path">
-                  <label>Image Path</label>
-                  <input type="text" class="emotion-path" placeholder="path/to/image.png">
-                </div>
-              </div>
-              <div class="emotion-row emotion-controls">
-                <div class="form-group">
-                  <label>Animation</label>
-                  <select class="emotion-animation">
-                    ${Object.values(EMOTION_MOTIONS).map(anim => `<option value="${anim.key}">${anim.label}</option>`).join('')}
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Color Intensity</label>
-                  <select class="emotion-color">
-                    ${Object.values(EMOTION_COLORS).map(color => `<option value="${color.key}">${color.label}</option>`).join('')}
-                  </select>
-                </div>
-                <button type="button" class="emotion-remove-btn">
-                  <i class="fas fa-trash"></i> Remove
-                </button>
-              </div>
-            </div>
-          `;
-          emotionsList.append(newEmotionHTML);
-          
-          // Attach remove handler to new button
-          emotionsList.find('.ginzzzu-emotion-item:last-child .emotion-remove-btn').on('click', removeEmotionHandler);
+          const newIndex     = emotionsList.find('.ginzzzu-emotion-item').length;
+
+          const emotion = {
+            emoji: "",
+            name: "",
+            imagePath: "",
+            animation: "none",
+            colorIntensity: "high"
+          };
+
+          const newEmotionHtml = await renderTemplate(PORTRAIT_EMOTION_TEMPLATE, {
+            emotion,
+            idx: newIndex,
+            motions: motionOptions,
+            colors: colorOptions
+          });
+
+          const $item = $(newEmotionHtml);
+          emotionsList.append($item);
+          bindRemoveHandlers($item);
         });
-
-        // Remove emotion button handler
-        html.find('.emotion-remove-btn').on('click', removeEmotionHandler);
-
-        function removeEmotionHandler(e) {
-          e.preventDefault();
-          $(e.target).closest('.ginzzzu-emotion-item').remove();
-        }
       }
-    }).render(true);
+    }, {
+      width: dialogWidth,
+      resizable: true
+    });
+
+    dialog.render(true);
   });
 }
+
+Hooks.once("init", async () => {
+  await loadTemplates([
+    `modules/${MODULE_ID}/templates/portrait-config-emotion-item.hbs`
+  ]);
+});
