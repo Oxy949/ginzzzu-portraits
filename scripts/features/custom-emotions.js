@@ -114,26 +114,17 @@ export function validateEmotion(emotion) {
     name: String(emotion.name || "").substring(0, 50).trim(),
     imagePath: String(emotion.imagePath || "").trim(),
     animation: String(emotion.animation || "none"),
-    colorIntensity: String(emotion.colorIntensity || "high")
+    colorIntensity: String(emotion.colorIntensity || "none")
   };
-
-  // Require at least emoji and name
-  if (!validated.emoji || !validated.name) return null;
 
   // Validate animation type
   if (!EMOTION_MOTIONS[validated.animation]) {
     validated.animation = "none";
   }
 
-  // Validate color intensity / preset key
-  // Раньше здесь допускались только значения из COLOR_INTENSITY_OPTIONS
-  // (low/medium/high). Теперь это поле может хранить и ключ стандартной
-  // эмоции (joy/anger/sad/...), поэтому не трогаем любые непустые строки
-  // и лишь подставляем значение по умолчанию, если оно пустое.
   if (!validated.colorIntensity) {
-    validated.colorIntensity = "high";
+    validated.colorIntensity = "none";
   }
-
 
   return validated;
 }
