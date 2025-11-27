@@ -118,14 +118,14 @@ export async function configurePortrait(ev, actorSheet) {
               const value = String(input ?? "").trim();
 
               if (!value) {
-                await foundry.utils.unsetFlag(actor, FLAG_DISPLAY_NAME);
+                await actor.unsetFlag(MODULE_ID, "displayName");
               } else {
-                await foundry.utils.setFlag(actor, FLAG_DISPLAY_NAME, value);
+                await actor.setFlag(MODULE_ID, "displayName", value);
               }
 
               // Save "show standard emotions" toggle (default true)
               const showStd = html.find('input[name="showStandardEmotions"]').is(':checked');
-              await foundry.utils.setFlag(actor, FLAG_SHOW_STANDARD_EMOTIONS, !!showStd);
+              await actor.setFlag(MODULE_ID, "showStandardEmotions", !!showStd);
 
               // Save custom emotions
               const emotionItems = html.find('.ginzzzu-emotion-item');
