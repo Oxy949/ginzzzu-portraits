@@ -1,5 +1,5 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
 
 const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
@@ -31,7 +31,7 @@ export async function configurePortrait(ev, actorSheet) {
   const title = game.i18n.format("GINZZZUPORTRAITS.PortraitConfig.title", { name: actor.name });
 
   // Per-actor option: show/hide standard emotions in toolbar (default: true)
-  const showStandardRaw      = actor.getFlag(MODULE_ID, "showStandardEmotions");
+  const showStandardRaw      = foundry.utils.getProperty(actor, FLAG_SHOW_STANDARD_EMOTIONS);
   const showStandardEmotions = (showStandardRaw !== false); // undefined / true -> показываем
 
   // Текущие кастомные эмоции
@@ -118,14 +118,14 @@ export async function configurePortrait(ev, actorSheet) {
               const value = String(input ?? "").trim();
 
               if (!value) {
-                await actor.unsetFlag(MODULE_ID, "displayName");
+                await foundry.utils.unsetFlag(actor, FLAG_DISPLAY_NAME);
               } else {
-                await actor.setFlag(MODULE_ID, "displayName", value);
+                await foundry.utils.setFlag(actor, FLAG_DISPLAY_NAME, value);
               }
 
               // Save "show standard emotions" toggle (default true)
               const showStd = html.find('input[name="showStandardEmotions"]').is(':checked');
-              await actor.setFlag(MODULE_ID, "showStandardEmotions", !!showStd);
+              await foundry.utils.setFlag(actor, FLAG_SHOW_STANDARD_EMOTIONS, !!showStd);
 
               // Save custom emotions
               const emotionItems = html.find('.ginzzzu-emotion-item');

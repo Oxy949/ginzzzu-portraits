@@ -3,13 +3,14 @@ export const MODULE_ID = "ginzzzu-portraits";
 export const DOCK_ID   = "ginzzzu-npc-dock";
 
 // Commonly used flag keys
-export const FLAG_MODULE            = `flags.${MODULE_ID}`;
+export const FLAG_MODULE                  = `flags.${MODULE_ID}`;
 
-export const FLAG_PORTRAIT_SHOWN    = `${FLAG_MODULE}.portraitShown`;
-export const FLAG_DISPLAY_NAME      = `${FLAG_MODULE}.displayName`;
-export const FLAG_FAVORITE          = `${FLAG_MODULE}.favorite`;
-export const FLAG_PORTRAIT_EMOTION  = `${FLAG_MODULE}.portraitEmotion`;
-export const FLAG_CUSTOM_EMOTIONS   = `${FLAG_MODULE}.customEmotions`;
+export const FLAG_PORTRAIT_SHOWN          = `${FLAG_MODULE}.portraitShown`;
+export const FLAG_DISPLAY_NAME            = `${FLAG_MODULE}.displayName`;
+export const FLAG_FAVORITE                = `${FLAG_MODULE}.favorite`;
+export const FLAG_PORTRAIT_EMOTION        = `${FLAG_MODULE}.portraitEmotion`;
+export const FLAG_CUSTOM_EMOTIONS         = `${FLAG_MODULE}.customEmotions`;
+export const FLAG_SHOW_STANDARD_EMOTIONS  = `${FLAG_MODULE}.showStandardEmotions`;
 
 // --------------------------------------------
 // 1) СПИСОК ЦВЕТОВ (цветкоры)

@@ -1161,7 +1161,7 @@ Hooks.once("ready", () => {
 
       // Проверяем, что изменилось именно то, что влияет на картинку эмоции
       const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
-      const customEmotionsChanged = foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.customEmotions`);
+      const customEmotionsChanged = foundry.utils.hasProperty(changes, FLAG_CUSTOM_EMOTIONS);
 
       if (!emotionChanged && !customEmotionsChanged) return;
 
