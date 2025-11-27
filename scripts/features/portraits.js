@@ -1054,18 +1054,132 @@ function _onPortraitClick(ev) {
   async function _applyEmotionImageWithTransition(wrapper, imgEl, newSrc) {
       if (!wrapper || !imgEl || !newSrc) return;
 
-      // Предзагрузка новой картинки, чтобы не было морганий / битых ссылок
+      const duration = Number(game.settings.get(MODULE_ID, "emotionImageTransitionMs")) || 0;
+
+      // If no transition requested, keep original quick behaviour (preload then swap)
+      if (!duration) {
+        try {
+          await _preloadImage(newSrc);
+        } catch (e) {
+          console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
+        }
+        imgEl.src = newSrc;
+        imgEl.dataset.src = newSrc;
+        return;
+      }
+
+      // Prevent concurrent transitions on same element
+      const lockKey = "threeoEmotionTransitionToken";
+      const token = String(Date.now()) + ":" + Math.random();
+      imgEl.dataset[lockKey] = token;
+
+      const half = Math.max(1, Math.floor(duration / 2));
+
+      // Preserve inline transition & transform so we can restore them later
+      const prevTransition = imgEl.style.transition || "";
+      const prevTransform = imgEl.style.transform || "";
+      // Ensure we add opacity + transform transitions without removing other transitions
+      const opacityTransition = `opacity ${half}ms ${_ANIM.easing}`;
+      const transformTransition = `transform ${half}ms ${_ANIM.easing}`;
+      imgEl.style.transition = prevTransition ? `${prevTransition}, ${opacityTransition}, ${transformTransition}` : `${opacityTransition}, ${transformTransition}`;
+
+      // Ensure will-change set for smoother animation (minimal touch)
+      const prevWillChange = imgEl.style.willChange || "";
+      try { imgEl.style.willChange = prevWillChange ? `${prevWillChange}, opacity, transform` : "opacity, transform"; } catch (e) {}
+
+      // Helper: wait for opacity transition or timeout
+      const awaitOpacity = (timeoutMs) => new Promise((resolve) => {
+        let done = false;
+        const onEnd = (ev) => {
+          if (ev && ev.propertyName && ev.propertyName !== "opacity") return;
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          imgEl.removeEventListener("transitionend", onEnd);
+          resolve();
+        };
+        imgEl.addEventListener("transitionend", onEnd);
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          imgEl.removeEventListener("transitionend", onEnd);
+          resolve();
+        }, timeoutMs + 50);
+      });
+
+      // Start fade-out
+      // If opacity is not explicitly set, compute current computed value then set it inline to ensure transition works
+      try {
+        const comp = window.getComputedStyle(imgEl).opacity;
+        imgEl.style.opacity = comp ?? "1";
+      } catch (e) {}
+
+      // Compose a subtle "pose" transform for fade-out so the character appears to shift/pose
+      let baseTransform = imgEl.dataset.baseTransform || getComputedStyle(imgEl).transform || "none";
+      const extraOut = "translate3d(0,-6px,0) scale(1.03)";
+      const composedOut = baseTransform && baseTransform !== "none" ? `${baseTransform} ${extraOut}` : extraOut;
+
+      // Trigger paint then change opacity + transform to start fade-out pose
+      await new Promise((r) => requestAnimationFrame(r));
+      imgEl.style.transform = composedOut;
+      imgEl.style.opacity = "0";
+
+      // Wait for fade-out to complete
+      await awaitOpacity(half + 20);
+
+      // If another transition started meanwhile, abort to avoid stomping it
+      if (imgEl.dataset[lockKey] !== token) {
+        // restore transition/will-change cleanup
+        imgEl.style.transition = prevTransition;
+        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+        return;
+      }
+
+      // Preload new image (best-effort). If preload fails we'll still try to set src.
       try {
         await _preloadImage(newSrc);
       } catch (e) {
         console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
       }
 
-      const duration = Number(game.settings.get(MODULE_ID, "emotionImageTransitionMs")) || 0;
-      
+      // If token changed while preloading, abort
+      if (imgEl.dataset[lockKey] !== token) {
+        imgEl.style.transition = prevTransition;
+        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+        return;
+      }
+
+      // Swap image source
       imgEl.src = newSrc;
       imgEl.dataset.src = newSrc;
-  }
+
+      // Force reflow so that following opacity change is animated
+      // eslint-disable-next-line no-unused-expressions
+      imgEl.offsetWidth;
+
+      // For fade-in, use a slightly different 'settle' pose so it looks like a changed stance
+      const extraIn = "translate3d(0,6px,0) scale(0.985)";
+      const composedIn = baseTransform && baseTransform !== "none" ? `${baseTransform} ${extraIn}` : extraIn;
+
+      // Fade in with settle transform
+      await new Promise((r) => requestAnimationFrame(r));
+      imgEl.style.transform = composedIn;
+      imgEl.style.opacity = "1";
+
+      // Wait for fade-in to complete
+      await awaitOpacity(half + 20);
+
+      // Restore previous transition, transform and will-change
+      imgEl.style.transition = prevTransition;
+      try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+      // Restore prior transform after a tiny delay to avoid abruptly snapping if other code expects it
+      setTimeout(() => {
+        try { imgEl.style.transform = prevTransform; } catch (e) {}
+      }, 20);
+
+      // Clear lock
+      if (imgEl.dataset[lockKey] === token) delete imgEl.dataset[lockKey];
+    }
 
   // ---- Реакция всех клиентов на смену флага актёра ----
   Hooks.on("updateActor", (actor, changes) => {
@@ -1190,8 +1304,18 @@ Hooks.once("ready", () => {
       if (!imgEl) return;
 
       const newImg = _getActorImage(actor);
-      if (typeof newImg === "string" && newImg && imgEl.src !== newImg) {
-        _applyEmotionImageWithTransition(wrapper, imgEl, newImg);
+      console.log("[threeO-portraits] updating emotion image for actor", imgEl.src, " newImg=", newImg);
+      if (typeof newImg === "string" && newImg) {
+        let resolvedNewImg = newImg;
+        try {
+          // Resolve relative paths against document base so they compare correctly
+          resolvedNewImg = new URL(newImg, document.baseURI).href;
+        } catch (e) {
+          try { resolvedNewImg = new URL(newImg, window.location.href).href; } catch (e2) {}
+        }
+        if (imgEl.src !== resolvedNewImg) {
+          _applyEmotionImageWithTransition(wrapper, imgEl, newImg);
+        }
       }
 
     } catch (e) {
