@@ -137,7 +137,7 @@ export async function configurePortrait(ev, actorSheet) {
                 const name           = String($elem.find('input.emotion-name').val() ?? "").trim();
                 const imagePath      = String($elem.find('input.emotion-path').val() ?? "").trim();
                 const animation      = String($elem.find('select.emotion-animation').val() ?? "none");
-                const colorIntensity = String($elem.find('select.emotion-color').val() ?? "high");
+                const colorIntensity = String($elem.find('select.emotion-color').val() ?? "none");
 
                 console.log(
                   `[${MODULE_ID}] Emotion ${idx}:`,
@@ -260,7 +260,7 @@ export async function configurePortrait(ev, actorSheet) {
             name: "",
             imagePath: "",
             animation: "none",
-            colorIntensity: "high"
+            colorIntensity: "none"
           };
 
           const newEmotionHtml = await renderTemplate(PORTRAIT_EMOTION_TEMPLATE, {
