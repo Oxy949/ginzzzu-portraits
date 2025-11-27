@@ -22,6 +22,10 @@
         placeholder="{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionNamePlaceholder"}}"
       />
     </div>
+
+    <button type="button" class="emotion-remove-btn">
+      <i class="fas fa-trash"></i> {{localize "GINZZZUPORTRAITS.PortraitConfig.removeEmotion"}}
+    </button>
   </div>
 
   <!-- Вторая строка: путь к картинке + кнопка выбора -->
@@ -39,7 +43,7 @@
           type="button"
           class="file-picker emotion-path-picker"
           data-type="image"
-          title="{{localize 'FILES.BrowseFiles'}}"
+          title="{{localize 'GINZZZUPORTRAITS.PortraitConfig.emotionImageButtonHint'}}"
         >
           <i class="fas fa-file-import"></i>
         </button>
@@ -76,9 +80,5 @@
         {{/each}}
       </select>
     </div>
-
-    <button type="button" class="emotion-remove-btn">
-      <i class="fas fa-trash"></i> {{localize "GINZZZUPORTRAITS.PortraitConfig.removeEmotion"}}
-    </button>
   </div>
 </div>

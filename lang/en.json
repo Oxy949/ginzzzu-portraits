@@ -23,7 +23,7 @@
     "pcFoldersNoFolder": "Players without folder",
 
       "PortraitConfig": {
-      "title": "Portrait: name for players — {name}",
+      "title": "Portrait: {name}",
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
       "clear": "Reset name",
@@ -37,6 +37,7 @@
       "emotionNamePlaceholder": "Name",
       "emotionImagePath": "Image Path",
       "emotionImagePathPlaceholder": "path/to/image.webp",
+      "emotionImageButtonHint": "Select Image",
       "emotionAnimation": "Animation",
       "emotionColor": "Color correction",
       "removeEmotion": "Remove"

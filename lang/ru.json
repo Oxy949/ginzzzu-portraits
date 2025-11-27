@@ -23,7 +23,7 @@
       "pcFoldersNoFolder": "Игроки без папки",
 
       "PortraitConfig": {
-        "title": "Портрет: имя для игроков — {name}",
+        "title": "Портрет: {name}",
         "label": "Отображаемое имя портрета",
         "note": "Это имя будет использоваться в UI и может отличаться от имени актёра. Оставьте поле пустым, чтобы использовать имя актёра.",
         "clear": "Сбросить имя",
@@ -37,8 +37,9 @@
         "emotionNamePlaceholder": "Имя",
         "emotionImagePath": "Путь к изображению",
         "emotionImagePathPlaceholder": "path/to/image.webp",
+        "emotionImageButtonHint": "Выбрать изображение",
         "emotionAnimation": "Анимация",
-        "emotionColor": "Цвето-коррекция",
+        "emotionColor": "Цветокоррекция",
         "removeEmotion": "Удалить"
       },
 

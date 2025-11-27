@@ -31,12 +31,15 @@
   background: #cc4125 !important;
   border: none !important;
   color: white;
-  padding: 6px 10px !important;
+  padding: 0px !important;
   border-radius: 3px;
   cursor: pointer;
   font-size: 0.9em;
   flex-shrink: 0;
   white-space: nowrap;
+  position: relative;
+  width: 90px;
+  height: 32px;
 }
 
 .emotion-remove-btn:hover {
