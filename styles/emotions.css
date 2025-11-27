@@ -216,31 +216,31 @@
 ---------------------------------------------------- */
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-shake-motion {
-  animation: var(--emotion-animation, anger-jitter) 0.22s linear infinite;
+  animation: var(--emotion-animation, shake) 0.22s linear infinite;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-sag-motion {
-  animation: var(--emotion-animation, sad-sag) 2.4s ease-in-out infinite;
+  animation: var(--emotion-animation, sag) 2.4s ease-in-out infinite;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-shiver-motion {
-  animation: var(--emotion-animation, fear-shiver) 0.58s linear infinite;
+  animation: var(--emotion-animation, shiver) 0.58s linear infinite;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-bob-motion {
-  animation: var(--emotion-animation, joy-bob) 0.3s ease-in-out infinite;
+  animation: var(--emotion-animation, bob) 0.3s ease-in-out infinite;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-beat-motion {
-  animation: var(--emotion-animation, heart-beat) 1.2s ease-in-out infinite;
+  animation: var(--emotion-animation, beat) 1.2s ease-in-out infinite;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-tired-motion {
-  animation: var(--emotion-animation, tired-bob) 2.8s ease-in-out infinite;
+  animation: var(--emotion-animation, tired) 2.8s ease-in-out infinite;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.emo-pulse-motion {
-  animation: var(--emotion-animation, hurt-pulse) 0.5s ease-in-out infinite;
+  animation: var(--emotion-animation, pulse) 0.5s ease-in-out infinite;
 }
 
 /* Тут могла быть ваша аниммация */
@@ -267,13 +267,13 @@
 
 @keyframes shiver {
   0%   { --shakeX: 0px;     --bobY: 0px; }
-  10%  { --shakeX: -1px;  --bobY: -0.5px; }
-  20%  { --shakeX: 1px;   --bobY: 0.5px; }
-  30%  { --shakeX: -1.2px;  --bobY: -0.8px; }
-  40%  { --shakeX: 1.2px;   --bobY: 0.8px; }
-  50%  { --shakeX: -1px;    --bobY: -1px; }
-  60%  { --shakeX: 1px;     --bobY: 1px; }
-  80%  { --shakeX: -1px;    --bobY: 0.5px; }
+  10%  { --shakeX: -1px;  --bobY: -0px; }
+  20%  { --shakeX: 1px;   --bobY: 0px; }
+  30%  { --shakeX: -1.2px;  --bobY: -0px; }
+  40%  { --shakeX: 1.2px;   --bobY: 0px; }
+  50%  { --shakeX: -1px;    --bobY: -0px; }
+  60%  { --shakeX: 1px;     --bobY: 0px; }
+  80%  { --shakeX: -1px;    --bobY: 0px; }
   100% { --shakeX: 0px;     --bobY: 0px; }
 }
 
@@ -298,53 +298,4 @@
   0%   { --pulse: 1; }
   50%  { --pulse: 1.02; }
   100% { --pulse: 1; }
-}
-
-@keyframes hurt-pulse {
-  0%   { --pulse: 1; }
-  50%  { --pulse: 1.02; }
-  100% { --pulse: 1; }
-}
-
-@keyframes anger-jitter {
-  0%   { --shakeX: 0px; }
-  20%  { --shakeX: -2px; }
-  40%  { --shakeX: 2px; }
-  60%  { --shakeX: -1px; }
-  80%  { --shakeX: 1px; }
-  100% { --shakeX: 0px; }
-}
-
-@keyframes heart-beat {
-  0%, 100% { --pulse: 1; }
-  25%      { --pulse: 1.02; }
-  50%      { --pulse: 1.04; }
-  75%      { --pulse: 1.02; }
-}
-
-@keyframes tired-bob {
-  0%,100% { --bobY: 0px;   --tilt: 0deg; }
-  50%     { --bobY: 2px;   --tilt: -0.6deg; }
-}
-
-@keyframes fear-shiver {
-  0%   { --shakeX: 0px;     --bobY: 0px; }
-  10%  { --shakeX: -1px;  --bobY: -0.5px; }
-  20%  { --shakeX: 1px;   --bobY: 0.5px; }
-  30%  { --shakeX: -1.2px;  --bobY: -0.8px; }
-  40%  { --shakeX: 1.2px;   --bobY: 0.8px; }
-  50%  { --shakeX: -1px;    --bobY: -1px; }
-  60%  { --shakeX: 1px;     --bobY: 1px; }
-  80%  { --shakeX: -1px;    --bobY: 0.5px; }
-  100% { --shakeX: 0px;     --bobY: 0px; }
-}
-
-@keyframes joy-bob {
-  0%, 100% { --bobY: 0px; }
-  50%      { --bobY: 10px; }
-}
-
-@keyframes sad-sag {
-  0%,100% { --bobY: 0px; }
-  50%     { --bobY: 3px; }
 }

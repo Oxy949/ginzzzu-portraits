@@ -42,13 +42,13 @@ export const EMOTION_COLORS = {
 export const EMOTION_MOTIONS = {
   none:   { key: "none",   label: "None",      value: "none",         className: "" },
 
-  shake:  { key: "shake",  label: "Shake",     value: "anger-jitter", className: "emo-shake-motion" },
-  sag:    { key: "sag",    label: "Sag",       value: "sad-sag",      className: "emo-sag-motion" },
-  shiver: { key: "shiver", label: "Shiver",    value: "fear-shiver",  className: "emo-shiver-motion" },
-  bob:    { key: "bob",    label: "Bob",       value: "joy-bob",      className: "emo-bob-motion" },
-  beat:   { key: "beat",   label: "Heartbeat", value: "heart-beat",   className: "emo-beat-motion" },
-  tired:  { key: "tired",  label: "Tired",     value: "tired-bob",    className: "emo-tired-motion" },
-  pulse:  { key: "pulse",  label: "Pulse",     value: "hurt-pulse",   className: "emo-pulse-motion" }
+  shake:  { key: "shake",  label: "Shake",     value: "shake", className: "emo-shake-motion" },
+  sag:    { key: "sag",    label: "Sag",       value: "sag",      className: "emo-sag-motion" },
+  shiver: { key: "shiver", label: "Shiver",    value: "shiver",  className: "emo-shiver-motion" },
+  bob:    { key: "bob",    label: "Bob",       value: "bob",      className: "emo-bob-motion" },
+  beat:   { key: "beat",   label: "Heartbeat", value: "beat",   className: "emo-beat-motion" },
+  tired:  { key: "tired",  label: "Tired",     value: "tired",    className: "emo-tired-motion" },
+  pulse:  { key: "pulse",  label: "Pulse",     value: "pulse",   className: "emo-pulse-motion" }
 
   // Новое движение? Добавляешь сюда и делаешь .emo-<key>-motion в CSS,
   // плюс @keyframes с именем из value.
