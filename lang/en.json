@@ -74,8 +74,11 @@
         "hint": "Font size of the name badge on portraits (in pixels)."
       },
       "portraitNamesAlwaysVisible": {
-        "name": "Portraits: always show names",
-        "hint": "If enabled, name badges are always visible on portraits (not only on hover)."
+      "name": "Portraits: name visibility",
+      "hint": "Controls how character names are shown on portraits: never, on hover, or always.",
+      "option.none": "Do not show names",
+      "option.hover": "Show on hover",
+      "option.always": "Always show"
       },
       "visualNovelMode": {
         "name": "Visual novel mode",
