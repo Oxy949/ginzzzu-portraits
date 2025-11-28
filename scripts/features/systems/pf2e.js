@@ -19,9 +19,9 @@ function filterNpcs(filterCriteria, npcs) {
       if (!groupActor) {
         console.error(`[threeO-dock] no actor found for ${filterCriteria}`)
       } else {
-        const containedActors = groupActor.system?.partyMembers;
-        console.log("Contained actors:", containedActors);
-        // TODO, should an empty list mean NO actors, or should it filter to no actors
+        // pf2 party actors may store members under different properties depending on system version
+        const containedActors = groupActor.system?.members || groupActor.system?.partyMembers || groupActor?.members;
+        // Normalize several possible shapes into a Set of IDs
         if (containedActors) {
           let idSet;
           if (Array.isArray(containedActors)) {
@@ -41,8 +41,7 @@ function filterNpcs(filterCriteria, npcs) {
 
           if (idSet && idSet.size) {
             npcs = npcs.filter(a => idSet.has(a.id));
-          }
-          else{
+          } else{
             npcs = [];
           }
         }

@@ -23,6 +23,8 @@ function filterNpcs(filterCriteria, npcs) {
         // TODO, should an empty list mean NO actors, or should it filter to no actors
         if (containedActors?.size) {
           npcs = npcs.filter(a => containedActors.has(a.id))
+        } else{
+          npcs = [];
         }
       }
       return npcs;

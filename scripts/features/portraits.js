@@ -1634,7 +1634,7 @@ Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
         if (!app.document.token) {
             theatreButtons.push({
               action: "configure-theatre",
-              label: "GINZZZUPORTRAITS.configurePortrait",
+              label: "",
               class: "configure-theatre",
               icon: "fas fa-user-edit",
               onclick: (ev) => globalThis.GinzzzuPortraits.configurePortrait(ev, app.document.sheet)
@@ -1642,7 +1642,7 @@ Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
         }
         theatreButtons.push({
           action: "add-to-theatre-navbar",
-          label: "GINZZZUPORTRAITS.toggleCharacterPortrait",
+          label: "",
           class: "add-to-theatre-navbar",
           icon: "fas fa-theater-masks",
           onclick: (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document)

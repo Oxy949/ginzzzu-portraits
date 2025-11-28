@@ -1,5 +1,6 @@
 import dnd5e from "./dnd5e.js"
 import daggerheart from "./daggerheart.js"
+import pf2e from "./pf2e.js"
 
 let system;
 
@@ -10,6 +11,9 @@ Hooks.on("init", ()=> {
             break;
         case "daggerheart":
             system = daggerheart;
+            break;
+        case "pf2e":
+            system = pf2e;
             break;
         default:
             console.info(`No support for custom types for system ${game.system.id}`)
