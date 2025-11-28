@@ -181,8 +181,10 @@ const FRAME = {
     root = document.createElement("div");
     root.id = "ginzzzu-portrait-layer";
 
-    // Вешаем класс для режима "всегда показывать имена"
-    if (game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible")) {
+    const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
+
+    // Класс для режима "всегда показывать имена"
+    if (nameMode === "always") {
       root.classList.add("ginzzzu-show-names-always");
     }
 
@@ -315,40 +317,46 @@ const FRAME = {
   }
 
   function refreshPortraitDisplayNames() {
-    const wrappers = _getAllWrappers();
-    for (const wrapper of wrappers) {
-      const actorId = wrapper.dataset.actorId || "";
-      const displayName = _getDisplayName(actorId);
-      const rawName = wrapper.dataset.rawName ?? "";
-      const safeName = String(displayName || rawName);
+  const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
+  const showNames = nameMode !== "none";
 
-      wrapper.dataset.displayName = safeName;
+  const wrappers = _getAllWrappers();
+  for (const wrapper of wrappers) {
+    const actorId = wrapper.dataset.actorId || "";
+    const displayName = _getDisplayName(actorId);
+    const rawName = wrapper.dataset.rawName ?? "";
+    const safeName = String(displayName || rawName);
 
-      // Работаем с плашкой имени
-      let badge = wrapper.querySelector(".ginzzzu-portrait-name");
-      if (!safeName && badge) {
-        // Имя стало пустым — удаляем плашку
+    wrapper.dataset.displayName = safeName;
+
+    // Работаем с плашкой имени
+    let badge = wrapper.querySelector(".ginzzzu-portrait-name");
+
+    if (!safeName || !showNames) {
+      // Имя пустое или режим "не показывать" — удаляем плашку
+      if (badge) {
         badge.remove();
         badge = null;
-      } else if (safeName && !badge) {
-        // Имя появилось — создаём плашку
-        badge = document.createElement("div");
-        badge.className = "ginzzzu-portrait-name";
-        wrapper.appendChild(badge);
       }
-      if (badge) {
-        badge.textContent = safeName;
-      }
+    } else if (safeName && !badge) {
+      // Имя появилось и показ разрешён — создаём плашку
+      badge = document.createElement("div");
+      badge.className = "ginzzzu-portrait-name";
+      wrapper.appendChild(badge);
+    }
 
-      // alt тоже освежим
-      const img = wrapper.querySelector("img.ginzzzu-portrait");
-      if (img) {
-        img.dataset.rawName = rawName;
-        img.alt = safeName || "Portrait";
-      }
+    if (badge) {
+      badge.textContent = safeName;
+    }
+
+    // alt тоже освежим
+    const img = wrapper.querySelector("img.ginzzzu-portrait");
+    if (img) {
+      img.dataset.rawName = rawName;
+      img.alt = safeName || "Portrait";
     }
   }
-
+}
 
 
   function _getFocusShadowParams() {
@@ -926,8 +934,10 @@ function _onPortraitClick(ev) {
           transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
         });
 
-        // Имя, всплывающее при наведении — только если оно не пустое
-        if (safeName) {
+        const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
+
+        // Имя — только если оно не пустое и режим не "none"
+        if (safeName && nameMode !== "none") {
           const nameBadge = document.createElement("div");
           nameBadge.className = "ginzzzu-portrait-name";
           nameBadge.textContent = safeName;
