@@ -102,8 +102,13 @@ Hooks.once("init", () => {
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.hint"),
     scope: "world",
     config: true,
-    type: Boolean,
-    default: false,
+    type: String,
+    choices: {
+      none:  game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.option.none"),
+      hover: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.option.hover"),
+      always: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitNamesAlwaysVisible.option.always")
+    },
+    default: "hover",
     requiresReload: true
   });
 
