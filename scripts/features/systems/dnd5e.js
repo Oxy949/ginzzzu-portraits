@@ -5,7 +5,8 @@ function addNpcDockOptions(sel) {
     for (const g of groups) {
       const opt = document.createElement("option");
       opt.value = `${PREFIX}${g.id}`;
-      opt.textContent = `(Group) ${g.name}`
+      const groupLabel = (game?.i18n?.localize && game.i18n.localize("GINZZZUPORTRAITS.groupPrefix")) || "(Group)";
+      opt.textContent = `${groupLabel} ${g.name}`;
       sel.appendChild(opt);
     }
 }

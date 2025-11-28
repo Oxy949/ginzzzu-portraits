@@ -17,6 +17,7 @@
       "sortByFolder": "по папке",
       "folder": "Папка:",
       "allFolders": "(все папки)",
+      "groupPrefix": "(Группа)",
       "hideAllPortraits": "Скрыть все портреты",
       "noNPCFound": "Нет NPC по текущим фильтрам",
       "pcFoldersAll": "Все игроки",

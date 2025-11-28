@@ -17,6 +17,7 @@
     "sortByFolder": "folder",
     "folder": "Folder:",
     "allFolders": "(all folders)",
+    "groupPrefix": "(Group)",
     "hideAllPortraits": "Hide all portraits",
     "noNPCFound": "No NPCs matching current filters",
     "pcFoldersAll": "All players",
