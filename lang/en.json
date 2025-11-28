@@ -176,6 +176,10 @@
         "name": "NPC Dock: default folder filter",
         "hint": "Example: 'all'. Can be overridden by the dock during operation."
       },
+      "showGroupActorsInSources": {
+        "name": "Show group actors in source list",
+        "hint": "If enabled, actors representing groups/parties will be included in the Source dropdown in the NPC dock."
+      },
       "npcDockSearch": {
         "name": "NPC Dock: default search string",
         "hint": "Example: 'Goblin' or 'Merchant'."

@@ -1,6 +1,7 @@
 import dnd5e from "./dnd5e.js"
 import daggerheart from "./daggerheart.js"
 import pf2e from "./pf2e.js"
+import { MODULE_ID } from "../../core/constants.js";
 
 let system;
 
@@ -27,6 +28,12 @@ Hooks.on("init", ()=> {
  * @param {HTMLSelectElement} sel the select element to which to add the options.
  */
 export function addNpcDockOptions(sel) {
+    try {
+        const enabled = game.settings?.get ? game.settings.get(MODULE_ID, "showGroupActorsInSources") : true;
+        if (!enabled) return;
+    } catch (e) {
+        // ignore and proceed
+    }
     if (system) {
         system.addNpcDockOptions(sel);
     }

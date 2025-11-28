@@ -369,6 +369,17 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // Show group/party actors in the Source dropdown (world setting)
+  reg("showGroupActorsInSources", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.showGroupActorsInSources.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.showGroupActorsInSources.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
+
   reg("npcDockSearch", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockSearch.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockSearch.hint"),
