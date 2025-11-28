@@ -1,4 +1,5 @@
 import dnd5e from "./dnd5e.js"
+import daggerheart from "./daggerheart.js"
 
 let system;
 
@@ -6,6 +7,9 @@ Hooks.on("init", ()=> {
     switch (game.system.id) {
         case "dnd5e":
             system = dnd5e;
+            break;
+        case "daggerheart":
+            system = daggerheart;
             break;
         default:
             console.info(`No support for custom types for system ${game.system.id}`)
