@@ -575,6 +575,39 @@ function _onPortraitClick(ev) {
     }
   }
 
+  function _onPortraitCtrlClick(ev) {
+    // React only to left-click with Ctrl (or Meta for mac users)
+    if (ev.type !== "click") return;
+    if (ev.button !== 0) return;
+    if (!(ev.ctrlKey || ev.metaKey)) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const wrapper = ev.currentTarget && ev.currentTarget.closest
+      ? ev.currentTarget.closest(".ginzzzu-portrait-wrapper")
+      : null;
+    if (!wrapper) return;
+    const img = wrapper.querySelector("img.ginzzzu-portrait");
+    if (!img) return;
+
+    const actorId = img.dataset.actorId;
+    if (!actorId) return;
+
+    const actor = game.actors?.get(actorId);
+    if (!actor) return;
+
+    // Allow hiding if user is GM or owner of the actor
+    const canHide = !!game.user?.isGM || !!actor.isOwner;
+    if (!canHide) return;
+
+    try {
+      actor.update({ [FLAG_PORTRAIT_SHOWN]: false });
+    } catch (e) {
+      console.error("[ginzzzu-portraits] ctrl-click hide portrait failed:", e);
+    }
+  }
+
 
 
   // FIRST: текущие позиции всех портретов (для FLIP)
@@ -964,6 +997,7 @@ function _onPortraitClick(ev) {
 
     wrapper.addEventListener("auxclick", _onPortraitAuxClick);
     wrapper.addEventListener("contextmenu", _onPortraitClick);
+    wrapper.addEventListener("click", _onPortraitCtrlClick);
 
     wrapper.appendChild(el);
     rail.appendChild(wrapper);
