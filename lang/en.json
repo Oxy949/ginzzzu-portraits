@@ -23,7 +23,18 @@
     "pcFoldersAll": "All players",
     "pcFoldersNoFolder": "Players without folder",
 
-      "PortraitConfig": {
+    "PortraitToolbar": {
+      "Joy": "Joy",
+      "Sad": "Sadness",
+      "Anger": "Anger",
+      "Fear": "Fear",
+      "Love": "Love",
+      "Hurt" : "Hurt",
+      "Tired": "Tired",
+      "portraitSettings": "Portrait Settings"
+    },
+
+    "PortraitConfig": {
       "title": "Portrait: {name}",
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
