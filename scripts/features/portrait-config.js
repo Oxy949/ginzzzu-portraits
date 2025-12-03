@@ -251,7 +251,12 @@ export async function configurePortrait(ev, actorSheet) {
           const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
           const $prev = $item.prev('.ginzzzu-emotion-item');
           if ($prev.length > 0) {
-            $prev.before($item);
+            // Добавляем анимацию
+            $item.css('animation', 'none');
+            setTimeout(() => {
+              $prev.before($item);
+              $item.css('animation', '');
+            }, 10);
           }
         };
 
@@ -261,7 +266,12 @@ export async function configurePortrait(ev, actorSheet) {
           const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
           const $next = $item.next('.ginzzzu-emotion-item');
           if ($next.length > 0) {
-            $next.after($item);
+            // Добавляем анимацию
+            $item.css('animation', 'none');
+            setTimeout(() => {
+              $next.after($item);
+              $item.css('animation', '');
+            }, 10);
           }
         };
 
