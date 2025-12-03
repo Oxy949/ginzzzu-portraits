@@ -38,6 +38,12 @@
         "title": "Портрет: {name}",
         "label": "Отображаемое имя портрета",
         "note": "Это имя будет использоваться в UI и может отличаться от имени актёра. Оставьте поле пустым, чтобы использовать имя актёра.",
+        "portraitHeightMultiplier": "Множитель высоты портрета",
+        "portraitHeightMultiplierHint": "Относительный множитель высоты портрета (0 = 0%, 1 = 100%, 2 = 200% и т.д.). По умолчанию: 1",
+        "portraitCustomImage": "Пользовательское изображение портрета",
+        "portraitCustomImagePlaceholder": "path/to/portrait.webp",
+        "portraitCustomImageButtonHint": "Выбрать изображение портрета",
+        "portraitCustomImageHint": "Опциональное кастомное изображение, которое отображается вместо стандартного арта актёра",
         "clear": "Сбросить имя",
         "save": "Сохранить",
         "customEmotionsLabel": "Пользовательские эмоции",
@@ -52,7 +58,12 @@
         "emotionImageButtonHint": "Выбрать изображение",
         "emotionAnimation": "Анимация",
         "emotionColor": "Цветокоррекция",
-        "removeEmotion": "Удалить"
+        "emotionHeightMultiplier": "Высота",
+        "removeEmotion": "Удалить",
+        "moveEmotionUp": "Переместить выше",
+        "moveEmotionDown": "Переместить ниже",
+        "collapseEmotion": "Свернуть",
+        "expandEmotion": "Развернуть"
       },
 
       "Settings": {
