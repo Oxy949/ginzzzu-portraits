@@ -48,7 +48,9 @@
       "emotionAnimation": "Animation",
       "emotionColor": "Color correction",
       "emotionHeightMultiplier": "Height",
-      "removeEmotion": "Remove"
+      "removeEmotion": "Remove",
+      "moveEmotionUp": "Move up",
+      "moveEmotionDown": "Move down"
     },
 
     "Settings": {

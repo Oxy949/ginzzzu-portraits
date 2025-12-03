@@ -245,11 +245,40 @@ export async function configurePortrait(ev, actorSheet) {
           $(e.currentTarget).closest('.ginzzzu-emotion-item').remove();
         };
 
-        // Повесить обработчик удаления на указанный корень
+        // Хэндлер перемещения эмоции вверх
+        const moveEmotionUpHandler = (e) => {
+          e.preventDefault();
+          const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
+          const $prev = $item.prev('.ginzzzu-emotion-item');
+          if ($prev.length > 0) {
+            $prev.before($item);
+          }
+        };
+
+        // Хэндлер перемещения эмоции вниз
+        const moveEmotionDownHandler = (e) => {
+          e.preventDefault();
+          const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
+          const $next = $item.next('.ginzzzu-emotion-item');
+          if ($next.length > 0) {
+            $next.after($item);
+          }
+        };
+
+        // Повесить обработчики на указанный корень
         const bindRemoveHandlers = (root) => {
           root.find('.emotion-remove-btn')
             .off('click.ginzzzuRemoveEmotion')
             .on('click.ginzzzuRemoveEmotion', removeEmotionHandler);
+        };
+
+        const bindMoveHandlers = (root) => {
+          root.find('.emotion-move-up-btn')
+            .off('click.ginzzzuMoveUp')
+            .on('click.ginzzzuMoveUp', moveEmotionUpHandler);
+          root.find('.emotion-move-down-btn')
+            .off('click.ginzzzuMoveDown')
+            .on('click.ginzzzuMoveDown', moveEmotionDownHandler);
         };
 
         // === НОВОЕ: выбор изображения через FilePicker ===
@@ -310,6 +339,7 @@ export async function configurePortrait(ev, actorSheet) {
 
         // Уже отрендеренные эмоции
         bindRemoveHandlers(html);
+        bindMoveHandlers(html);
         bindFilePickers(html);
         bindPortraitImagePicker(html);
 
@@ -339,6 +369,7 @@ export async function configurePortrait(ev, actorSheet) {
           const $item = $(newEmotionHtml);
           emotionsList.append($item);
           bindRemoveHandlers($item);
+          bindMoveHandlers($item);
           bindFilePickers($item); // <-- важно для новых элементов
         });
       }

@@ -1,5 +1,5 @@
 <div class="ginzzzu-emotion-item" data-emotion-index="{{idx}}">
-  <!-- Первая строка: эмодзи + имя -->
+  <!-- Первая строка: эмодзи + имя + кнопки -->
   <div class="emotion-row">
     <div class="form-group">
       <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionEmoji"}}</label>
@@ -23,9 +23,17 @@
       />
     </div>
 
-    <button type="button" class="emotion-remove-btn">
-      <i class="fas fa-trash"></i> {{localize "GINZZZUPORTRAITS.PortraitConfig.removeEmotion"}}
-    </button>
+    <div class="emotion-action-buttons">
+      <button type="button" class="emotion-move-up-btn" title="{{localize 'GINZZZUPORTRAITS.PortraitConfig.moveEmotionUp'}}">
+        <i class="fas fa-arrow-up"></i>
+      </button>
+      <button type="button" class="emotion-move-down-btn" title="{{localize 'GINZZZUPORTRAITS.PortraitConfig.moveEmotionDown'}}">
+        <i class="fas fa-arrow-down"></i>
+      </button>
+      <button type="button" class="emotion-remove-btn" title="{{localize 'GINZZZUPORTRAITS.PortraitConfig.removeEmotion'}}">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
   </div>
 
   <!-- Вторая строка: путь к картинке + кнопка выбора -->
@@ -74,10 +82,10 @@
                         labelAttr="label"}}
       </select>
     </div>
-
+  </div>
 
   <!-- Четвёртая строка: множитель высоты портрета -->
-
+  <div class="emotion-row">
     <div class="form-group">
       <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionHeightMultiplier"}}</label>
       <input

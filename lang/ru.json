@@ -48,7 +48,9 @@
         "emotionAnimation": "Анимация",
         "emotionColor": "Цветокоррекция",
         "emotionHeightMultiplier": "Высота",
-        "removeEmotion": "Удалить"
+        "removeEmotion": "Удалить",
+        "moveEmotionUp": "Переместить выше",
+        "moveEmotionDown": "Переместить ниже"
       },
 
       "Settings": {
