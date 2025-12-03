@@ -1,5 +1,5 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
 
 const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
@@ -60,6 +60,10 @@ export async function configurePortrait(ev, actorSheet) {
   const currentHeightMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
   const currentHeightMultiplier = typeof currentHeightMultiplierRaw === "number" ? currentHeightMultiplierRaw : 1;
 
+  // Получаем кастомное изображение портрета
+  const currentCustomImageRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
+  const currentCustomImage = typeof currentCustomImageRaw === "string" ? currentCustomImageRaw : "";
+
   const templateData = {
     MODULE_ID,
 
@@ -68,6 +72,10 @@ export async function configurePortrait(ev, actorSheet) {
     notes,
     portraitHeightMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplier"),
     portraitHeightMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplierHint"),
+    portraitCustomImageLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImage"),
+    portraitCustomImagePlaceholder: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImagePlaceholder"),
+    portraitCustomImageButtonHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImageButtonHint"),
+    portraitCustomImageHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImageHint"),
     customEmotionsLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel"),
     showStandardLabel:   game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.showStandardEmotions"),
     addEmotionLabel:     game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.addEmotion"),
@@ -76,6 +84,7 @@ export async function configurePortrait(ev, actorSheet) {
     displayName: currentName,
     placeholder: actor.name ?? "",
     portraitHeightMultiplier: currentHeightMultiplier,
+    portraitCustomImage: currentCustomImage,
     showStandardEmotions,
 
     // Списки
@@ -137,6 +146,17 @@ export async function configurePortrait(ev, actorSheet) {
                 await actor.setFlag(MODULE_ID, "portraitHeightMultiplier", heightValue);
               } else {
                 await actor.unsetFlag(MODULE_ID, "portraitHeightMultiplier");
+              }
+
+              // Save custom portrait image
+              const customImageInput = html.find('input[name="portraitCustomImage"]').val();
+              const customImageValue = String(customImageInput ?? "").trim();
+              
+              if (!customImageValue) {
+                // Use update with null to ensure the flag change is detected
+                await actor.update({ [FLAG_PORTRAIT_CUSTOM_IMAGE]: null });
+              } else {
+                await actor.setFlag(MODULE_ID, "portraitCustomImage", customImageValue);
               }
 
               // Save "show standard emotions" toggle (default true)
@@ -261,9 +281,37 @@ export async function configurePortrait(ev, actorSheet) {
             });
         };
 
+        // Binding for custom portrait image FilePicker
+        const bindPortraitImagePicker = (root) => {
+          root.find('.portrait-custom-image-picker')
+            .off('click.ginzzzuPortraitFile')
+            .on('click.ginzzzuPortraitFile', async (e) => {
+              e.preventDefault();
+
+              const $btn   = $(e.currentTarget);
+              const $input = $btn.siblings('input[name="portraitCustomImage"]');
+
+              if ($input.length === 0) return;
+
+              const current = $input.val() || "";
+
+              const fp = new FilePicker({
+                type: "image",
+                current,
+                callback: (path) => {
+                  $input.val(path);
+                  $input.trigger("change");
+                }
+              });
+
+              fp.render(true);
+            });
+        };
+
         // Уже отрендеренные эмоции
         bindRemoveHandlers(html);
         bindFilePickers(html);
+        bindPortraitImagePicker(html);
 
         // Кнопка добавления эмоции — рендерит Handlebars-шаблон
         html.find('.emotion-add-btn').on('click', async (e) => {
