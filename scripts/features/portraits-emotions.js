@@ -167,6 +167,16 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
     return allEmotions;
   }
 
+  /**
+   * A small helper function to build the emoji labels.  Separated to take out of the template and in case a fallback is needed,
+   * e.g. if it ever becomes worth it to show the hard coded label if no translation is found.
+   * @param {string} label - they key to pass to internatonalization.
+   * @returns the internationalized string
+   */
+  function _i18nEmoji(label) {
+    return game.i18n.localize(`GINZZZUPORTRAITS.PortraitToolbar.${label}`);
+  }
+
 
   function _buildEmotionToolbarHTML(actor) {
     const allEmotions = _getAllEmotionsForActor(actor);
@@ -176,7 +186,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
       .map(key => {
         const e = allEmotions[key];
         return `
-          <button class="threeo-emo-btn" data-emo="${e.key}" title="${e.label}">
+          <button class="threeo-emo-btn" data-emo="${e.key}" title="${_i18nEmoji(e.label)}">
             <span class="threeo-emo-emoji">${e.emoji}</span>
           </button>
         `;
@@ -365,7 +375,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
         configBtn.classList.add("threeo-emo-btn", "threeo-emo-config");
         configBtn.innerHTML = `<span class="threeo-emo-emoji"><i class="fas fa-user-edit"></i></span>`;
 
-        configBtn.title = "Настройки портрета";
+        configBtn.title = game.i18n.localize("GINZZZUPORTRAITS.PortraitToolbar.portraitSettings");
 
         configBtn.onclick = (ev) => {
           ev.stopPropagation();

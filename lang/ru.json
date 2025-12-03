@@ -23,6 +23,17 @@
       "pcFoldersAll": "Все игроки",
       "pcFoldersNoFolder": "Игроки без папки",
 
+      "PortraitToolbar": {
+        "Joy": "Радость",
+        "Sad": "Грусть",
+        "Anger": "Гнев",
+        "Fear": "Страх",
+        "Love": "Любовь",
+        "Hurt" : "Обида",
+        "Tired": "Усталость",
+        "portraitSettings": "Настройки портрета"
+      },
+
       "PortraitConfig": {
         "title": "Портрет: {name}",
         "label": "Отображаемое имя портрета",

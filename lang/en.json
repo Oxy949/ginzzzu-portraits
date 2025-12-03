@@ -23,6 +23,17 @@
     "pcFoldersAll": "All players",
     "pcFoldersNoFolder": "Players without folder",
 
+    "PortraitToolbar": {
+      "Joy": "Joy",
+      "Sad": "Sadness",
+      "Anger": "Anger",
+      "Fear": "Fear",
+      "Love": "Love",
+      "Hurt" : "Hurt",
+      "Tired": "Tired",
+      "portraitSettings": "Portrait Settings"
+    },
+
     "PortraitConfig": {
       "title": "Portrait: {name}",
       "label": "Portrait display name",
