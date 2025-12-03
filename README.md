@@ -69,5 +69,6 @@ How to use:
 
 ## Credits
 - [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design
-- [Oxy949](https://boosty.to/oxy949) - The module code, refactoring, bugfixes 
+- [Oxy949](https://boosty.to/oxy949) - The module code, refactoring, bugfixes
+- [gludington](https://github.com/gludington) - Help with system-dependent logic
 - [Threatre Inserts](https://foundryvtt.com/packages/theatre) - Heavy inspiration *(and little bit'o code's reference)*
