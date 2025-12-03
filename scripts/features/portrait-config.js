@@ -367,6 +367,43 @@ export async function configurePortrait(ev, actorSheet) {
         bindFilePickers(html);
         bindPortraitImagePicker(html);
 
+        // Синхронизация слайдера высоты портрета с отображением значения (двунаправленная)
+        const portraitHeightSlider = html.find('input[name="portraitHeightMultiplier"][type="range"]');
+        const portraitHeightDisplay = html.find('input.multiplier-value-display');
+
+        if (portraitHeightSlider.length && portraitHeightDisplay.length) {
+          const min = parseFloat(portraitHeightSlider.attr('min')) || 0.1;
+          const max = parseFloat(portraitHeightSlider.attr('max')) || 2;
+          const step = parseFloat(portraitHeightSlider.attr('step')) || 0.1;
+
+          const normalize = (v) => {
+            const n = Number(v);
+            if (!Number.isFinite(n)) return null;
+            // clamp
+            let clamped = Math.max(min, Math.min(max, n));
+            // snap to step
+            clamped = Math.round((clamped - min) / step) * step + min;
+            // avoid float precision issues
+            return Number(clamped.toFixed(10));
+          };
+
+          // range -> number
+          portraitHeightSlider.on('input change', function() {
+            const v = normalize($(this).val());
+            if (v !== null) portraitHeightDisplay.val(v);
+          });
+
+          // number -> range (allow keyboard input)
+          portraitHeightDisplay.on('input change blur', function() {
+            const raw = $(this).val();
+            const v = normalize(raw);
+            if (v === null) return;
+            portraitHeightSlider.val(v);
+            // reflect normalized value back to the number input
+            $(this).val(v);
+          });
+        }
+
         // Кнопка добавления эмоции — рендерит Handlebars-шаблон
         html.find('.emotion-add-btn').on('click', async (e) => {
           e.preventDefault();

@@ -195,3 +195,26 @@
 .emotion-add-btn:hover {
   background: #3a9c2d !important;
 }
+
+/* Portrait height multiplier slider styles */
+.portrait-height-multiplier-section .form-fields {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.portrait-height-multiplier-section input[type="range"] {
+  flex: 1;
+  min-width: 150px;
+  height: 6px;
+}
+
+.portrait-height-multiplier-section .multiplier-value-display {
+  width: 60px;
+  max-width: 60px;
+  text-align: center;
+  border: 1px solid #6ba8db;
+  border-radius: 4px;
+  padding: 6px;
+  font-size: 0.9em;
+}

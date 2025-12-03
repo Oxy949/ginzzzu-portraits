@@ -58,7 +58,7 @@
         "emotionImageButtonHint": "Выбрать изображение",
         "emotionAnimation": "Анимация",
         "emotionColor": "Цветокоррекция",
-        "emotionHeightMultiplier": "Высота",
+        "emotionHeightMultiplier": "Множитель высоты",
         "removeEmotion": "Удалить",
         "moveEmotionUp": "Переместить выше",
         "moveEmotionDown": "Переместить ниже",

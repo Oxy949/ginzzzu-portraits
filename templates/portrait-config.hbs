@@ -38,14 +38,24 @@
   <!-- Глобальная высота портрета -->
   <div class="form-group portrait-height-multiplier-section">
     <label>{{portraitHeightMultiplierLabel}}</label>
-    <input
-      type="number"
-      name="portraitHeightMultiplier"
-      value="{{portraitHeightMultiplier}}"
-      min="0"
-      step="0.1"
-      placeholder="1"
-    />
+    <div class="form-fields">
+      <input
+        type="range"
+        name="portraitHeightMultiplier"
+        value="{{portraitHeightMultiplier}}"
+        min="0"
+        max="2"
+        step="0.05"
+      />
+      <input
+        type="number"
+        class="multiplier-value-display"
+        value="{{portraitHeightMultiplier}}"
+        min="0"
+        max="2"
+        step="0.05"
+      />
+    </div>
     <p class="notes">{{portraitHeightMultiplierHint}}</p>
   </div>
 
