@@ -28,7 +28,7 @@
         "label": "Отображаемое имя портрета",
         "note": "Это имя будет использоваться в UI и может отличаться от имени актёра. Оставьте поле пустым, чтобы использовать имя актёра.",
         "portraitHeightMultiplier": "Множитель высоты портрета",
-        "portraitHeightMultiplierHint": "Относительный множитель высоты портрета (0 = 0% от portraitHeight, 1 = 100%, 2 = 200% и т.д.). По умолчанию: 1",
+        "portraitHeightMultiplierHint": "Относительный множитель высоты портрета (0 = 0%, 1 = 100%, 2 = 200% и т.д.). По умолчанию: 1",
         "portraitCustomImage": "Пользовательское изображение портрета",
         "portraitCustomImagePlaceholder": "path/to/portrait.webp",
         "portraitCustomImageButtonHint": "Выбрать изображение портрета",
@@ -50,7 +50,9 @@
         "emotionHeightMultiplier": "Высота",
         "removeEmotion": "Удалить",
         "moveEmotionUp": "Переместить выше",
-        "moveEmotionDown": "Переместить ниже"
+        "moveEmotionDown": "Переместить ниже",
+        "collapseEmotion": "Свернуть",
+        "expandEmotion": "Развернуть"
       },
 
       "Settings": {

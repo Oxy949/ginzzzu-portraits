@@ -37,12 +37,62 @@
   }
 }
 
+.emotion-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 1000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 1;
+}
+
+.ginzzzu-emotion-item.collapsed .emotion-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.emotion-toggle-btn {
+  background: #6ba8db !important;
+  border: none !important;
+  color: white;
+  padding: 0px !important;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  height: 32px;
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, transform 0.3s ease;
+  line-height: 1;
+}
+
+.emotion-toggle-btn:hover {
+  background: #357abd !important;
+}
+
+.ginzzzu-emotion-item.collapsed .emotion-toggle-btn {
+  transform: rotate(180deg);
+}
+
 .ginzzzu-portrait-config .emotion-row {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   width: 100%;
   flex-wrap: wrap;
+}
+
+.emotion-row.emotion-header {
+  align-items: center;
+}
+
+.emotion-row.emotion-header .emotion-toggle-btn {
+  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .ginzzzu-portrait-config .emotion-row .form-group {
@@ -57,12 +107,14 @@
   padding: 0px !important;
   border-radius: 3px;
   cursor: pointer;
-  font-size: 0.9em;
   flex-shrink: 0;
-  white-space: nowrap;
-  position: relative;
-  width: 90px;
   height: 32px;
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+  line-height: 1;
 }
 
 .emotion-remove-btn:hover {
@@ -99,6 +151,7 @@
   background: #357abd !important;
 }
 
+.emotion-toggle-btn i,
 .emotion-move-up-btn i,
 .emotion-move-down-btn i,
 .emotion-remove-btn i {

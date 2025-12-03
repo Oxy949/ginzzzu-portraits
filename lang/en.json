@@ -28,7 +28,7 @@
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
       "portraitHeightMultiplier": "Portrait Height Multiplier",
-      "portraitHeightMultiplierHint": "Relative height multiplier for this portrait (0 = 0% of portraitHeight, 1 = 100%, 2 = 200%, etc.). Default: 1",
+      "portraitHeightMultiplierHint": "Relative height multiplier for this portrait (0 = 0%, 1 = 100%, 2 = 200%, etc.). Default: 1",
       "portraitCustomImage": "Custom Portrait Image",
       "portraitCustomImagePlaceholder": "path/to/portrait.webp",
       "portraitCustomImageButtonHint": "Select Portrait Image",
@@ -50,7 +50,9 @@
       "emotionHeightMultiplier": "Height",
       "removeEmotion": "Remove",
       "moveEmotionUp": "Move up",
-      "moveEmotionDown": "Move down"
+      "moveEmotionDown": "Move down",
+      "collapseEmotion": "Collapse",
+      "expandEmotion": "Expand"
     },
 
     "Settings": {

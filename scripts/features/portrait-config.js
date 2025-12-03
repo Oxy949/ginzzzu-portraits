@@ -245,6 +245,13 @@ export async function configurePortrait(ev, actorSheet) {
           $(e.currentTarget).closest('.ginzzzu-emotion-item').remove();
         };
 
+        // Хэндлер сворачивания/разворачивания эмоции
+        const toggleEmotionHandler = (e) => {
+          e.preventDefault();
+          const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
+          $item.toggleClass('collapsed');
+        };
+
         // Хэндлер перемещения эмоции вверх
         const moveEmotionUpHandler = (e) => {
           e.preventDefault();
@@ -280,6 +287,12 @@ export async function configurePortrait(ev, actorSheet) {
           root.find('.emotion-remove-btn')
             .off('click.ginzzzuRemoveEmotion')
             .on('click.ginzzzuRemoveEmotion', removeEmotionHandler);
+        };
+
+        const bindToggleHandlers = (root) => {
+          root.find('.emotion-toggle-btn')
+            .off('click.ginzzzuToggle')
+            .on('click.ginzzzuToggle', toggleEmotionHandler);
         };
 
         const bindMoveHandlers = (root) => {
@@ -349,6 +362,7 @@ export async function configurePortrait(ev, actorSheet) {
 
         // Уже отрендеренные эмоции
         bindRemoveHandlers(html);
+        bindToggleHandlers(html);
         bindMoveHandlers(html);
         bindFilePickers(html);
         bindPortraitImagePicker(html);
@@ -379,6 +393,7 @@ export async function configurePortrait(ev, actorSheet) {
           const $item = $(newEmotionHtml);
           emotionsList.append($item);
           bindRemoveHandlers($item);
+          bindToggleHandlers($item);
           bindMoveHandlers($item);
           bindFilePickers($item); // <-- важно для новых элементов
         });
