@@ -1,5 +1,5 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
 
 const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
@@ -56,12 +56,26 @@ export async function configurePortrait(ev, actorSheet) {
   const motionOptions = Object.values(EMOTION_MOTIONS ?? {});
   const colorOptions  = colorPresetOptions;
 
+  // Получаем текущий множитель высоты портрета
+  const currentHeightMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+  const currentHeightMultiplier = typeof currentHeightMultiplierRaw === "number" ? currentHeightMultiplierRaw : 1;
+
+  // Получаем кастомное изображение портрета
+  const currentCustomImageRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
+  const currentCustomImage = typeof currentCustomImageRaw === "string" ? currentCustomImageRaw : "";
+
   const templateData = {
     MODULE_ID,
 
     // Текст
     label,
     notes,
+    portraitHeightMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplier"),
+    portraitHeightMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplierHint"),
+    portraitCustomImageLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImage"),
+    portraitCustomImagePlaceholder: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImagePlaceholder"),
+    portraitCustomImageButtonHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImageButtonHint"),
+    portraitCustomImageHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImageHint"),
     customEmotionsLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel"),
     showStandardLabel:   game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.showStandardEmotions"),
     addEmotionLabel:     game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.addEmotion"),
@@ -69,6 +83,8 @@ export async function configurePortrait(ev, actorSheet) {
     // Поля
     displayName: currentName,
     placeholder: actor.name ?? "",
+    portraitHeightMultiplier: currentHeightMultiplier,
+    portraitCustomImage: currentCustomImage,
     showStandardEmotions,
 
     // Списки
@@ -123,6 +139,26 @@ export async function configurePortrait(ev, actorSheet) {
                 await actor.setFlag(MODULE_ID, "displayName", value);
               }
 
+              // Save portrait height multiplier
+              const heightInput = html.find('input[name="portraitHeightMultiplier"]').val();
+              const heightValue = Number(heightInput ?? 1);
+              if (Number.isFinite(heightValue) && heightValue >= 0) {
+                await actor.setFlag(MODULE_ID, "portraitHeightMultiplier", heightValue);
+              } else {
+                await actor.unsetFlag(MODULE_ID, "portraitHeightMultiplier");
+              }
+
+              // Save custom portrait image
+              const customImageInput = html.find('input[name="portraitCustomImage"]').val();
+              const customImageValue = String(customImageInput ?? "").trim();
+              
+              if (!customImageValue) {
+                // Use update with null to ensure the flag change is detected
+                await actor.update({ [FLAG_PORTRAIT_CUSTOM_IMAGE]: null });
+              } else {
+                await actor.setFlag(MODULE_ID, "portraitCustomImage", customImageValue);
+              }
+
               // Save "show standard emotions" toggle (default true)
               const showStd = html.find('input[name="showStandardEmotions"]').is(':checked');
               await actor.setFlag(MODULE_ID, "showStandardEmotions", !!showStd);
@@ -138,10 +174,11 @@ export async function configurePortrait(ev, actorSheet) {
                 const imagePath      = String($elem.find('input.emotion-path').val() ?? "").trim();
                 const animation      = String($elem.find('select.emotion-animation').val() ?? "none");
                 const colorIntensity = String($elem.find('select.emotion-color').val() ?? "none");
+                const heightMultiplier = Number($elem.find('input.emotion-height-multiplier').val() ?? 1);
 
                 console.log(
                   `[${MODULE_ID}] Emotion ${idx}:`,
-                  { emoji, name, imagePath, animation, colorIntensity }
+                  { emoji, name, imagePath, animation, colorIntensity, heightMultiplier }
                 );
 
                 // Принимаем эмоцию, если заполнено хоть что-то осмысленное
@@ -151,7 +188,7 @@ export async function configurePortrait(ev, actorSheet) {
                   imagePath.length > 0;
 
                 if (hasAny) {
-                  emotions.push({ emoji, name, imagePath, animation, colorIntensity });
+                  emotions.push({ emoji, name, imagePath, animation, colorIntensity, heightMultiplier });
                 } else {
                   console.log(`[${MODULE_ID}] Ignoring empty emotion at index ${idx}`);
                 }
@@ -208,11 +245,63 @@ export async function configurePortrait(ev, actorSheet) {
           $(e.currentTarget).closest('.ginzzzu-emotion-item').remove();
         };
 
-        // Повесить обработчик удаления на указанный корень
+        // Хэндлер сворачивания/разворачивания эмоции
+        const toggleEmotionHandler = (e) => {
+          e.preventDefault();
+          const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
+          $item.toggleClass('collapsed');
+        };
+
+        // Хэндлер перемещения эмоции вверх
+        const moveEmotionUpHandler = (e) => {
+          e.preventDefault();
+          const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
+          const $prev = $item.prev('.ginzzzu-emotion-item');
+          if ($prev.length > 0) {
+            // Добавляем анимацию
+            $item.css('animation', 'none');
+            setTimeout(() => {
+              $prev.before($item);
+              $item.css('animation', '');
+            }, 10);
+          }
+        };
+
+        // Хэндлер перемещения эмоции вниз
+        const moveEmotionDownHandler = (e) => {
+          e.preventDefault();
+          const $item = $(e.currentTarget).closest('.ginzzzu-emotion-item');
+          const $next = $item.next('.ginzzzu-emotion-item');
+          if ($next.length > 0) {
+            // Добавляем анимацию
+            $item.css('animation', 'none');
+            setTimeout(() => {
+              $next.after($item);
+              $item.css('animation', '');
+            }, 10);
+          }
+        };
+
+        // Повесить обработчики на указанный корень
         const bindRemoveHandlers = (root) => {
           root.find('.emotion-remove-btn')
             .off('click.ginzzzuRemoveEmotion')
             .on('click.ginzzzuRemoveEmotion', removeEmotionHandler);
+        };
+
+        const bindToggleHandlers = (root) => {
+          root.find('.emotion-toggle-btn')
+            .off('click.ginzzzuToggle')
+            .on('click.ginzzzuToggle', toggleEmotionHandler);
+        };
+
+        const bindMoveHandlers = (root) => {
+          root.find('.emotion-move-up-btn')
+            .off('click.ginzzzuMoveUp')
+            .on('click.ginzzzuMoveUp', moveEmotionUpHandler);
+          root.find('.emotion-move-down-btn')
+            .off('click.ginzzzuMoveDown')
+            .on('click.ginzzzuMoveDown', moveEmotionDownHandler);
         };
 
         // === НОВОЕ: выбор изображения через FilePicker ===
@@ -244,9 +333,39 @@ export async function configurePortrait(ev, actorSheet) {
             });
         };
 
+        // Binding for custom portrait image FilePicker
+        const bindPortraitImagePicker = (root) => {
+          root.find('.portrait-custom-image-picker')
+            .off('click.ginzzzuPortraitFile')
+            .on('click.ginzzzuPortraitFile', async (e) => {
+              e.preventDefault();
+
+              const $btn   = $(e.currentTarget);
+              const $input = $btn.siblings('input[name="portraitCustomImage"]');
+
+              if ($input.length === 0) return;
+
+              const current = $input.val() || "";
+
+              const fp = new FilePicker({
+                type: "image",
+                current,
+                callback: (path) => {
+                  $input.val(path);
+                  $input.trigger("change");
+                }
+              });
+
+              fp.render(true);
+            });
+        };
+
         // Уже отрендеренные эмоции
         bindRemoveHandlers(html);
+        bindToggleHandlers(html);
+        bindMoveHandlers(html);
         bindFilePickers(html);
+        bindPortraitImagePicker(html);
 
         // Кнопка добавления эмоции — рендерит Handlebars-шаблон
         html.find('.emotion-add-btn').on('click', async (e) => {
@@ -260,7 +379,8 @@ export async function configurePortrait(ev, actorSheet) {
             name: "",
             imagePath: "",
             animation: "none",
-            colorIntensity: "none"
+            colorIntensity: "none",
+            heightMultiplier: 1
           };
 
           const newEmotionHtml = await renderTemplate(PORTRAIT_EMOTION_TEMPLATE, {
@@ -273,6 +393,8 @@ export async function configurePortrait(ev, actorSheet) {
           const $item = $(newEmotionHtml);
           emotionsList.append($item);
           bindRemoveHandlers($item);
+          bindToggleHandlers($item);
+          bindMoveHandlers($item);
           bindFilePickers($item); // <-- важно для новых элементов
         });
       }

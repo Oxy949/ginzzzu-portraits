@@ -10,6 +10,44 @@
     />
     <p class="notes">{{notes}}</p>
   </div>
+  
+  <hr class="section-divider" />
+
+  <!-- Кастомное изображение портрета -->
+  <div class="form-group portrait-custom-image-section">
+    <label>{{portraitCustomImageLabel}}</label>
+    <div class="form-fields">
+      <input
+        type="text"
+        name="portraitCustomImage"
+        value="{{portraitCustomImage}}"
+        placeholder="{{portraitCustomImagePlaceholder}}"
+      />
+      <button
+        type="button"
+        class="file-picker portrait-custom-image-picker"
+        data-type="image"
+        title="{{portraitCustomImageButtonHint}}"
+      >
+        <i class="fas fa-file-import"></i>
+      </button>
+    </div>
+    <p class="notes">{{portraitCustomImageHint}}</p>
+  </div>
+
+  <!-- Глобальная высота портрета -->
+  <div class="form-group portrait-height-multiplier-section">
+    <label>{{portraitHeightMultiplierLabel}}</label>
+    <input
+      type="number"
+      name="portraitHeightMultiplier"
+      value="{{portraitHeightMultiplier}}"
+      min="0"
+      step="0.1"
+      placeholder="1"
+    />
+    <p class="notes">{{portraitHeightMultiplierHint}}</p>
+  </div>
 
   <hr class="section-divider" />
 

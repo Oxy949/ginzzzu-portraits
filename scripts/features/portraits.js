@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 
 
@@ -27,6 +27,7 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
   /**
    * Get current portrait image for actor, taking into account custom emotions.
    * If a custom emotion with a non-empty imagePath is active, that path overrides the base image.
+   * If no emotion is active, the custom portrait image (if set) overrides the base image.
    */
   function _getActorImage(actor) {
     if (!actor) return "";
@@ -42,17 +43,44 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
       // Интересуют только custom_* эмоции
       const m = /^custom_(\d+)$/.exec(emoKey);
-      if (!m) return baseImg;
+      if (!m) {
+        // Нет активной кастомной эмоции, проверяем кастомное изображение портрета
+        const customPortraitImg = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
+        if (typeof customPortraitImg === "string" && customPortraitImg.trim().length > 0) {
+          return customPortraitImg.trim();
+        }
+        return baseImg;
+      }
 
       const idx = Number(m[1]);
-      if (!Number.isInteger(idx) || idx < 0) return baseImg;
+      if (!Number.isInteger(idx) || idx < 0) {
+        // Кастомная эмоция не найдена, используем кастомное изображение портрета если есть
+        const customPortraitImg = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
+        if (typeof customPortraitImg === "string" && customPortraitImg.trim().length > 0) {
+          return customPortraitImg.trim();
+        }
+        return baseImg;
+      }
 
       const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
-      if (!Array.isArray(customEmotions) || !customEmotions[idx]) return baseImg;
+      if (!Array.isArray(customEmotions) || !customEmotions[idx]) {
+        // Кастомная эмоция не найдена, используем кастомное изображение портрета если есть
+        const customPortraitImg = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
+        if (typeof customPortraitImg === "string" && customPortraitImg.trim().length > 0) {
+          return customPortraitImg.trim();
+        }
+        return baseImg;
+      }
 
       const path = customEmotions[idx]?.imagePath;
       if (typeof path === "string" && path.trim().length > 0) {
         return path.trim();
+      }
+
+      // Кастомная эмоция активна, но без картинки - используем кастомное изображение портрета если есть
+      const customPortraitImg = foundry.utils.getProperty(actor, FLAG_PORTRAIT_CUSTOM_IMAGE);
+      if (typeof customPortraitImg === "string" && customPortraitImg.trim().length > 0) {
+        return customPortraitImg.trim();
       }
     } catch (e) {
       console.error("[threeO-portraits] Failed to resolve custom emotion image:", e);
@@ -735,13 +763,50 @@ function _onPortraitClick(ev) {
       const wrapper = el.parentElement;
       if (!wrapper) return;
       
-      wrapper.style.height    = `${effectivePorHeight * 100}vh`;
-      wrapper.style.maxHeight = `${effectivePorHeight * 100}vh`;
+      // Получаем множитель высоты из актёра
+      const actorId = el?.dataset?.actorId;
+      let heightMultiplier = 1;
+      if (actorId) {
+        try {
+          const actor = game.actors?.get(actorId);
+          if (actor) {
+            // Сначала проверяем, есть ли активная эмоция с высотой
+            const emotionHeightMultiplier = foundry.utils.getProperty(actor, FLAG_EMOTION_HEIGHT_MULTIPLIER);
+            if (typeof emotionHeightMultiplier === "number" && Number.isFinite(emotionHeightMultiplier)) {
+              heightMultiplier = Math.max(0, emotionHeightMultiplier);
+            } else {
+              // Если эмоции нет или у неё нет высоты, используем индивидуальную высоту портрета
+              const multiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+              if (typeof multiplier === "number" && Number.isFinite(multiplier)) {
+                heightMultiplier = Math.max(0, multiplier);
+              }
+            }
+          }
+        } catch (e) {
+          // ignore and use default
+        }
+      }
+
+      const finalHeight = effectivePorHeight * heightMultiplier;
+      
+      // Вычисляем offset для компенсации изменения высоты портрета
+      // Базовая высота (при heightMultiplier = 1): effectivePorHeight
+      // Актуальная высота: finalHeight
+      // Разница в высоте: finalHeight - effectivePorHeight = effectivePorHeight * (heightMultiplier - 1)
+      // Компенсирующий offset: только положительный (если портрет больше — панель сдвигается вниз)
+      const heightDelta = effectivePorHeight * (heightMultiplier - 1);
+      const heightOffsetVh = Math.max(0, (heightDelta * 100) / 2);  // только положительный offset вниз
+      
+      wrapper.style.height    = `${finalHeight * 100}vh`;
+      wrapper.style.maxHeight = `${finalHeight * 100}vh`;
       wrapper.style.width     = `${widthPx}px`;
       wrapper.style.maxWidth  = `${widthPx}px`;
       wrapper.style.flex      = "0 0 auto";
       wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
 
+      // Передаём offset в CSS-переменную для компенсации высоты
+      wrapper.style.setProperty("--portrait-height-offset-y", `${heightOffsetVh}vh`);
+      
       // Передаём значение в CSS как переменную
       wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}%`);
       
@@ -756,8 +821,8 @@ function _onPortraitClick(ev) {
       // если портрет сейчас не в фокусе — применяем базовый zIndex;
       // фокусный оставляем выдвинутым вперёд
       const img = wrapper.querySelector("img.ginzzzu-portrait");
-      const actorId = img?.dataset.actorId;
-      if (!_focusedActorId || !actorId || actorId !== _focusedActorId) {
+      const picActorId = img?.dataset.actorId;
+      if (!_focusedActorId || !picActorId || picActorId !== _focusedActorId) {
         wrapper.style.zIndex = baseZ;
       }
     });
@@ -1429,15 +1494,18 @@ Hooks.once("ready", () => {
       // Проверяем, что изменилось именно то, что влияет на картинку эмоции
       const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
       const customEmotionsChanged = foundry.utils.hasProperty(changes, FLAG_CUSTOM_EMOTIONS);
+      const heightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+      const emotionHeightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_EMOTION_HEIGHT_MULTIPLIER);
+      const customImageChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_CUSTOM_IMAGE);
 
-      if (!emotionChanged && !customEmotionsChanged) return;
+      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged && !emotionHeightMultiplierChanged && !customImageChanged) return;
 
       const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
       if (!imgEl) return;
 
       const newImg = _getActorImage(actor);
       console.log("[threeO-portraits] updating emotion image for actor", imgEl.src, " newImg=", newImg);
-      if (typeof newImg === "string" && newImg) {
+      if (typeof newImg === "string") {
         let resolvedNewImg = newImg;
         try {
           // Resolve relative paths against document base so they compare correctly
@@ -1448,6 +1516,11 @@ Hooks.once("ready", () => {
         if (imgEl.src !== resolvedNewImg) {
           _applyEmotionImageWithTransition(wrapper, imgEl, newImg);
         }
+      }
+
+      // If height multiplier changed, trigger relayout
+      if (heightMultiplierChanged || emotionHeightMultiplierChanged) {
+        relayoutDomHud();
       }
 
     } catch (e) {
