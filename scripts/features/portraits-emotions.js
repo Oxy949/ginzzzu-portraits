@@ -171,9 +171,13 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
    * A small helper function to build the emoji labels.  Separated to take out of the template and in case a fallback is needed,
    * e.g. if it ever becomes worth it to show the hard coded label if no translation is found.
    * @param {string} label - they key to pass to internatonalization.
-   * @returns the internationalized string
+   * @param {boolean} isCustom - whether this is a custom emotion
+   * @returns the internationalized string or label as-is for custom emotions
    */
-  function _i18nEmoji(label) {
+  function _i18nEmoji(label, isCustom) {
+    if (isCustom) {
+      return label;
+    }
     return game.i18n.localize(`GINZZZUPORTRAITS.PortraitToolbar.${label}`);
   }
 
@@ -186,7 +190,7 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
       .map(key => {
         const e = allEmotions[key];
         return `
-          <button class="threeo-emo-btn" data-emo="${e.key}" title="${_i18nEmoji(e.label)}">
+          <button class="threeo-emo-btn" data-emo="${e.key}" title="${_i18nEmoji(e.label, e.isCustom)}">
             <span class="threeo-emo-emoji">${e.emoji}</span>
           </button>
         `;
