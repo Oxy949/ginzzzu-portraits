@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 
 
@@ -735,16 +735,23 @@ function _onPortraitClick(ev) {
       const wrapper = el.parentElement;
       if (!wrapper) return;
       
-      // Получаем множитель высоты из актёра (по умолчанию 1)
+      // Получаем множитель высоты из актёра
       const actorId = el?.dataset?.actorId;
       let heightMultiplier = 1;
       if (actorId) {
         try {
           const actor = game.actors?.get(actorId);
           if (actor) {
-            const multiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
-            if (typeof multiplier === "number" && Number.isFinite(multiplier)) {
-              heightMultiplier = Math.max(0, multiplier);
+            // Сначала проверяем, есть ли активная эмоция с высотой
+            const emotionHeightMultiplier = foundry.utils.getProperty(actor, FLAG_EMOTION_HEIGHT_MULTIPLIER);
+            if (typeof emotionHeightMultiplier === "number" && Number.isFinite(emotionHeightMultiplier)) {
+              heightMultiplier = Math.max(0, emotionHeightMultiplier);
+            } else {
+              // Если эмоции нет или у неё нет высоты, используем индивидуальную высоту портрета
+              const multiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+              if (typeof multiplier === "number" && Number.isFinite(multiplier)) {
+                heightMultiplier = Math.max(0, multiplier);
+              }
             }
           }
         } catch (e) {
@@ -1448,8 +1455,9 @@ Hooks.once("ready", () => {
       const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
       const customEmotionsChanged = foundry.utils.hasProperty(changes, FLAG_CUSTOM_EMOTIONS);
       const heightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+      const emotionHeightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_EMOTION_HEIGHT_MULTIPLIER);
 
-      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged) return;
+      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged && !emotionHeightMultiplierChanged) return;
 
       const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
       if (!imgEl) return;
@@ -1470,7 +1478,7 @@ Hooks.once("ready", () => {
       }
 
       // If height multiplier changed, trigger relayout
-      if (heightMultiplierChanged) {
+      if (heightMultiplierChanged || emotionHeightMultiplierChanged) {
         relayoutDomHud();
       }
 

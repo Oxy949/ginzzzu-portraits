@@ -277,7 +277,8 @@ export async function configurePortrait(ev, actorSheet) {
             name: "",
             imagePath: "",
             animation: "none",
-            colorIntensity: "none"
+            colorIntensity: "none",
+            heightMultiplier: 1
           };
 
           const newEmotionHtml = await renderTemplate(PORTRAIT_EMOTION_TEMPLATE, {
