@@ -760,6 +760,15 @@ function _onPortraitClick(ev) {
       }
 
       const finalHeight = effectivePorHeight * heightMultiplier;
+      
+      // Вычисляем offset для компенсации изменения высоты портрета
+      // Базовая высота (при heightMultiplier = 1): effectivePorHeight
+      // Актуальная высота: finalHeight
+      // Разница в высоте: finalHeight - effectivePorHeight = effectivePorHeight * (heightMultiplier - 1)
+      // Компенсирующий offset: только положительный (если портрет больше — панель сдвигается вниз)
+      const heightDelta = effectivePorHeight * (heightMultiplier - 1);
+      const heightOffsetVh = Math.max(0, (heightDelta * 100) / 2);  // только положительный offset вниз
+      
       wrapper.style.height    = `${finalHeight * 100}vh`;
       wrapper.style.maxHeight = `${finalHeight * 100}vh`;
       wrapper.style.width     = `${widthPx}px`;
@@ -767,6 +776,9 @@ function _onPortraitClick(ev) {
       wrapper.style.flex      = "0 0 auto";
       wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
 
+      // Передаём offset в CSS-переменную для компенсации высоты
+      wrapper.style.setProperty("--portrait-height-offset-y", `${heightOffsetVh}vh`);
+      
       // Передаём значение в CSS как переменную
       wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}%`);
       

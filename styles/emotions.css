@@ -26,7 +26,7 @@
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-top .threeo-emo-toolbar {
   top: 0;
   left: 50%;
-  transform: translate(-50%, -70%)
+  transform: translate(-50%, calc(-70% + var(--portrait-height-offset-y, 0px)))
              scale(var(--threeo-emo-scale))
              scaleX(var(--threeo-emo-inner-flip, 1));
   flex-direction: row;
@@ -35,7 +35,7 @@
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-left .threeo-emo-toolbar {
   left: 0;
   top: 50%;
-  transform: translate(-60%, -50%)
+  transform: translate(-60%, calc(-50% + var(--portrait-height-offset-y, 0px)))
              scale(var(--threeo-emo-scale))
              scaleX(var(--threeo-emo-inner-flip, 1));
   flex-direction: column;
@@ -44,7 +44,7 @@
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.threeo-emo-pos-right .threeo-emo-toolbar {
   right: 0;
   top: 50%;
-  transform: translate(60%, -50%)
+  transform: translate(60%, calc(-50% + var(--portrait-height-offset-y, 0px)))
              scale(var(--threeo-emo-scale))
              scaleX(var(--threeo-emo-inner-flip, 1));
   flex-direction: column;
