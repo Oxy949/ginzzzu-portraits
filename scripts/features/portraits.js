@@ -770,16 +770,21 @@ function _onPortraitClick(ev) {
         try {
           const actor = game.actors?.get(actorId);
           if (actor) {
-            // Сначала проверяем, есть ли активная эмоция с высотой
+            // Сначала получаем базовый множитель портрета
+            const portraitMultiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+            let baseMultiplier = 1;
+            if (typeof portraitMultiplier === "number" && Number.isFinite(portraitMultiplier)) {
+              baseMultiplier = Math.max(0, portraitMultiplier);
+            }
+            
+            // Затем проверяем множитель эмоции
             const emotionHeightMultiplier = foundry.utils.getProperty(actor, FLAG_EMOTION_HEIGHT_MULTIPLIER);
             if (typeof emotionHeightMultiplier === "number" && Number.isFinite(emotionHeightMultiplier)) {
-              heightMultiplier = Math.max(0, emotionHeightMultiplier);
+              // Если эмоция активна, множим оба множителя
+              heightMultiplier = Math.max(0, baseMultiplier * emotionHeightMultiplier);
             } else {
-              // Если эмоции нет или у неё нет высоты, используем индивидуальную высоту портрета
-              const multiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
-              if (typeof multiplier === "number" && Number.isFinite(multiplier)) {
-                heightMultiplier = Math.max(0, multiplier);
-              }
+              // Если эмоции нет, используем только базовый множитель портрета
+              heightMultiplier = baseMultiplier;
             }
           }
         } catch (e) {
