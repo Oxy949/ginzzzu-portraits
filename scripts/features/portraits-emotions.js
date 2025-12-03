@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUSTOM_EMOTIONS, FLAG_EMOTION_HEIGHT_MULTIPLIER, EMOTION_COLORS, EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUSTOM_EMOTIONS, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, EMOTION_COLORS, EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
 
 
 /**
@@ -341,15 +341,14 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
             // Устанавливаем высоту эмоции в отдельный флаг
             // Если эмоция "none", то очищаем флаг высоты эмоции (будет использоваться индивидуальная высота портрета)
             if (def.key === "none") {
-              // Очищаем флаг высоты эмоции
-              await actor.unsetFlag(MODULE_ID, "emotionHeightMultiplier");
-              // Обновляем только флаг эмоции
-              await actor.update(updateData);
+              // При выходе из эмоции удаляем флаг высоты эмоции, устанавливая его в -1 (специальное значение для удаления)
+              updateData[FLAG_EMOTION_HEIGHT_MULTIPLIER] = null;
             } else {
               const heightMultiplier = def.heightMultiplier !== undefined ? def.heightMultiplier : 1;
               updateData[FLAG_EMOTION_HEIGHT_MULTIPLIER] = heightMultiplier;
-              await actor.update(updateData);
             }
+            
+            await actor.update(updateData);
           } catch (e) {
             console.error("[GinzzzuPortraitEmotions] failed to update portraitEmotion", e);
           }
