@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 
 
@@ -735,8 +735,26 @@ function _onPortraitClick(ev) {
       const wrapper = el.parentElement;
       if (!wrapper) return;
       
-      wrapper.style.height    = `${effectivePorHeight * 100}vh`;
-      wrapper.style.maxHeight = `${effectivePorHeight * 100}vh`;
+      // Получаем множитель высоты из актёра (по умолчанию 1)
+      const actorId = el?.dataset?.actorId;
+      let heightMultiplier = 1;
+      if (actorId) {
+        try {
+          const actor = game.actors?.get(actorId);
+          if (actor) {
+            const multiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+            if (typeof multiplier === "number" && Number.isFinite(multiplier)) {
+              heightMultiplier = Math.max(0, multiplier);
+            }
+          }
+        } catch (e) {
+          // ignore and use default
+        }
+      }
+
+      const finalHeight = effectivePorHeight * heightMultiplier;
+      wrapper.style.height    = `${finalHeight * 100}vh`;
+      wrapper.style.maxHeight = `${finalHeight * 100}vh`;
       wrapper.style.width     = `${widthPx}px`;
       wrapper.style.maxWidth  = `${widthPx}px`;
       wrapper.style.flex      = "0 0 auto";
@@ -756,8 +774,8 @@ function _onPortraitClick(ev) {
       // если портрет сейчас не в фокусе — применяем базовый zIndex;
       // фокусный оставляем выдвинутым вперёд
       const img = wrapper.querySelector("img.ginzzzu-portrait");
-      const actorId = img?.dataset.actorId;
-      if (!_focusedActorId || !actorId || actorId !== _focusedActorId) {
+      const picActorId = img?.dataset.actorId;
+      if (!_focusedActorId || !picActorId || picActorId !== _focusedActorId) {
         wrapper.style.zIndex = baseZ;
       }
     });
@@ -1429,8 +1447,9 @@ Hooks.once("ready", () => {
       // Проверяем, что изменилось именно то, что влияет на картинку эмоции
       const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
       const customEmotionsChanged = foundry.utils.hasProperty(changes, FLAG_CUSTOM_EMOTIONS);
+      const heightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
 
-      if (!emotionChanged && !customEmotionsChanged) return;
+      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged) return;
 
       const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
       if (!imgEl) return;
@@ -1448,6 +1467,11 @@ Hooks.once("ready", () => {
         if (imgEl.src !== resolvedNewImg) {
           _applyEmotionImageWithTransition(wrapper, imgEl, newImg);
         }
+      }
+
+      // If height multiplier changed, trigger relayout
+      if (heightMultiplierChanged) {
+        relayoutDomHud();
       }
 
     } catch (e) {

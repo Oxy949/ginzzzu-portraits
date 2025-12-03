@@ -75,4 +75,20 @@
       </select>
     </div>
   </div>
+
+  <!-- Четвёртая строка: множитель высоты портрета -->
+  <div class="emotion-row">
+    <div class="form-group">
+      <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionHeightMultiplier"}}</label>
+      <input
+        type="number"
+        class="emotion-height-multiplier"
+        value="{{emotion.heightMultiplier}}"
+        min="0"
+        step="0.1"
+        placeholder="1"
+      />
+      <p class="notes">{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionHeightMultiplierHint"}}</p>
+    </div>
+  </div>
 </div>

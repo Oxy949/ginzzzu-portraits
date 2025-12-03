@@ -1,5 +1,5 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
 
 const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
@@ -56,12 +56,18 @@ export async function configurePortrait(ev, actorSheet) {
   const motionOptions = Object.values(EMOTION_MOTIONS ?? {});
   const colorOptions  = colorPresetOptions;
 
+  // Получаем текущий множитель высоты портрета
+  const currentHeightMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+  const currentHeightMultiplier = typeof currentHeightMultiplierRaw === "number" ? currentHeightMultiplierRaw : 1;
+
   const templateData = {
     MODULE_ID,
 
     // Текст
     label,
     notes,
+    portraitHeightMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplier"),
+    portraitHeightMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplierHint"),
     customEmotionsLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.customEmotionsLabel"),
     showStandardLabel:   game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.showStandardEmotions"),
     addEmotionLabel:     game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.addEmotion"),
@@ -69,6 +75,7 @@ export async function configurePortrait(ev, actorSheet) {
     // Поля
     displayName: currentName,
     placeholder: actor.name ?? "",
+    portraitHeightMultiplier: currentHeightMultiplier,
     showStandardEmotions,
 
     // Списки
@@ -123,6 +130,15 @@ export async function configurePortrait(ev, actorSheet) {
                 await actor.setFlag(MODULE_ID, "displayName", value);
               }
 
+              // Save portrait height multiplier
+              const heightInput = html.find('input[name="portraitHeightMultiplier"]').val();
+              const heightValue = Number(heightInput ?? 1);
+              if (Number.isFinite(heightValue) && heightValue >= 0) {
+                await actor.setFlag(MODULE_ID, "portraitHeightMultiplier", heightValue);
+              } else {
+                await actor.unsetFlag(MODULE_ID, "portraitHeightMultiplier");
+              }
+
               // Save "show standard emotions" toggle (default true)
               const showStd = html.find('input[name="showStandardEmotions"]').is(':checked');
               await actor.setFlag(MODULE_ID, "showStandardEmotions", !!showStd);
@@ -138,10 +154,11 @@ export async function configurePortrait(ev, actorSheet) {
                 const imagePath      = String($elem.find('input.emotion-path').val() ?? "").trim();
                 const animation      = String($elem.find('select.emotion-animation').val() ?? "none");
                 const colorIntensity = String($elem.find('select.emotion-color').val() ?? "none");
+                const heightMultiplier = Number($elem.find('input.emotion-height-multiplier').val() ?? 1);
 
                 console.log(
                   `[${MODULE_ID}] Emotion ${idx}:`,
-                  { emoji, name, imagePath, animation, colorIntensity }
+                  { emoji, name, imagePath, animation, colorIntensity, heightMultiplier }
                 );
 
                 // Принимаем эмоцию, если заполнено хоть что-то осмысленное
@@ -151,7 +168,7 @@ export async function configurePortrait(ev, actorSheet) {
                   imagePath.length > 0;
 
                 if (hasAny) {
-                  emotions.push({ emoji, name, imagePath, animation, colorIntensity });
+                  emotions.push({ emoji, name, imagePath, animation, colorIntensity, heightMultiplier });
                 } else {
                   console.log(`[${MODULE_ID}] Ignoring empty emotion at index ${idx}`);
                 }

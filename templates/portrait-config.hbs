@@ -13,6 +13,22 @@
 
   <hr class="section-divider" />
 
+  <!-- Глобальная высота портрета -->
+  <div class="form-group portrait-height-multiplier-section">
+    <label>{{portraitHeightMultiplierLabel}}</label>
+    <input
+      type="number"
+      name="portraitHeightMultiplier"
+      value="{{portraitHeightMultiplier}}"
+      min="0"
+      step="0.1"
+      placeholder="1"
+    />
+    <p class="notes">{{portraitHeightMultiplierHint}}</p>
+  </div>
+
+  <hr class="section-divider" />
+
   <!-- Кастомные эмоции -->
   <section class="emotions-section">
     <header class="section-header">

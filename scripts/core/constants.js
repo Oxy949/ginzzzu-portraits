@@ -11,6 +11,7 @@ export const FLAG_FAVORITE                = `${FLAG_MODULE}.favorite`;
 export const FLAG_PORTRAIT_EMOTION        = `${FLAG_MODULE}.portraitEmotion`;
 export const FLAG_CUSTOM_EMOTIONS         = `${FLAG_MODULE}.customEmotions`;
 export const FLAG_SHOW_STANDARD_EMOTIONS  = `${FLAG_MODULE}.showStandardEmotions`;
+export const FLAG_PORTRAIT_HEIGHT_MULTIPLIER = `${FLAG_MODULE}.portraitHeightMultiplier`;
 
 // --------------------------------------------
 // 1) СПИСОК ЦВЕТОВ (цветкоры)

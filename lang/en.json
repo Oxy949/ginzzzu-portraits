@@ -27,6 +27,8 @@
       "title": "Portrait: {name}",
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
+      "portraitHeightMultiplier": "Portrait Height Multiplier",
+      "portraitHeightMultiplierHint": "Relative height multiplier for this portrait (0 = 0% of portraitHeight, 1 = 100%, 2 = 200%, etc.). Default: 1",
       "clear": "Reset name",
       "save": "Save",
       "customEmotionsLabel": "Custom Emotions",
@@ -41,6 +43,8 @@
       "emotionImageButtonHint": "Select Image",
       "emotionAnimation": "Animation",
       "emotionColor": "Color correction",
+      "emotionHeightMultiplier": "Portrait Height Multiplier",
+      "emotionHeightMultiplierHint": "Relative height multiplier (0 = 0% of portraitHeight, 1 = 100%, 2 = 200%, etc.). Default: 1",
       "removeEmotion": "Remove"
     },
 
