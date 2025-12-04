@@ -113,3 +113,49 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 #ginzzzu-portrait-layer.ginzzzu-show-names-always .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
     transform: translateX(-50%) translateY(0) scaleX(-1);
 }
+
+/* --- Hide UI toggle: make portraits semi-transparent and ignore pointer events --- */
+#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden {
+  /* keep the layer present, but dim portraits and disable their interaction */
+}
+
+#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden .ginzzzu-portrait-wrapper {
+  opacity: 0.35;
+  transition: opacity 180ms ease-out, filter 180ms ease-out;
+  pointer-events: none !important;
+}
+
+#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden .ginzzzu-portrait-name {
+  opacity: 0.5;
+}
+
+/* Toggle button (visible to all clients) */
+#ginzzzu-portrait-ui-toggle-btn {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100500;
+  pointer-events: auto;
+  background: rgba(12, 8, 16, 0.6);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+#ginzzzu-portrait-ui-toggle-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(12, 8, 16, 0.78);
+}
+
+#ginzzzu-portrait-ui-toggle-btn i {
+  font-size: 14px;
+}

@@ -281,6 +281,50 @@ const FRAME = {
     // Установить paddingLeft/paddingRight с учётом ширины #sidebar
     syncSidePadding(root, rail);
 
+    // === Toggle button: allow players & GM to hide portrait UI (make semi-transparent + disable clicks) ===
+    try {
+      const toggleId = 'ginzzzuPortraitsUiHidden';
+      const btn = document.createElement('button');
+      btn.id = 'ginzzzu-portrait-ui-toggle-btn';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.title = 'Toggle portrait UI';
+      btn.innerHTML = '<i class="fas fa-eye-slash" aria-hidden="true"></i>';
+      // ensure it's clickable even when root has pointer-events none
+      btn.style.pointerEvents = 'auto';
+
+      function updateToggleButtonIcon(el, hidden) {
+        try {
+          el.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+          el.innerHTML = hidden ? '<i class="fas fa-eye" aria-hidden="true"></i>' : '<i class="fas fa-eye-slash" aria-hidden="true"></i>';
+        } catch (e) {}
+      }
+
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        try {
+          const isHidden = root.classList.toggle('ginzzzu-portrait-ui-hidden');
+          try { localStorage.setItem(toggleId, isHidden ? '1' : '0'); } catch (e) {}
+          updateToggleButtonIcon(btn, isHidden);
+        } catch (e) { console.error('[ginzzzu-portraits] toggle button error:', e); }
+      }, { passive: true });
+
+      // Restore saved state per-client if any
+      try {
+        const saved = localStorage.getItem(toggleId);
+        if (saved === '1') {
+          root.classList.add('ginzzzu-portrait-ui-hidden');
+          updateToggleButtonIcon(btn, true);
+        } else {
+          updateToggleButtonIcon(btn, false);
+        }
+      } catch (e) {}
+
+      // Add button to root so it's positioned relative to portrait layer
+      root.appendChild(btn);
+    } catch (e) {
+      console.warn('[ginzzzu-portraits] failed to create UI toggle button:', e);
+    }
+
     document.getElementById("interface").appendChild(root);
     return root;
   }
