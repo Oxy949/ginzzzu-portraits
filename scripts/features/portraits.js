@@ -283,6 +283,24 @@ const FRAME = {
 
     // === Toggle button: allow players & GM to hide portrait UI (make semi-transparent + disable clicks) ===
     try {
+      // Check visibility setting: all, players, gm, or none
+      const visibility = game.settings.get(MODULE_ID, 'portraitUIToggleVisibility') || 'all';
+      const isGMUser = !!game.user?.isGM;
+      let shouldShow = false;
+
+      if (visibility === 'all') {
+        shouldShow = true;
+      } else if (visibility === 'players') {
+        shouldShow = !isGMUser;
+      } else if (visibility === 'gm') {
+        shouldShow = isGMUser;
+      }
+      // 'none' means shouldShow stays false
+
+      if (!shouldShow) {
+        return; // Don't create button if user shouldn't see it
+      }
+
       const toggleId = 'ginzzzuPortraitsUiHidden';
       const btn = document.createElement('button');
       btn.id = 'ginzzzu-portrait-ui-toggle-btn';

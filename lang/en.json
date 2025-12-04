@@ -148,6 +148,14 @@
         "name": "Reset emotion when hiding portrait",
         "hint": "When enabled, the actor's emotion flag will be cleared when their portrait is hidden."
       },
+      "portraitUIToggleVisibility": {
+        "name": "Portrait UI Toggle Button Visibility",
+        "hint": "Controls who can see the portrait UI toggle button.",
+        "all": "Show to everyone",
+        "players": "Show to players only",
+        "gm": "Show to GM only",
+        "none": "Hide from everyone"
+      },
 
       "emotionPanelScale": {
         "name": "Emotion Panel Scale",

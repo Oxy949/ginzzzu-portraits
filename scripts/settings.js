@@ -249,6 +249,23 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // === Portrait UI Toggle Button Visibility ===
+  reg("portraitUIToggleVisibility", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitUIToggleVisibility.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitUIToggleVisibility.hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      all: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitUIToggleVisibility.all"),
+      players: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitUIToggleVisibility.players"),
+      gm: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitUIToggleVisibility.gm"),
+      none: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitUIToggleVisibility.none")
+    },
+    default: "all",
+    requiresReload: true
+  });
+
   reg("emotionPanelScale", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.hint"),
