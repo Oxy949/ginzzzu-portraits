@@ -523,6 +523,16 @@ function _onPortraitClick(ev) {
   const actor = game.actors?.get(actorId);
   if (!actor) return;
 
+  // Ctrl+RMB — открыть лист актёра
+  if (ev.ctrlKey || ev.metaKey) {
+    try {
+      actor.sheet?.render(true);
+    } catch (e) {
+      console.error("[ginzzzu-portraits] Failed to open actor sheet:", e);
+    }
+    return;
+  }
+
   const isGMUser = !!game.user?.isGM;
   const isOwner  = !!actor.isOwner;
 
