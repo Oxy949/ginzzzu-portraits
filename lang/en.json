@@ -221,6 +221,11 @@
         "name": "Show Active Portraits Dock",
         "hint": "When enabled, a mini dock with active portrait circles is shown above the NPC dock."
       }
+    },
+    "PortraitUIToggle": {
+      "togglePortraitUI": "Toggle portraits",
+      "hideUI": "Hide portraits",
+      "showUI": "Show portraits"
     }
   }
 }

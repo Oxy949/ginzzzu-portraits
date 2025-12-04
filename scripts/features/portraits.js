@@ -287,7 +287,8 @@ const FRAME = {
       const btn = document.createElement('button');
       btn.id = 'ginzzzu-portrait-ui-toggle-btn';
       btn.setAttribute('aria-pressed', 'false');
-      btn.title = 'Toggle portrait UI';
+      const toggleLabel = game.i18n?.localize('GINZZZUPORTRAITS.PortraitUIToggle.togglePortraitUI') || 'Toggle portrait UI';
+      btn.title = toggleLabel;
       btn.innerHTML = '<i class="fas fa-eye-slash" aria-hidden="true"></i>';
       // ensure it's clickable even when root has pointer-events none
       btn.style.pointerEvents = 'auto';
@@ -295,6 +296,9 @@ const FRAME = {
       function updateToggleButtonIcon(el, hidden) {
         try {
           el.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+          const hideLabel = game.i18n?.localize('GINZZZUPORTRAITS.PortraitUIToggle.hideUI') || 'Hide portrait UI';
+          const showLabel = game.i18n?.localize('GINZZZUPORTRAITS.PortraitUIToggle.showUI') || 'Show portrait UI';
+          el.title = hidden ? showLabel : hideLabel;
           el.innerHTML = hidden ? '<i class="fas fa-eye" aria-hidden="true"></i>' : '<i class="fas fa-eye-slash" aria-hidden="true"></i>';
         } catch (e) {}
       }
