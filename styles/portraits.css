@@ -129,31 +129,44 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   opacity: 0.5;
 }
 
-/* Toggle button (visible to all clients) */
+/* Toggle button (visible to all clients) — position like collapsed NPC dock */
 #ginzzzu-portrait-ui-toggle-btn {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
+  position: fixed;
+  bottom: 8px;
+  /* Default position (aligned with collapsed npc-dock) */
+  left: calc(100vw - var(--sidebar-width) - 40px - 5px);
+  transform: none;
   z-index: 100500;
   pointer-events: auto;
-  background: rgba(12, 8, 16, 0.6);
+  /* Match NPC dock toolbar collapse button style for visual consistency */
+  background: rgba(0,0,0,0.35);
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 6px 8px;
-  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 4px 8px;
+  border-radius: 6px;
   cursor: pointer;
   min-width: 36px;
-  min-height: 36px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
-  transition: background-color 120ms ease, transform 120ms ease;
+  transition: background-color 0.2s ease, transform 120ms ease, left 200ms ease;
+}
+
+/* When the right sidebar is collapsed (matches npc-dock rule) */
+body:has(#sidebar-content:not(.expanded)) #ginzzzu-portrait-ui-toggle-btn {
+  left: calc(100vw - 52px - 32px);
+}
+
+/* When chat input is visible, push button left to avoid overlapping (matches npc-dock behavior) */
+body:has(#chat-notifications:not(.input-hidden)) #ginzzzu-portrait-ui-toggle-btn {
+  left: calc(100vw - 52px - 346px);
 }
 
 #ginzzzu-portrait-ui-toggle-btn:hover {
   transform: translateY(-2px);
-  background: rgba(12, 8, 16, 0.78);
+  background: rgba(0,0,0,0.5);
 }
 
 #ginzzzu-portrait-ui-toggle-btn i {
