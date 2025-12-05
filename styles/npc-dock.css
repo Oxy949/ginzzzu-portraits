@@ -29,11 +29,11 @@
 
 #ginzzzu-npc-dock.collapsed {
   width: auto;
-  padding: 8px;
-  bottom: 0;
+  padding: 0px;
+  bottom: 46px;
   /* Default: panel expanded, chat tab active, quick chat inactive (вариант 3) */
   /* Position: 100vw - left-sidebar - sidebar-width - buttons-width */
-  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--buttons-total-width));
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--buttons-total-width) + 44px);
   transform: none;
   background: none;
   border: none;
@@ -44,22 +44,25 @@
 
 /* 1. Панель свёрнута, быстрый чат не активен - минимальный отступ */
 body:has(#sidebar-content:not(.expanded)) #ginzzzu-npc-dock.collapsed {
-  left: calc(100vw - var(--left-sidebar-width) - var(--buttons-total-width));
+  left: calc(100vw - var(--left-sidebar-width) - var(--buttons-total-width) + 52px);
 }
 
 /* 2. Панель свёрнута, быстрый чат активен - отступ на ширину быстрого чата */
 body:has(#sidebar-content:not(.expanded)):has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
-  left: calc(100vw - var(--left-sidebar-width) - var(--quick-chat-width) - var(--buttons-total-width) - 16px);
+  left: calc(100vw - var(--left-sidebar-width) - var(--quick-chat-width) - var(--buttons-total-width) + 34px);
 }
 
 /* 5. Панель развёрнута, быстрый чат активен - отступ на ширину панели + быстрый чат + доп. 16px (имеет приоритет) */
 body:has(#sidebar-content.expanded):has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
-  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--quick-chat-width) - var(--buttons-total-width) - 16px);
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--quick-chat-width) - var(--buttons-total-width) + 36px);
+}
+body:has(#sidebar-content.expanded.active-chat):has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - var(--sidebar-width) - 40px);
 }
 
 /* 4. Панель развёрнута, вкладка НЕ чат, быстрый чат не активен - отступ на ширину панели + доп. кнопки */
-body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#chat-notifications.input-hidden) #ginzzzu-npc-dock.collapsed {
-  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--buttons-total-width) - var(--extra-buttons-width));
+body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat-notifications.input-hidden) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--buttons-total-width) - var(--extra-buttons-width) + 82px);
 }
 
 #ginzzzu-npc-dock.collapsed .content {
@@ -67,7 +70,7 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
 }
 
 #ginzzzu-npc-dock.collapsed .toolbar {
-  margin-bottom: 0;
+  margin-bottom: 0px;
 }
 
 #ginzzzu-npc-dock.collapsed .toolbar .left,
@@ -436,6 +439,7 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
 
 #ginzzzu-npc-dock.collapsed .active-portraits {
   justify-content: right;
+  padding-right: 1px;
   right: 1px;
 }
 
