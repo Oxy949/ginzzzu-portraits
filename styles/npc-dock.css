@@ -15,31 +15,51 @@
   transition: all 0.3s ease-in-out;
 }
 
+/* === Collapse Button Positioning === */
+/* CSS variables for button positioning */
+:root {
+  --left-sidebar-width: 38px;    /* ширина левой панели с кнопками-вкладками */
+  --button-width: 44px;          /* ширина кнопки (в том числе отступы) */
+  --button-spacing: 8px;         /* расстояние между кнопками */
+  --sidebar-width: 300px;        /* ширина открытой правой панели */
+  --quick-chat-width: 300px;     /* ширина быстрого чата */
+  --extra-buttons-width: 30px;   /* ширина доп. кнопок */
+  --buttons-total-width: calc(var(--button-width) + var(--button-spacing) + var(--button-width));
+}
+
 #ginzzzu-npc-dock.collapsed {
   width: auto;
   padding: 8px;
   bottom: 0;
-  left: calc(100vw - var(--sidebar-width) - 52px - 5px - 40px);
+  /* Default: panel expanded, chat tab active, quick chat inactive (вариант 3) */
+  /* Position: 100vw - left-sidebar - sidebar-width - buttons-width */
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--buttons-total-width));
   transform: none;
   background: none;
   border: none;
   box-shadow: none;
   backdrop-filter: none;
-  transition: all 0.3s ease-in-out;
+  transition: left 0.3s ease-in-out;
 }
 
-/* Когда правая панель скрыта */
+/* 1. Панель свёрнута, быстрый чат не активен - минимальный отступ */
 body:has(#sidebar-content:not(.expanded)) #ginzzzu-npc-dock.collapsed {
-  left: calc(100vw - 52px - 56px - 28px);
-  background: none;
-  border: none;
-  box-shadow: none;
-  backdrop-filter: none;
+  left: calc(100vw - var(--left-sidebar-width) - var(--buttons-total-width));
 }
 
-/* Когда текстовое поле НЕ скрыто (класс input-hidden отсутствует) */
-body:has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
-  left: calc(100vw - 52px - 366px - 28px);
+/* 2. Панель свёрнута, быстрый чат активен - отступ на ширину быстрого чата */
+body:has(#sidebar-content:not(.expanded)):has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - var(--left-sidebar-width) - var(--quick-chat-width) - var(--buttons-total-width) - 16px);
+}
+
+/* 5. Панель развёрнута, быстрый чат активен - отступ на ширину панели + быстрый чат + доп. 16px (имеет приоритет) */
+body:has(#sidebar-content.expanded):has(#chat-notifications:not(.input-hidden)) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--quick-chat-width) - var(--buttons-total-width) - 16px);
+}
+
+/* 4. Панель развёрнута, вкладка НЕ чат, быстрый чат не активен - отступ на ширину панели + доп. кнопки */
+body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#chat-notifications.input-hidden) #ginzzzu-npc-dock.collapsed {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--buttons-total-width) - var(--extra-buttons-width));
 }
 
 #ginzzzu-npc-dock.collapsed .content {

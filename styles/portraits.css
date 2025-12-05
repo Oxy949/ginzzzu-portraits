@@ -129,12 +129,13 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   opacity: 0.5;
 }
 
-/* Toggle button (visible to all clients) — position like collapsed NPC dock */
+/* === UI Toggle Button Positioning === */
 #ginzzzu-portrait-ui-toggle-btn {
   position: fixed;
   bottom: 8px;
-  /* Default position (aligned with collapsed npc-dock) */
-  left: calc(100vw - var(--sidebar-width) - 40px - 5px);
+  /* Default: panel expanded, chat tab active, quick chat inactive (вариант 3) */
+  /* Position: 100vw - left-sidebar - sidebar-width - button-width */
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--button-width));
   transform: none;
   z-index: 100500;
   pointer-events: auto;
@@ -151,17 +152,27 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
-  transition: background-color 0.2s ease, transform 120ms ease, left 200ms ease;
+  transition: background-color 0.2s ease, transform 120ms ease, left 0.3s ease-in-out;
 }
 
-/* When the right sidebar is collapsed (matches npc-dock rule) */
+/* 1. Панель свёрнута, быстрый чат не активен - минимальный отступ */
 body:has(#sidebar-content:not(.expanded)) #ginzzzu-portrait-ui-toggle-btn {
-  left: calc(100vw - 52px - 32px);
+  left: calc(100vw - var(--left-sidebar-width) - var(--button-width));
 }
 
-/* When chat input is visible, push button left to avoid overlapping (matches npc-dock behavior) */
-body:has(#chat-notifications:not(.input-hidden)) #ginzzzu-portrait-ui-toggle-btn {
-  left: calc(100vw - 52px - 346px);
+/* 2. Панель свёрнута, быстрый чат активен - отступ на ширину быстрого чата */
+body:has(#sidebar-content:not(.expanded)):has(#chat-notifications:not(.input-hidden)) #ginzzzu-portrait-ui-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--quick-chat-width) - var(--button-width) - 18px);
+}
+
+/* 5. Панель развёрнута, быстрый чат активен - отступ на ширину панели + быстрый чат + доп. 16px (имеет приоритет) */
+body:has(#sidebar-content.expanded):has(#chat-notifications:not(.input-hidden)) #ginzzzu-portrait-ui-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--quick-chat-width) - var(--button-width) - 16px);
+}
+
+/* 4. Панель развёрнута, вкладка НЕ чат, быстрый чат не активен - отступ на ширину панели + доп. кнопки */
+body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#chat-notifications.input-hidden) #ginzzzu-portrait-ui-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--button-width) - var(--extra-buttons-width));
 }
 
 #ginzzzu-portrait-ui-toggle-btn:hover {
