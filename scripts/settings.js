@@ -345,7 +345,7 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: String,
-    default: "npc, adversary, creature, monster, minion",
+    default: "npc, adversary, creature, monster, minion, character, blackice",
     requiresReload: true
   });
 

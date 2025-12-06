@@ -7,7 +7,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     return new Set(String(v ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
   }
   function getNPCTypes() {
-    try { return parseCSVTypes(game.settings.get(MODULE_ID, "npcActorTypes")); } catch { return parseCSVTypes("npc, adversary, creature, monster, minion"); }
+    try { return parseCSVTypes(game.settings.get(MODULE_ID, "npcActorTypes")); } catch { return parseCSVTypes("npc, adversary, creature, monster, minion, character, blackice"); }
   }
   function getPCTypes() {
     try { return parseCSVTypes(game.settings.get(MODULE_ID, "pcActorTypes")); } catch { return parseCSVTypes("character, pc, hero, player"); }
@@ -71,6 +71,11 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     return null;
   }
 
+  function getFolderColor(folderId) {
+    const folder = game.folders?.get(folderId);
+    return folder?.color || null;
+  }
+
   // ── FOLDERS / TOOLTIP / PATH ────────────────────────────────────────────────
   function getFolderPath(actor) {
     const names = [];
@@ -99,7 +104,12 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     }
     const folders = (game.folders?.filter(f => f.type === "Actor") ?? [])
       .filter(f => usedFolderIds.has(f.id))
-      .map(f => ({ id: f.id, name: f.name, path: getFolderPath({ folder: f }) || f.name }));
+      .map(f => ({ 
+        id: f.id, 
+        name: f.name, 
+        path: getFolderPath({ folder: f }) || f.name,
+        color: f.color 
+      }));
     folders.sort((x,y) => (x.path||"").localeCompare(y.path||"", game.i18n.lang || undefined, { sensitivity:"base" }));
     return folders;
   }
@@ -113,7 +123,12 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     }
     const folders = (game.folders?.filter(f => f.type === "Actor") ?? [])
       .filter(f => usedFolderIds.has(f.id))
-      .map(f => ({ id: f.id, name: f.name, path: getFolderPath({ folder: f }) || f.name }));
+      .map(f => ({ 
+        id: f.id, 
+        name: f.name, 
+        path: getFolderPath({ folder: f }) || f.name,
+        color: f.color 
+      }));
     folders.sort((x,y) => (x.path||"").localeCompare(y.path||"", game.i18n.lang || undefined, { sensitivity:"base" }));
     return folders;
   }
@@ -128,6 +143,91 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     root.id = DOCK_ID;
     root.style.display = "none";
     document.body.appendChild(root);
+
+    // Добавляем стили для выпадающих списков
+    const style = document.createElement('style');
+    style.textContent = `
+      #${DOCK_ID} select {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border: 1px solid #444 !important;
+        border-radius: 4px;
+        padding: 4px 8px;
+        min-width: 120px;
+      }
+      
+      #${DOCK_ID} select option {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        padding: 8px 12px;
+      }
+      
+      #${DOCK_ID} select option.folder-option {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        padding: 8px 12px;
+      }
+      
+      /* Стили для полностью окрашенных строк папок */
+      #${DOCK_ID} select option.folder-colored {
+        color: #ffffff !important;
+        font-weight: 500;
+        padding: 8px 12px;
+        border-left: 4px solid transparent;
+      }
+      
+      #${DOCK_ID} .toolbar {
+        min-width: 133% !important;
+        width: 133% !important;
+        transform: translateX(-12.5%);
+        padding: 8px 12.5%;
+      }
+      
+      #${DOCK_ID} .toolbar .left,
+      #${DOCK_ID} .toolbar .right {
+        width: auto !important;
+        flex: 1 !important;
+      }
+      
+      #${DOCK_ID} .toolbar .left {
+        flex: 2 !important;
+      }
+      
+      #${DOCK_ID} .toolbar .right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+      
+      #${DOCK_ID} .toolbar label {
+        white-space: nowrap;
+        margin: 0 4px;
+        color: #ffffff;
+      }
+      
+      #${DOCK_ID} input[type="text"] {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border: 1px solid #444 !important;
+        border-radius: 4px;
+        padding: 4px 8px;
+      }
+      
+      #${DOCK_ID} .toolbar button {
+        background-color: #2a2a2a !important;
+        color: #ffffff !important;
+        border: 1px solid #444 !important;
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+      }
+      
+      #${DOCK_ID} .toolbar button:hover {
+        background-color: #3a3a3a !important;
+      }
+    `;
+    root.appendChild(style);
 
     // Mini dock container (CSS handles layout) — shows currently active portraits as circles
     const mini = document.createElement("div");
@@ -270,6 +370,32 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       const opt = document.createElement("option");
       opt.value = f.id;
       opt.textContent = f.path || f.name || "(без имени)";
+      opt.className = "folder-option folder-colored";
+      
+      // Добавляем цвет папки как фон всей строки
+      if (f.color) {
+        // Создаем уникальный класс для этого цвета
+        const colorClass = `folder-bg-${f.color.replace('#', '')}`;
+        opt.classList.add(colorClass);
+        
+        // Добавляем стиль для цветного фона
+        const style = document.createElement('style');
+        if (!document.head.querySelector(`[data-folder-bg="${f.color}"]`)) {
+          style.setAttribute('data-folder-bg', f.color);
+          style.textContent = `
+            #ginzzzu-npc-dock select option.folder-colored.${colorClass} {
+              background-color: ${f.color} !important;
+              border-left: 4px solid ${adjustColorBrightness(f.color, -50)} !important;
+            }
+            
+            #ginzzzu-npc-dock select option.folder-colored.${colorClass}:hover {
+              background-color: ${adjustColorBrightness(f.color, 20)} !important;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+      }
+      
       sel.appendChild(opt);
     }
     
@@ -277,6 +403,29 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     sel.value = current;
     if (sel.value !== current) { sel.value = "all"; setFolderSel("all"); }
+  }
+
+  // Функция для регулировки яркости цвета
+  function adjustColorBrightness(hex, percent) {
+    // Убираем # если есть
+    hex = hex.replace(/^\#/, '');
+    
+    // Преобразуем в RGB
+    let r = parseInt(hex.substr(0, 2), 16);
+    let g = parseInt(hex.substr(2, 2), 16);
+    let b = parseInt(hex.substr(4, 2), 16);
+    
+    // Регулируем яркость
+    r = Math.max(0, Math.min(255, r + (r * percent) / 100));
+    g = Math.max(0, Math.min(255, g + (g * percent) / 100));
+    b = Math.max(0, Math.min(255, b + (b * percent) / 100));
+    
+    // Преобразуем обратно в HEX
+    const rr = Math.round(r).toString(16).padStart(2, '0');
+    const gg = Math.round(g).toString(16).padStart(2, '0');
+    const bb = Math.round(b).toString(16).padStart(2, '0');
+    
+    return `#${rr}${gg}${bb}`;
   }
 
   // Клик по карточке: toggle флага (общая для NPC/PLAYER)
@@ -478,7 +627,8 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       npcs = npcs.filter(a => {
         const name = (a.name || "").toLowerCase();
         const path = (getFolderPath(a) || "").toLowerCase();
-        return name.includes(q) || path.includes(q);
+        const matches = name.includes(q) || path.includes(q);
+        return matches;
       });
     }
 
@@ -489,9 +639,17 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     // разделяем на избранных и остальных
     const rest = [];
+    const favorites = [];
+    
     for (const a of npcs) {
-      if (!foundry.utils.getProperty(a, FLAG_FAVORITE)) rest.push(a);
+      if (foundry.utils.getProperty(a, FLAG_FAVORITE)) {
+        favorites.push(a);
+      } else {
+        rest.push(a);
+      }
     }
+
+    console.log(`[NPC Dock] Favorites: ${favorites.length}, Rest: ${rest.length}`);
 
     // если все совпадающие оказались избранными — основная лента пустая
     if (!rest.length) {
