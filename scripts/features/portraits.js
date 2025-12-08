@@ -297,13 +297,16 @@ const FRAME = {
       }
       // 'none' means shouldShow stays false
 
-      if (!shouldShow) {
-        return; // Don't create button if user shouldn't see it
-      }
+      // if (!shouldShow) {
+      //   return; // Don't create button if user shouldn't see it
+      // }
 
       const toggleId = 'ginzzzuPortraitsUiHidden';
       const btn = document.createElement('button');
       btn.id = 'ginzzzu-portrait-ui-toggle-btn';
+      if (!shouldShow) {
+        btn.className = 'hidden';
+      }
       btn.setAttribute('aria-pressed', 'false');
       const toggleLabel = game.i18n?.localize('GINZZZUPORTRAITS.PortraitUIToggle.togglePortraitUI') || 'Toggle portrait UI';
       btn.title = toggleLabel;
