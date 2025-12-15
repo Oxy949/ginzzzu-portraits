@@ -891,11 +891,8 @@ function _onPortraitClick(ev) {
       // Передаём offset в CSS-переменную для компенсации высоты
       wrapper.style.setProperty("--portrait-height-offset-y", `${heightOffsetVh}vh`);
       
-      // Передаём значение в CSS как переменную
-      wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}%`);
-      
       // Передаём настройки имени в CSS-переменные
-      wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}%`);
+      wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}vh`);
       wrapper.style.setProperty("--threeo-portrait-name-font-size", `${nameFontSize}px`);
 
 

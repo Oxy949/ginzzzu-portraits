@@ -65,7 +65,7 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 .ginzzzu-portrait-wrapper .ginzzzu-portrait-name {
   position: absolute;
   left: 50%;
-  top: var(--threeo-portrait-name-top, 50%);
+  bottom: calc(100vh - var(--threeo-portrait-name-top, 50vh));
   transform: translateX(-50%) translateY(4px);
   z-index: 10;
 
