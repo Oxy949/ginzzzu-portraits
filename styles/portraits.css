@@ -62,12 +62,18 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 }
 
 /* Плашка имени портрета, всплывающая при наведении */
-.ginzzzu-portrait-wrapper .ginzzzu-portrait-name {
+/* Names container: badges are positioned here so they can sit above portraits */
+#ginzzzu-portrait-names {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100000; /* above portrait wrappers */
+}
+
+#ginzzzu-portrait-names .ginzzzu-portrait-name {
   position: absolute;
   left: 50%;
-  bottom: calc(100vh - var(--threeo-portrait-name-top, 50vh));
   transform: translateX(-50%) translateY(4px);
-  z-index: 10;
 
   padding: 2px 10px;
   border-radius: 999px;
@@ -87,31 +93,29 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
-.ginzzzu-portrait-wrapper:hover .ginzzzu-portrait-name {
+/* When visible state is toggled from JS we apply the visible class */
+#ginzzzu-portrait-names .ginzzzu-portrait-name.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-/* Всегда показывать имена на портретах, если включено в настройках */
-#ginzzzu-portrait-layer.ginzzzu-show-names-always .ginzzzu-portrait-name {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-  pointer-events: auto;
-}
+/* Always-show-names mode: JS will toggle visible state for all badges */
 
 /* Флип всей ячейки: меняем только переменную, а не transform */
-.ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped {
-  --ginzzzu-flip-scale-x: -1;
-}
+/* keep flip variable for wrapper */
+/* flipped badges: badges live in the names container so use a flipped class on the badge when needed
+  (JS will set inline transform for flipped badges, but provide a class fallback)
+  Note: wrapper flip still controlled on the wrapper element */
 
-/* Подпись флипнем обратно, чтобы текст не был зеркальным
-   (это оставляем как есть, как у тебя и было) */
-.ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
+#ginzzzu-portrait-names .ginzzzu-portrait-name.flipped {
   transform: translateX(-50%) translateY(0) scaleX(-1);
 }
 
-#ginzzzu-portrait-layer.ginzzzu-show-names-always .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped .ginzzzu-portrait-name {
-    transform: translateX(-50%) translateY(0) scaleX(-1);
+/* Always-show-names mode: show badges via the layer -> names container */
+#ginzzzu-portrait-layer.ginzzzu-show-names-always #ginzzzu-portrait-names .ginzzzu-portrait-name {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
 }
 
 /* --- Hide UI toggle: make portraits semi-transparent and ignore pointer events --- */
@@ -125,7 +129,7 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   pointer-events: none !important;
 }
 
-#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden .ginzzzu-portrait-name {
+#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden #ginzzzu-portrait-names .ginzzzu-portrait-name {
   opacity: 0.5;
 }
 

@@ -278,6 +278,20 @@ const FRAME = {
     }
     root.appendChild(rail);
 
+    // Names container: badges live here so they can float above portrait wrappers
+    let namesContainer = document.getElementById("ginzzzu-portrait-names");
+    if (!namesContainer) {
+      namesContainer = document.createElement("div");
+      namesContainer.id = "ginzzzu-portrait-names";
+      Object.assign(namesContainer.style, {
+        position: "absolute",
+        inset: "0",
+        pointerEvents: "none",
+        zIndex: "100000"
+      });
+      root.appendChild(namesContainer);
+    }
+
     // Установить paddingLeft/paddingRight с учётом ширины #sidebar
     syncSidePadding(root, rail);
 
@@ -354,6 +368,38 @@ const FRAME = {
     return root;
   }
 
+    // Position all name badges to match their wrappers; called after layout changes
+    function updateNamePositions() {
+      const root = getDomHud();
+      if (!root) return;
+      const namesContainer = root.querySelector('#ginzzzu-portrait-names');
+      if (!namesContainer) return;
+
+      const wrappers = Array.from(root.querySelectorAll('.ginzzzu-portrait-wrapper'));
+      for (const wrapper of wrappers) {
+        const actorId = wrapper.dataset.actorId;
+        if (!actorId) continue;
+        const badge = namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`);
+        if (!badge) continue;
+
+        // Horizontal: center above wrapper
+        try {
+          const rect = wrapper.getBoundingClientRect();
+          const centerX = rect.left + (rect.width / 2);
+          badge.style.left = `${centerX}px`;
+        } catch (e) {}
+
+        // Vertical placement: try to reuse wrapper variable if present
+        const nameTopVar = wrapper.style.getPropertyValue('--threeo-portrait-name-top') || '50vh';
+        // badge bottom should equal calc(100vh - nameTopVar)
+        badge.style.bottom = `calc(100vh - ${nameTopVar})`;
+
+        // font-size propagation
+        const fontSize = wrapper.style.getPropertyValue('--threeo-portrait-name-font-size');
+        if (fontSize) badge.style.fontSize = fontSize;
+      }
+    }
+
   // Получить ширину правой панели (если есть)
   function getSidebarWidth() {
     if (!game.settings.get(MODULE_ID, "adjustForSidebar"))
@@ -427,7 +473,9 @@ const FRAME = {
     wrapper.dataset.displayName = safeName;
 
     // Работаем с плашкой имени
-    let badge = wrapper.querySelector(".ginzzzu-portrait-name");
+    const root = getDomHud();
+    const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
+    let badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`) : null;
 
     if (!safeName || !showNames) {
       // Имя пустое или режим "не показывать" — удаляем плашку
@@ -435,15 +483,37 @@ const FRAME = {
         badge.remove();
         badge = null;
       }
-    } else if (safeName && !badge) {
-      // Имя появилось и показ разрешён — создаём плашку
+    } else if (safeName && !badge && namesContainer) {
+      // Имя появилось и показ разрешён — создаём плашку in names container
       badge = document.createElement("div");
       badge.className = "ginzzzu-portrait-name";
-      wrapper.appendChild(badge);
+      badge.dataset.actorId = actorId;
+      badge.textContent = safeName;
+      namesContainer.appendChild(badge);
+
+      // attach hover handlers from the wrapper if present
+      try {
+        const wrapperEl = root.querySelector(`.ginzzzu-portrait-wrapper[data-actor-id="${actorId}"]`);
+        if (wrapperEl) {
+          wrapperEl.addEventListener('mouseenter', () => badge.classList.add('visible'), { passive: true });
+          wrapperEl.addEventListener('mouseleave', () => {
+            const rootEl = getDomHud();
+            if (rootEl && rootEl.classList.contains('ginzzzu-show-names-always')) return;
+            badge.classList.remove('visible');
+          }, { passive: true });
+        }
+      } catch (e) {}
     }
 
     if (badge) {
       badge.textContent = safeName;
+      // Ensure visible state for always-show mode
+      const rootEl = getDomHud();
+      if (rootEl && rootEl.classList.contains('ginzzzu-show-names-always')) {
+        badge.classList.add('visible');
+      } else {
+        badge.classList.remove('visible');
+      }
     }
 
     // alt тоже освежим
@@ -543,6 +613,19 @@ const FRAME = {
 
     // навешиваем/снимаем класс, сам transform перенесём в CSS
     wrapper.classList.toggle("ginzzzu-portrait-flipped", isFlipped);
+    // Mirror badge text back so it's readable (badges live in names container)
+    try {
+      const root = getDomHud();
+      const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
+      const badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${img.dataset.actorId}"]`) : null;
+      if (badge) {
+        if (isFlipped) {
+          badge.style.transform = 'translateX(-50%) translateY(0) scaleX(-1)';
+        } else {
+          badge.style.transform = 'translateX(-50%) translateY(0)';
+        }
+      }
+    } catch (e) {}
   }
 
 
@@ -910,6 +993,8 @@ function _onPortraitClick(ev) {
 
     // после перераскладки обновим "тени"/подсветку (на случай изменения порядка)
     _applyPortraitFocus();
+    // обновим позиции именных плашек
+    try { updateNamePositions(); } catch (e) {}
   }
 
 
@@ -1082,12 +1167,29 @@ function _onPortraitClick(ev) {
 
         const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
 
-        // Имя — только если оно не пустое и режим не "none"
+        // Имя — только если оно не пустое и режим не "none"; badges live in names container
         if (safeName && nameMode !== "none") {
-          const nameBadge = document.createElement("div");
-          nameBadge.className = "ginzzzu-portrait-name";
-          nameBadge.textContent = safeName;
-          wrapper.appendChild(nameBadge);
+          try {
+            const root = getDomHud();
+            const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
+            if (namesContainer) {
+              const nameBadge = document.createElement("div");
+              nameBadge.className = "ginzzzu-portrait-name";
+              nameBadge.dataset.actorId = actorId;
+              nameBadge.textContent = safeName;
+              namesContainer.appendChild(nameBadge);
+
+              // Hover handlers on wrapper to show/hide badge
+              wrapper.addEventListener('mouseenter', () => {
+                nameBadge.classList.add('visible');
+              }, { passive: true });
+              wrapper.addEventListener('mouseleave', () => {
+                const rootEl = getDomHud();
+                if (rootEl && rootEl.classList.contains('ginzzzu-show-names-always')) return;
+                nameBadge.classList.remove('visible');
+              }, { passive: true });
+            }
+          } catch (e) {}
         }
 
         wrapper.appendChild(el);
@@ -1166,6 +1268,8 @@ function _onPortraitClick(ev) {
     
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
+    // Ensure badges are positioned after layout
+    requestAnimationFrame(() => updateNamePositions());
 
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       // Ждем полной загрузки изображения в DOM перед анимацией
@@ -1236,6 +1340,15 @@ function _onPortraitClick(ev) {
           el.remove();
         }
       } catch {}
+      // Also remove name badge if present
+      try {
+        const root = getDomHud();
+        const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
+        if (namesContainer) {
+          const b = namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`);
+          if (b) b.remove();
+        }
+      } catch (e) {}
       map.delete(actorId);
       relayoutDomHud(firstRects);
     }, timeout);
@@ -1505,11 +1618,12 @@ function _onPortraitClick(ev) {
       wrapper.dataset.rawName = rawName;
       wrapper.dataset.displayName = displayName || "";
 
-      // обновляем текст плашки
-      const badge = wrapper.querySelector(".ginzzzu-portrait-name");
-      if (badge) {
-        badge.textContent = displayName || rawName || "";
-      }
+      // обновляем текст плашки (badges live in names container)
+      try {
+        const namesContainer = root.querySelector('#ginzzzu-portrait-names');
+        const badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`) : null;
+        if (badge) badge.textContent = displayName || rawName || "";
+      } catch (e) {}
 
       // обновляем alt у картинки
       const img = wrapper.querySelector("img.ginzzzu-portrait");
