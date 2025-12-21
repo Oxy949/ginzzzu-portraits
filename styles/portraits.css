@@ -111,6 +111,11 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   transform: translateX(-50%) translateY(0) scaleX(-1);
 }
 
+/* When a wrapper is flipped, set the flip CSS variable so the wrapper (and its image) flips */
+#ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped {
+  --ginzzzu-flip-scale-x: -1;
+}
+
 /* Always-show-names mode: show badges via the layer -> names container */
 #ginzzzu-portrait-layer.ginzzzu-show-names-always #ginzzzu-portrait-names .ginzzzu-portrait-name {
   opacity: 1;

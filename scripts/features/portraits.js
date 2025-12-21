@@ -619,11 +619,7 @@ const FRAME = {
       const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
       const badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${img.dataset.actorId}"]`) : null;
       if (badge) {
-        if (isFlipped) {
-          badge.style.transform = 'translateX(-50%) translateY(0) scaleX(-1)';
-        } else {
-          badge.style.transform = 'translateX(-50%) translateY(0)';
-        }
+        badge.classList.toggle('flipped', isFlipped);
       }
     } catch (e) {}
   }
