@@ -5,6 +5,8 @@
   "GINZZZUPORTRAITS": {
     "showCharacterPortrait": "Show Character",
     "hideCharacterPortrait": "Hide Character",
+    "tokenHUDShowPortrait": "Show Character",
+    "tokenHUDHidePortrait": "Hide Character",  
     "configurePortrait": "Configure portrait",
     "toggleCharacterPortrait": "Toggle Character",
     "showPanelUI": "Show Characters Panel",
