@@ -5,6 +5,8 @@
     "GINZZZUPORTRAITS": {
       "showCharacterPortrait": "Показать Персонажа",
       "hideCharacterPortrait": "Скрыть Персонажа",
+      "tokenHUDShowPortrait": "Показать Персонажа",
+      "tokenHUDHidePortrait": "Скрыть Персонажа",        
       "configurePortrait": "Настроить портрет",
       "toggleCharacterPortrait": "Переключить Персонажа",
       "showPanelUI": "Показать Панель Персонажей",
