@@ -8,3 +8,4 @@ import "./features/portraits.js";
 import "./features/npcDock.js";
 import "./features/portraits-emotions.js";
 import "./features/tokenHudPortraitToggle.js";
+import "./features/playerPortraitToolbarToggle.js";
