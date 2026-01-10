@@ -1,6 +1,11 @@
 // tokenHudPortraitToggle.js
 import { MODULE_ID, FLAG_PORTRAIT_SHOWN } from "../core/constants.js";
 
+function getWorldActorFromToken(token) {
+  const actorId = token?.document?.actorId ?? token?.actor?.id;
+  return actorId ? (game.actors?.get(actorId) ?? token?.actor ?? null) : (token?.actor ?? null);
+}
+
 function canToggleForActor(actor) {
   if (!actor) return false;
 
@@ -27,7 +32,7 @@ function ensureButton(hud, html) {
   if (html[0]?.querySelector?.(".ginzzzu-tokenhud-portrait")) return;
 
   const token = hud.object;               // Token (PlaceableObject)
-  const actor = token?.actor ?? token?.document?.actor;
+  const actor = getWorldActorFromToken(token);
   if (!actor) return;
   if (!canToggleForActor(actor)) return;
 
@@ -49,7 +54,7 @@ function ensureButton(hud, html) {
     ev.preventDefault();
     ev.stopPropagation();
 
-    const a = token?.actor ?? token?.document?.actor;
+  const a = getWorldActorFromToken(token);
     if (!a) return;
 
     // Переключаем портрет актёра (вариант A)
