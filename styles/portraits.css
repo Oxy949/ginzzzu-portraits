@@ -195,3 +195,57 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
 #ginzzzu-portrait-ui-toggle-btn i {
   font-size: 14px;
 }
+
+/* === Player portrait toggle (masks) — stacked above the eye button === */
+#ginzzzu-player-portrait-toggle-btn {
+  position: fixed;
+  /* Same horizontal position rules as the eye button */
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--button-width));
+  transform: none;
+  z-index: 100501; /* a bit above the eye */
+  pointer-events: auto;
+
+  /* Place above the eye: bottom(eye) + height(eye) + gap */
+  bottom: calc(18px + 28px + 6px);
+
+  /* Match eye button styling */
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 36px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background-color 0.2s ease, transform 120ms ease, left 0.3s ease-in-out;
+}
+
+/* Mirror the same responsive positioning rules as the eye button */
+body:has(#sidebar-content:not(.expanded)) #ginzzzu-player-portrait-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--button-width));
+}
+body:has(#sidebar-content:not(.expanded)):has(#chat-notifications:not(.input-hidden)) #ginzzzu-player-portrait-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--quick-chat-width) - var(--button-width) - 18px);
+}
+body:has(#sidebar-content.expanded):has(#chat-notifications:not(.input-hidden)) #ginzzzu-player-portrait-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--quick-chat-width) - var(--button-width) - 16px);
+}
+body:has(#sidebar-content.expanded.active-chat):has(#chat-notifications:not(.input-hidden)) #ginzzzu-player-portrait-toggle-btn {
+  left: calc(100vw - var(--sidebar-width) - 48px + 8px);
+}
+body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#chat-notifications.input-hidden) #ginzzzu-player-portrait-toggle-btn {
+  left: calc(100vw - var(--left-sidebar-width) - var(--sidebar-width) - var(--button-width) - var(--extra-buttons-width));
+}
+
+#ginzzzu-player-portrait-toggle-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(0,0,0,0.5);
+}
+
+#ginzzzu-player-portrait-toggle-btn i {
+  font-size: 14px;
+}
