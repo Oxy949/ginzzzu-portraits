@@ -5,6 +5,8 @@
   "GINZZZUPORTRAITS": {
     "showCharacterPortrait": "Show Character",
     "hideCharacterPortrait": "Hide Character",
+    "playerShowPortrait": "Show My Character",
+    "playerHidePortrait": "Hide My Character",
     "tokenHUDShowPortrait": "Show Character",
     "tokenHUDHidePortrait": "Hide Character",  
     "configurePortrait": "Configure portrait",
@@ -157,6 +159,11 @@
         "players": "Show to players only",
         "gm": "Show to GM only",
         "none": "Hide from everyone"
+      },
+
+      "playerPortraitToolbarButton": {
+        "name": "Player portrait toolbar button",
+        "hint": "If enabled, players will see an extra toolbar button near the portrait UI to quickly toggle their own portrait."
       },
 
       "emotionPanelScale": {

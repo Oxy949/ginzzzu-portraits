@@ -5,6 +5,8 @@
     "GINZZZUPORTRAITS": {
       "showCharacterPortrait": "Показать Персонажа",
       "hideCharacterPortrait": "Скрыть Персонажа",
+      "playerShowPortrait": "Показать Моего Персонажа",
+      "playerHidePortrait": "Скрыть Моего Персонажа",
       "tokenHUDShowPortrait": "Показать Персонажа",
       "tokenHUDHidePortrait": "Скрыть Персонажа",        
       "configurePortrait": "Настроить портрет",
@@ -157,6 +159,11 @@
           "players": "Показывать только игрокам",
           "gm": "Показывать только мастеру",
           "none": "Не показывать"
+        },
+
+        "playerPortraitToolbarButton": {
+          "name": "Кнопка на тулбаре для игрока",
+          "hint": "Если включено, игроки увидят дополнительную кнопку рядом с UI портрета для быстрого переключения собственного портрета."
         },
 
         "emotionPanelScale": {

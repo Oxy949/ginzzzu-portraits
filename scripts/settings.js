@@ -266,6 +266,16 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // Show player toolbar button near the portrait UI (world setting)
+  reg("playerPortraitToolbarButton", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerPortraitToolbarButton.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.playerPortraitToolbarButton.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true
+  });
   reg("emotionPanelScale", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelScale.hint"),
