@@ -471,8 +471,6 @@ const FRAME = {
     const safeName = String(displayName || rawName);
 
     wrapper.dataset.displayName = safeName;
-
-    // Работаем с плашкой имени
     const root = getDomHud();
     const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
     let badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`) : null;
@@ -488,7 +486,10 @@ const FRAME = {
       badge = document.createElement("div");
       badge.className = "ginzzzu-portrait-name";
       badge.dataset.actorId = actorId;
-      badge.textContent = safeName;
+      const inner = document.createElement('span');
+      inner.className = 'ginzzzu-portrait-name-inner';
+      inner.textContent = safeName;
+      badge.appendChild(inner);
       namesContainer.appendChild(badge);
 
       // attach hover handlers from the wrapper if present
@@ -506,7 +507,16 @@ const FRAME = {
     }
 
     if (badge) {
-      badge.textContent = safeName;
+      // Update inner text element, create if missing
+      let innerEl = badge.querySelector('.ginzzzu-portrait-name-inner');
+      if (!innerEl) {
+        innerEl = document.createElement('span');
+        innerEl.className = 'ginzzzu-portrait-name-inner';
+        // clear stray text nodes
+        badge.textContent = '';
+        badge.appendChild(innerEl);
+      }
+      innerEl.textContent = safeName;
       // Ensure visible state for always-show mode
       const rootEl = getDomHud();
       if (rootEl && rootEl.classList.contains('ginzzzu-show-names-always')) {
@@ -1172,7 +1182,10 @@ function _onPortraitClick(ev) {
               const nameBadge = document.createElement("div");
               nameBadge.className = "ginzzzu-portrait-name";
               nameBadge.dataset.actorId = actorId;
-              nameBadge.textContent = safeName;
+              const inner = document.createElement('span');
+              inner.className = 'ginzzzu-portrait-name-inner';
+              inner.textContent = safeName;
+              nameBadge.appendChild(inner);
               namesContainer.appendChild(nameBadge);
 
               // Hover handlers on wrapper to show/hide badge
@@ -1618,7 +1631,16 @@ function _onPortraitClick(ev) {
       try {
         const namesContainer = root.querySelector('#ginzzzu-portrait-names');
         const badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`) : null;
-        if (badge) badge.textContent = displayName || rawName || "";
+        if (badge) {
+          let innerEl = badge.querySelector('.ginzzzu-portrait-name-inner');
+          if (!innerEl) {
+            innerEl = document.createElement('span');
+            innerEl.className = 'ginzzzu-portrait-name-inner';
+            badge.textContent = '';
+            badge.appendChild(innerEl);
+          }
+          innerEl.textContent = displayName || rawName || "";
+        }
       } catch (e) {}
 
       // обновляем alt у картинки

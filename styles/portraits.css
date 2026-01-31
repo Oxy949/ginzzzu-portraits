@@ -111,6 +111,19 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   transform: translateX(-50%) translateY(0) scaleX(-1);
 }
 
+/* Inner text element for name badges so we can counter-flip text when the badge
+   itself is mirrored. This keeps glyphs readable while allowing the badge
+   layout to be flipped to match the portrait. */
+#ginzzzu-portrait-names .ginzzzu-portrait-name .ginzzzu-portrait-name-inner {
+  display: inline-block;
+  transform: none;
+  backface-visibility: hidden;
+}
+
+#ginzzzu-portrait-names .ginzzzu-portrait-name.flipped .ginzzzu-portrait-name-inner {
+  transform: scaleX(-1);
+}
+
 /* When a wrapper is flipped, set the flip CSS variable so the wrapper (and its image) flips */
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.ginzzzu-portrait-flipped {
   --ginzzzu-flip-scale-x: -1;
@@ -121,6 +134,17 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
   pointer-events: auto;
+}
+
+/* Ensure flipped badges also flip in the "always show names" mode.
+   This selector is more specific than the generic always-show rule above
+   so it can add the scaleX(-1) when a badge has the `flipped` class. */
+#ginzzzu-portrait-layer.ginzzzu-show-names-always #ginzzzu-portrait-names .ginzzzu-portrait-name.flipped {
+  transform: translateX(-50%) translateY(0) scaleX(-1);
+}
+
+#ginzzzu-portrait-layer.ginzzzu-show-names-always #ginzzzu-portrait-names .ginzzzu-portrait-name.flipped .ginzzzu-portrait-name-inner {
+  transform: scaleX(-1);
 }
 
 /* --- Hide UI toggle: make portraits semi-transparent and ignore pointer events --- */
