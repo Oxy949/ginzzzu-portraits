@@ -1,14 +1,14 @@
 {
   "id": "ginzzzu-portraits",
   "title": "Ginzzzu's Portraits & NPC Dock",
-  "description": "System-agnostic actor's portraits and NPC dock.",
+"description": "System-agnostic actor's portraits and NPC dock.",
   "version": "#{VERSION}#",
-  "library": "false",
+"library": "false",
   "compatibility": {
-    "minimum": 12,
-    "verified": 13
+    "minimum": "11",
+    "verified": "13"
   },
-  "authors": [ 
+"authors": [ 
     {
       "name": "Ginzzzu",
       "email": "stepangrakov@gmail.com",
