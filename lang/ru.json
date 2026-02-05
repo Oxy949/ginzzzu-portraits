@@ -11,6 +11,7 @@
       "tokenHUDHidePortrait": "Скрыть Персонажа",        
       "configurePortrait": "Настроить портрет",
       "resetPortraitEmotion": "Сбросить эмоцию",
+      "changePortraitEmotion": "Сменить эмоцию",
       "toggleCharacterPortrait": "Переключить Персонажа",
       "showPanelUI": "Показать Панель Персонажей",
       "hidePanelUI": "Скрыть Панель Персонажей",

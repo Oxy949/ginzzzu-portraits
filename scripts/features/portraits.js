@@ -1,4 +1,4 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, EMOTIONS } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 
 
@@ -1920,10 +1920,93 @@ Hooks.once("ready", () => {
     return ids;
   }
 
+  async function changePortraitEmotion(ev, actorOrDoc) {
+    const actor = actorOrDoc;
+    if (!actor) return;
+
+    // Build list of options: none, standard emotions, custom emotions
+    const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
+    const current = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION) ?? "none";
+
+    const escape = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    const options = [];
+    // None first
+    options.push({ value: "none", label: `${escape(EMOTIONS.none.emoji || "")} ${escape(EMOTIONS.none.label)}`.trim() });
+
+    // Show standard emotions only if actor allows it (flag defaults to true)
+    const showStandard = (() => {
+      try {
+        const raw = foundry.utils.getProperty(actor, FLAG_SHOW_STANDARD_EMOTIONS);
+        return raw !== false;
+      } catch {
+        return true;
+      }
+    })();
+
+    if (showStandard) {
+      for (const [key, preset] of Object.entries(EMOTIONS)) {
+        if (key === "none") continue;
+        const localized = (function() {
+          try { return game.i18n.localize(`GINZZZUPORTRAITS.PortraitToolbar.${preset.label}`) || preset.label; } catch { return preset.label; }
+        })();
+        options.push({ value: key, label: `${escape(preset.emoji || "")}${preset.emoji ? ' ' : ''}${escape(localized)}` });
+      }
+    }
+    if (Array.isArray(customEmotions) && customEmotions.length) {
+      customEmotions.forEach((c, idx) => {
+        const key = `custom_${idx}`;
+        const name = c.displayName || c.name || (`Custom ${idx+1}`);
+        options.push({ value: key, label: `${escape(c.emoji || '•')} ${escape(name)}` });
+      });
+    }
+
+    const html = `<div class="form-group"><label>${escape(game.i18n.localize('GINZZZUPORTRAITS.changePortraitEmotion') || 'Change emotion')}</label><select id="threeo-change-emo-select" style="width:100%">${options.map(o => `<option value="${o.value}" ${String(o.value) === String(current) ? 'selected' : ''}>${o.label}</option>`).join('')}</select></div>`;
+
+    new Dialog({
+      title: game.i18n.localize('GINZZZUPORTRAITS.changePortraitEmotion') || 'Change emotion',
+      content: html,
+      buttons: {
+        ok: {
+          icon: '<i class="fas fa-save"></i>',
+          label: game.i18n.localize('GINZZZUPORTRAITS.PortraitConfig.save') || 'Save',
+          callback: async (dlgHtml) => {
+            try {
+              const val = dlgHtml.find('#threeo-change-emo-select').val();
+              const updateData = {};
+              if (!val || val === 'none') {
+                updateData[FLAG_PORTRAIT_EMOTION] = null;
+                updateData[FLAG_EMOTION_HEIGHT_MULTIPLIER] = null;
+              } else if (String(val).startsWith('custom_')) {
+                const idx = Number(String(val).split('_')[1] || 0);
+                const custom = (Array.isArray(customEmotions) && customEmotions[idx]) ? customEmotions[idx] : null;
+                const h = custom && typeof custom.heightMultiplier === 'number' ? custom.heightMultiplier : 1;
+                updateData[FLAG_PORTRAIT_EMOTION] = val;
+                updateData[FLAG_EMOTION_HEIGHT_MULTIPLIER] = h;
+              } else {
+                updateData[FLAG_PORTRAIT_EMOTION] = val;
+                updateData[FLAG_EMOTION_HEIGHT_MULTIPLIER] = 1;
+              }
+
+              await actor.update(updateData);
+            } catch (e) {
+              console.error('[GinzzzuPortraits] failed to change portrait emotion', e);
+            }
+          }
+        },
+        cancel: {
+          label: game.i18n.localize('Cancel') || 'Cancel'
+        }
+      },
+      default: 'ok'
+    }).render(true);
+  }
+
   // Экспорт
   globalThis.GinzzzuPortraits = {
   togglePortrait,
   configurePortrait,
+  changePortraitEmotion,
   getActorDisplayName,
   closeAllLocalPortraits,
   getActivePortraits,
@@ -1959,26 +2042,13 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
     4,
     0,
     {
-      name: "GINZZZUPORTRAITS.resetPortraitEmotion",
+      name: "GINZZZUPORTRAITS.changePortraitEmotion",
       condition: /* @__PURE__ */ __name((target) => {
         const actor = getActorData(target);
-        if (!actor) return false;
-        const raw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION);
-        return raw != null && String(raw) !== "none";
+        return actor;
       }, "condition"),
-      icon: '<i class="fas fa-eraser"></i>',
-      callback: /* @__PURE__ */ __name(async (target) => {
-        const actor = getActorData(target);
-        if (!actor) return;
-        try {
-          await actor.update({
-            [FLAG_PORTRAIT_EMOTION]: null,
-            [FLAG_EMOTION_HEIGHT_MULTIPLIER]: null
-          });
-        } catch (e) {
-          console.error("[GinzzzuPortraits] failed to reset portrait emotion", e);
-        }
-      }, "callback")
+      icon: '<i class="fas fa-exchange-alt"></i>',
+      callback: /* @__PURE__ */ __name((target) => globalThis.GinzzzuPortraits.changePortraitEmotion(null, getActorData(target)), "callback")
     }
   );
   menuItems.splice(
@@ -2031,28 +2101,14 @@ Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
           onclick: (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document)
         });
 
-        // Reset emotion button (only when an emotion is active)
-        try {
-          const raw = foundry.utils.getProperty(app.document, FLAG_PORTRAIT_EMOTION);
-          if (raw != null && String(raw) !== "none") {
-            theatreButtons.push({
-              action: "reset-portrait-emotion",
-              label: "",
-              class: "reset-portrait-emotion",
-              icon: "fas fa-eraser",
-              onclick: (ev) => {
-                try {
-                  app.document.update({
-                    [FLAG_PORTRAIT_EMOTION]: null,
-                    [FLAG_EMOTION_HEIGHT_MULTIPLIER]: null
-                  });
-                } catch (e) {
-                  console.error("[GinzzzuPortraits] failed to reset portrait emotion", e);
-                }
-              }
-            });
-          }
-        } catch (e) {}
+        // Change emotion button
+        theatreButtons.push({
+          action: "change-portrait-emotion",
+          label: "",
+          class: "change-portrait-emotion",
+          icon: "fas fa-exchange-alt",
+          onclick: (ev) => globalThis.GinzzzuPortraits.changePortraitEmotion(ev, app.document)
+        });
     }
     buttons.unshift(...theatreButtons);
 });
@@ -2083,28 +2139,14 @@ Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
       }, "onClick")
     });
 
-    // Reset emotion button (only when an emotion is active)
-    try {
-      const raw = foundry.utils.getProperty(app.document, FLAG_PORTRAIT_EMOTION);
-      if (raw != null && String(raw) !== "none") {
-        theatreButtons.push({
-          action: "reset-portrait-emotion",
-          label: "GINZZZUPORTRAITS.resetPortraitEmotion",
-          class: "reset-portrait-emotion",
-          icon: "fas fa-eraser",
-          onClick: /* @__PURE__ */ __name(async (ev) => {
-            try {
-              await app.document.update({
-                [FLAG_PORTRAIT_EMOTION]: null,
-                [FLAG_EMOTION_HEIGHT_MULTIPLIER]: null
-              });
-            } catch (e) {
-              console.error("[GinzzzuPortraits] failed to reset portrait emotion", e);
-            }
-          }, "onClick")
-        });
-      }
-    } catch (e) {}
+    // Change emotion button
+    theatreButtons.push({
+      action: "change-portrait-emotion",
+      label: "GINZZZUPORTRAITS.changePortraitEmotion",
+      class: "change-portrait-emotion",
+      icon: "fas fa-exchange-alt",
+      onClick: /* @__PURE__ */ __name(async (ev) => globalThis.GinzzzuPortraits.changePortraitEmotion(ev, app.document), "onClick")
+    });
   }
   buttons.unshift(...theatreButtons);
 });
