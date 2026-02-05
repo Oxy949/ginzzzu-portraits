@@ -57,6 +57,8 @@
       "emotionEmojiPlaceholder": "😊",
       "emotionName": "Name",
       "emotionNamePlaceholder": "Name",
+      "emotionDisplayName": "Character Display Name",
+      "emotionDisplayNamePlaceholder": "Display name when emotion is active",
       "emotionImagePath": "Image Path",
       "emotionImagePathPlaceholder": "path/to/image.webp",
       "emotionImageButtonHint": "Select Image",

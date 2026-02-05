@@ -112,6 +112,7 @@ export function validateEmotion(emotion) {
   const validated = {
     emoji: String(emotion.emoji || "").substring(0, 10).trim(),
     name: String(emotion.name || "").substring(0, 50).trim(),
+    displayName: String(emotion.displayName || "").substring(0, 50).trim(),
     imagePath: String(emotion.imagePath || "").trim(),
     animation: String(emotion.animation || "none"),
     colorIntensity: String(emotion.colorIntensity || "none")

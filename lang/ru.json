@@ -57,6 +57,8 @@
         "emotionEmojiPlaceholder": "😊",
         "emotionName": "Имя",
         "emotionNamePlaceholder": "Имя",
+        "emotionDisplayName": "Отображаемое имя персонажа",
+        "emotionDisplayNamePlaceholder": "Имя при активации эмоции",
         "emotionImagePath": "Путь к изображению",
         "emotionImagePathPlaceholder": "path/to/image.webp",
         "emotionImageButtonHint": "Выбрать изображение",

@@ -1877,10 +1877,36 @@ Hooks.once("ready", () => {
       return;
     }
 
+    // 1. Проверяем активную эмоцию и её имя (наивысший приоритет)
+    try {
+      const currentEmoKey = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION);
+      if (currentEmoKey && currentEmoKey !== "none") {
+        // Проверяем, является ли это кастомной эмоцией
+        const m = /^custom_(\d+)$/.exec(String(currentEmoKey));
+        if (m) {
+          const idx = Number(m[1]);
+          const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
+          if (Array.isArray(customEmotions) && customEmotions[idx]) {
+            const emotionDisplayName = customEmotions[idx].displayName;
+            if (typeof emotionDisplayName === "string" && emotionDisplayName.trim().length > 0) {
+              return emotionDisplayName.trim();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[threeO-portraits] Error checking emotion display name:", e);
+    }
+
+    // 2. Проверяем кастомное имя из FLAG_DISPLAY_NAME (средний приоритет)
     const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
-    const customName = typeof rawDisplayName === "string" ? rawDisplayName : "";
-    const name = customName || actor.name || "Portrait";
-    return name;
+    const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+    if (customName.length > 0) {
+      return customName;
+    }
+
+    // 3. Используем реальное имя персонажа (низкий приоритет)
+    return actor.name || "Portrait";
   }
 
 

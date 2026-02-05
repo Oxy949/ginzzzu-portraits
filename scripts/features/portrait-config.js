@@ -171,6 +171,7 @@ export async function configurePortrait(ev, actorSheet) {
                 const $elem          = $(elem);
                 const emoji          = String($elem.find('input.emotion-emoji').val() ?? "").trim();
                 const name           = String($elem.find('input.emotion-name').val() ?? "").trim();
+                const displayName    = String($elem.find('input.emotion-display-name').val() ?? "").trim();
                 const imagePath      = String($elem.find('input.emotion-path').val() ?? "").trim();
                 const animation      = String($elem.find('select.emotion-animation').val() ?? "none");
                 const colorIntensity = String($elem.find('select.emotion-color').val() ?? "none");
@@ -178,17 +179,18 @@ export async function configurePortrait(ev, actorSheet) {
 
                 console.log(
                   `[${MODULE_ID}] Emotion ${idx}:`,
-                  { emoji, name, imagePath, animation, colorIntensity, heightMultiplier }
+                  { emoji, name, displayName, imagePath, animation, colorIntensity, heightMultiplier }
                 );
 
                 // Принимаем эмоцию, если заполнено хоть что-то осмысленное
                 const hasAny =
                   emoji.length > 0 ||
                   name.length > 0 ||
+                  displayName.length > 0 ||
                   imagePath.length > 0;
 
                 if (hasAny) {
-                  emotions.push({ emoji, name, imagePath, animation, colorIntensity, heightMultiplier });
+                  emotions.push({ emoji, name, displayName, imagePath, animation, colorIntensity, heightMultiplier });
                 } else {
                   console.log(`[${MODULE_ID}] Ignoring empty emotion at index ${idx}`);
                 }
