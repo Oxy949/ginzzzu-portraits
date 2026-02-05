@@ -1954,6 +1954,33 @@ Hooks.on("getActorContextOptions", async (app, menuItems) => {
       callback: /* @__PURE__ */ __name((target) => globalThis.GinzzzuPortraits.configurePortrait(null, getActorData(target)), "callback")
     }
   );
+
+  menuItems.splice(
+    4,
+    0,
+    {
+      name: "GINZZZUPORTRAITS.resetPortraitEmotion",
+      condition: /* @__PURE__ */ __name((target) => {
+        const actor = getActorData(target);
+        if (!actor) return false;
+        const raw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_EMOTION);
+        return raw != null && String(raw) !== "none";
+      }, "condition"),
+      icon: '<i class="fas fa-eraser"></i>',
+      callback: /* @__PURE__ */ __name(async (target) => {
+        const actor = getActorData(target);
+        if (!actor) return;
+        try {
+          await actor.update({
+            [FLAG_PORTRAIT_EMOTION]: null,
+            [FLAG_EMOTION_HEIGHT_MULTIPLIER]: null
+          });
+        } catch (e) {
+          console.error("[GinzzzuPortraits] failed to reset portrait emotion", e);
+        }
+      }, "callback")
+    }
+  );
   menuItems.splice(
     3,
     0,
@@ -2003,6 +2030,29 @@ Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
           icon: "fas fa-theater-masks",
           onclick: (ev) => globalThis.GinzzzuPortraits.togglePortrait(app.document)
         });
+
+        // Reset emotion button (only when an emotion is active)
+        try {
+          const raw = foundry.utils.getProperty(app.document, FLAG_PORTRAIT_EMOTION);
+          if (raw != null && String(raw) !== "none") {
+            theatreButtons.push({
+              action: "reset-portrait-emotion",
+              label: "",
+              class: "reset-portrait-emotion",
+              icon: "fas fa-eraser",
+              onclick: (ev) => {
+                try {
+                  app.document.update({
+                    [FLAG_PORTRAIT_EMOTION]: null,
+                    [FLAG_EMOTION_HEIGHT_MULTIPLIER]: null
+                  });
+                } catch (e) {
+                  console.error("[GinzzzuPortraits] failed to reset portrait emotion", e);
+                }
+              }
+            });
+          }
+        } catch (e) {}
     }
     buttons.unshift(...theatreButtons);
 });
@@ -2032,6 +2082,29 @@ Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
         await globalThis.GinzzzuPortraits.togglePortrait(app.document);
       }, "onClick")
     });
+
+    // Reset emotion button (only when an emotion is active)
+    try {
+      const raw = foundry.utils.getProperty(app.document, FLAG_PORTRAIT_EMOTION);
+      if (raw != null && String(raw) !== "none") {
+        theatreButtons.push({
+          action: "reset-portrait-emotion",
+          label: "GINZZZUPORTRAITS.resetPortraitEmotion",
+          class: "reset-portrait-emotion",
+          icon: "fas fa-eraser",
+          onClick: /* @__PURE__ */ __name(async (ev) => {
+            try {
+              await app.document.update({
+                [FLAG_PORTRAIT_EMOTION]: null,
+                [FLAG_EMOTION_HEIGHT_MULTIPLIER]: null
+              });
+            } catch (e) {
+              console.error("[GinzzzuPortraits] failed to reset portrait emotion", e);
+            }
+          }, "onClick")
+        });
+      }
+    } catch (e) {}
   }
   buttons.unshift(...theatreButtons);
 });

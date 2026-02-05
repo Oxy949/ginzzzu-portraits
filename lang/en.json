@@ -10,6 +10,7 @@
     "tokenHUDShowPortrait": "Show Character",
     "tokenHUDHidePortrait": "Hide Character",  
     "configurePortrait": "Configure portrait",
+    "resetPortraitEmotion": "Reset emotion",
     "toggleCharacterPortrait": "Toggle Character",
     "showPanelUI": "Show Characters Panel",
     "hidePanelUI": "Hide Characters Panel",
