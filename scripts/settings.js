@@ -435,7 +435,7 @@ Hooks.once("init", () => {
   reg("npcDockWidth", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockWidth.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockWidth.hint"),
-    scope: "world",
+    scope: "client",
     config: true,
     type: Number,
     default: 40,
