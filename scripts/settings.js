@@ -440,7 +440,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 40,
     range: { min: 10, max: 100, step: 1 },
-    requiresReload: false
+    requiresReload: true
   });
 });
 
