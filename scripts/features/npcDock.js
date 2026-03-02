@@ -44,6 +44,16 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   const setShowActivePortraits = (v) => { try { game.settings.set(MODULE_ID, "showActivePortraits", !!v); } catch {} };
   const getPCFolderSel  = () => { try { return game.settings.get(MODULE_ID, "pcDockFolder") || "all"; } catch { return "all"; } };
   const setPCFolderSel  = (v) => { try { game.settings.set(MODULE_ID, "pcDockFolder", v); } catch {} };
+  const getNpcDockWidth = () => { try { return game.settings.get(MODULE_ID, "npcDockWidth") || 40; } catch { return 40; } };
+
+  // Helper to apply NPC dock width setting
+  function applyNpcDockWidth() {
+    const root = document.getElementById(DOCK_ID);
+    if (root) {
+      const width = getNpcDockWidth();
+      root.style.width = `${width}vw`;
+    }
+  }
 
   // Контролы
     let searchEl;
@@ -128,6 +138,9 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     root.id = DOCK_ID;
     root.style.display = "none";
     document.body.appendChild(root);
+
+    // Apply NPC dock width setting
+    applyNpcDockWidth();
 
     // Mini dock container (CSS handles layout) — shows currently active portraits as circles
     const mini = document.createElement("div");
@@ -745,6 +758,13 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     ensureDock();
     buildDock();
+
+    // Listen for npcDockWidth setting changes
+    Hooks.on("preUpdateSetting", (setting, data) => {
+      if (setting.key === `${MODULE_ID}.npcDockWidth`) {
+        setTimeout(() => applyNpcDockWidth(), 50);
+      }
+    });
 
     // актёры
     Hooks.on("createActor", (a) => { scheduleRebuild(); });

@@ -431,6 +431,17 @@ Hooks.once("init", () => {
     default: "name-asc",
     requiresReload: true
   });
+
+  reg("npcDockWidth", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockWidth.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockWidth.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 40,
+    range: { min: 10, max: 100, step: 1 },
+    requiresReload: false
+  });
 });
 
 // Вспомогательные функции для сбора папок с персонажами игроков
