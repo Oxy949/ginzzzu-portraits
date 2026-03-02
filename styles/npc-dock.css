@@ -28,7 +28,7 @@
 }
 
 #ginzzzu-npc-dock.collapsed {
-  width: auto;
+  width: auto !important;
   padding: 0px;
   bottom: 46px;
   /* Default: panel expanded, chat tab active, quick chat inactive (вариант 3) */
