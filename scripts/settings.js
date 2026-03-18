@@ -390,6 +390,39 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  // === Портреты: блюр фона (мир / World) ===
+  reg("portraitBlurEnabled", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBlurEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBlurEnabled.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
+  reg("portraitBlurStrength", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBlurStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBlurStrength.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 2,
+    range: { min: 1, max: 30, step: 1 },
+    requiresReload: false
+  });
+
+  reg("portraitBlurSpeed", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBlurSpeed.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBlurSpeed.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 1000,
+    range: { min: 100, max: 2000, step: 50 },
+    requiresReload: false
+  });
+
   // === NPC Dock: предпочтения (клиент / Client) ===
   reg("npcDockFolder", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockFolder.name"),

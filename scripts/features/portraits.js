@@ -1280,6 +1280,9 @@ function _onPortraitClick(ev) {
     // Ensure badges are positioned after layout
     requestAnimationFrame(() => updateNamePositions());
 
+    // Apply blur effect if enabled
+    applyBlur();
+
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       // Ждем полной загрузки изображения в DOM перед анимацией
       el.onload = () => {
@@ -1360,6 +1363,8 @@ function _onPortraitClick(ev) {
       } catch (e) {}
       map.delete(actorId);
       relayoutDomHud(firstRects);
+      // Remove blur effect if no more portraits are active
+      removeBlur();
     }, timeout);
   }
 
@@ -1918,6 +1923,61 @@ Hooks.once("ready", () => {
   function getActivePortraits() {
     const ids = Array.from(domStore().keys());
     return ids;
+  }
+
+  // === Blur Effect Management ===
+  // Track timeout for blur removal to allow cancellation on rapid show/hide
+  let _blurRemovalTimeout = null;
+  
+  function applyBlur() {
+    const root = getDomHud();
+    if (!root) return;
+
+    // Cancel any pending blur removal timeout
+    if (_blurRemovalTimeout !== null) {
+      clearTimeout(_blurRemovalTimeout);
+      _blurRemovalTimeout = null;
+    }
+
+    const blurEnabled = game.settings.get(MODULE_ID, "portraitBlurEnabled");
+    if (!blurEnabled) return;
+
+    const blurStrength = Math.max(1, Math.min(30, Number(game.settings.get(MODULE_ID, "portraitBlurStrength")) || 8));
+    const blurSpeed = Math.max(100, Math.min(2000, Number(game.settings.get(MODULE_ID, "portraitBlurSpeed")) || 400));
+
+    root.style.setProperty("--ginzzzu-blur-strength-value", `${blurStrength}px`);
+    root.style.setProperty("--ginzzzu-blur-speed-value", `${blurSpeed}ms`);
+    root.classList.add("ginzzzu-portrait-blur-active");
+  }
+
+  function removeBlur() {
+    const root = getDomHud();
+    if (!root) return;
+
+    // Check if there are any active portraits left
+    const activePortraits = getActivePortraits();
+    if (activePortraits.length > 0) {
+      // Still have portraits, keep blur
+      return;
+    }
+
+    // Cancel any pending removal timeout to avoid conflicts
+    if (_blurRemovalTimeout !== null) {
+      clearTimeout(_blurRemovalTimeout);
+      _blurRemovalTimeout = null;
+    }
+
+    // Smoothly transition blur back to 0px
+    root.style.setProperty("--ginzzzu-blur-strength-value", "0px");
+    
+    // Remove class after transition completes to reset everything
+    const blurSpeed = Math.max(100, Math.min(2000, Number(game.settings.get(MODULE_ID, "portraitBlurSpeed")) || 400));
+    _blurRemovalTimeout = setTimeout(() => {
+      root.classList.remove("ginzzzu-portrait-blur-active");
+      root.style.removeProperty("--ginzzzu-blur-strength-value");
+      root.style.removeProperty("--ginzzzu-blur-speed-value");
+      _blurRemovalTimeout = null;
+    }, blurSpeed);
   }
 
   async function changePortraitEmotion(ev, actorOrDoc) {

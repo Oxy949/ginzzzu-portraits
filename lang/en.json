@@ -218,6 +218,18 @@
         "name": "Portraits: easing type",
         "hint": "CSS timing-function: e.g., 'ease', 'ease-out', 'ease-in-out' or cubic-bezier(0.22,1,0.36,1)."
       },
+      "portraitBlurEnabled": {
+        "name": "Portraits: enable background blur",
+        "hint": "If enabled, the background will blur when portraits are displayed."
+      },
+      "portraitBlurStrength": {
+        "name": "Portraits: blur strength (px)",
+        "hint": "Strength of the blur effect applied to the background (1-30 pixels)."
+      },
+      "portraitBlurSpeed": {
+        "name": "Portraits: blur animation speed (ms)",
+        "hint": "Duration of the blur fade-in animation in milliseconds."
+      },
       "npcDockFolder": {
         "name": "NPC Dock: default folder filter",
         "hint": "Example: 'all'. Can be overridden by the dock during operation."

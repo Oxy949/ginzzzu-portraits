@@ -148,10 +148,6 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 }
 
 /* --- Hide UI toggle: make portraits semi-transparent and ignore pointer events --- */
-#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden {
-  /* keep the layer present, but dim portraits and disable their interaction */
-}
-
 #ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden .ginzzzu-portrait-wrapper {
   opacity: 0.35;
   transition: opacity 180ms ease-out, filter 180ms ease-out;
@@ -272,4 +268,30 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
 
 #ginzzzu-player-portrait-toggle-btn i {
   font-size: 14px;
+}
+
+/* === Background Blur Effect === */
+#ginzzzu-portrait-layer {
+  --ginzzzu-blur-strength: 0px;
+  --ginzzzu-blur-speed: 400ms;
+}
+
+/* Persistent blur pseudo-element with smooth transition */
+#ginzzzu-portrait-layer::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(var(--ginzzzu-blur-strength));
+  pointer-events: none;
+  z-index: 0;
+  transition: backdrop-filter var(--ginzzzu-blur-speed) ease-out;
+}
+
+/* When blur is enabled and a portrait is active, set the blur strength */
+#ginzzzu-portrait-layer.ginzzzu-portrait-blur-active {
+  --ginzzzu-blur-strength: var(--ginzzzu-blur-strength-value, 8px);
+  --ginzzzu-blur-speed: var(--ginzzzu-blur-speed-value, 400ms);
 }
