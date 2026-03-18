@@ -230,6 +230,22 @@
         "name": "Portraits: blur animation speed (ms)",
         "hint": "Duration of the blur fade-in animation in milliseconds."
       },
+      "portraitFocusBlurEnabled": {
+        "name": "Portraits: enable focus blur",
+        "hint": "If enabled, dimmed portraits will be blurred when a portrait has focus."
+      },
+      "portraitFocusBlurStrength": {
+        "name": "Portraits: focus blur strength (px)",
+        "hint": "Strength of the blur effect applied to dimmed portraits when focus is active (1-30 pixels)."
+      },
+      "portraitFocusPortraitBlurEnabled": {
+        "name": "Portraits: enable blur for unfocused portraits",
+        "hint": "If enabled, portraits that are not in focus will be blurred."
+      },
+      "portraitFocusPortraitBlurStrength": {
+        "name": "Portraits: unfocused blur strength (px)",
+        "hint": "Strength of the blur effect applied to unfocused portraits (1-30 pixels)."
+      },
       "npcDockFolder": {
         "name": "NPC Dock: default folder filter",
         "hint": "Example: 'all'. Can be overridden by the dock during operation."

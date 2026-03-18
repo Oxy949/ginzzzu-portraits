@@ -567,6 +567,11 @@ const FRAME = {
       dimSaturate
     } = _getFocusShadowParams();
 
+    const focusPortraitBlurEnabled = game.settings.get(MODULE_ID, "portraitFocusPortraitBlurEnabled");
+    const portraitBlurStrength = focusPortraitBlurEnabled 
+      ? Math.max(1, Math.min(30, Number(game.settings.get(MODULE_ID, "portraitFocusPortraitBlurStrength")) || 8))
+      : 0;
+
     for (const wrapper of wrappers) {
       const img = wrapper.querySelector("img.ginzzzu-portrait");
       if (!img) continue;
@@ -595,7 +600,12 @@ const FRAME = {
         wrapper.classList.add("ginzzzu-portrait-dimmed");
         wrapper.style.zIndex = wrapper.dataset.baseZ || wrapper.style.zIndex;
 
-        img.style.filter = `${img.dataset.baseFilter} brightness(${dimBrightness}) saturate(${dimSaturate})`;
+        // Build filter string with blur if enabled
+        let filterStr = `${img.dataset.baseFilter} brightness(${dimBrightness}) saturate(${dimSaturate})`;
+        if (focusPortraitBlurEnabled && portraitBlurStrength > 0) {
+          filterStr += ` blur(${portraitBlurStrength}px)`;
+        }
+        img.style.filter = filterStr;
 
       } else {
         // Фокуса нет — вернуть всё как было
@@ -608,6 +618,43 @@ const FRAME = {
           img.style.filter = img.dataset.baseFilter;
         }
       }
+    }
+
+    // === Apply focus blur effect to background ===
+    const root = getDomHud();
+    if (!root) return;
+
+    const focusBlurEnabled = game.settings.get(MODULE_ID, "portraitFocusBlurEnabled");
+    const blurEnabled = game.settings.get(MODULE_ID, "portraitBlurEnabled");
+    
+    if (_focusedActorId && focusBlurEnabled) {
+      // When focus is active and focus blur is enabled, apply focus blur effect
+      const focusBlurStrength = Math.max(1, Math.min(30, Number(game.settings.get(MODULE_ID, "portraitFocusBlurStrength")) || 16));
+      
+      // Check if base blur is also enabled, if so add both strengths
+      if (blurEnabled) {
+        const baseBlurStrength = Math.max(1, Math.min(30, Number(game.settings.get(MODULE_ID, "portraitBlurStrength")) || 8));
+        const totalBlurStrength = baseBlurStrength + focusBlurStrength;
+        root.style.setProperty("--ginzzzu-blur-strength-value", `${totalBlurStrength}px`);
+      } else {
+        // Base blur disabled, use only focus blur strength
+        root.style.setProperty("--ginzzzu-blur-strength-value", `${focusBlurStrength}px`);
+      }
+      
+      root.classList.add("ginzzzu-portrait-blur-active");
+      root.classList.add("ginzzzu-portrait-focus-blur-active");
+    } else if (!_focusedActorId && blurEnabled) {
+      // When focus is removed and base blur is enabled, restore base blur strength
+      const baseBlurStrength = Math.max(1, Math.min(30, Number(game.settings.get(MODULE_ID, "portraitBlurStrength")) || 8));
+      root.style.setProperty("--ginzzzu-blur-strength-value", `${baseBlurStrength}px`);
+      root.classList.add("ginzzzu-portrait-blur-active");
+      root.classList.remove("ginzzzu-portrait-focus-blur-active");
+    } else {
+      // All blur effects disabled or conditions not met
+      root.classList.remove("ginzzzu-portrait-blur-active");
+      root.classList.remove("ginzzzu-portrait-focus-blur-active");
+      root.style.removeProperty("--ginzzzu-blur-strength-value");
+      root.style.removeProperty("--ginzzzu-blur-speed-value");
     }
   }
 

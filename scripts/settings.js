@@ -423,6 +423,50 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
+  // === Портреты: блюр фокуса (мир / World) ===
+  reg("portraitFocusBlurEnabled", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusBlurEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusBlurEnabled.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: false
+  });
+
+  reg("portraitFocusBlurStrength", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusBlurStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusBlurStrength.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 4,
+    range: { min: 1, max: 30, step: 1 },
+    requiresReload: false
+  });
+
+  // === Портреты: блюр портретов вне фокуса (мир / World) ===
+  reg("portraitFocusPortraitBlurEnabled", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusPortraitBlurEnabled.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusPortraitBlurEnabled.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: false
+  });
+
+  reg("portraitFocusPortraitBlurStrength", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusPortraitBlurStrength.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFocusPortraitBlurStrength.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 1,
+    range: { min: 1, max: 30, step: 1 },
+    requiresReload: false
+  });
+
   // === NPC Dock: предпочтения (клиент / Client) ===
   reg("npcDockFolder", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockFolder.name"),

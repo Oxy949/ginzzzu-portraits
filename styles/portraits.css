@@ -16,6 +16,7 @@
   position: absolute;
   transform: translateX(-50%) translateY(0px);
   border: none;
+  transition: filter 200ms ease-out;
 }
 
 /* Резервные стили верхней панели (на случай, если inline-стили не применились) */
@@ -294,4 +295,10 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
 #ginzzzu-portrait-layer.ginzzzu-portrait-blur-active {
   --ginzzzu-blur-strength: var(--ginzzzu-blur-strength-value, 8px);
   --ginzzzu-blur-speed: var(--ginzzzu-blur-speed-value, 400ms);
+}
+
+/* === Focus Blur Effect === */
+/* When focus blur is active, enhance the background blur effect */
+#ginzzzu-portrait-layer.ginzzzu-portrait-focus-blur-active {
+  --ginzzzu-focus-blur-strength: var(--ginzzzu-focus-blur-strength-value, 16px);
 }
