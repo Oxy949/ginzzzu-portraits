@@ -197,6 +197,11 @@ const FRAME = {
 
   // ---- DOM HUD внутри #interface ----
   function getDomHud() {
+    // Check if portraits are disabled for this client
+    if (game.settings.get(MODULE_ID, "hidePortraits")) {
+      return null;
+    }
+
     let root = document.getElementById("ginzzzu-portrait-layer");
     if (root) return root;
 
@@ -1723,6 +1728,12 @@ function _onPortraitClick(ev) {
 Hooks.once("ready", () => {
   // log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
   try {
+    // Skip portrait setup if hidePortraits is enabled for this client
+    if (game.settings.get(MODULE_ID, "hidePortraits")) {
+      console.log("[ginzzzu-portraits] Portraits are disabled for this client");
+      return;
+    }
+
     // Поднимем уже отмеченные портреты (если есть)
     for (const actor of game.actors ?? []) {
       let shown = foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);

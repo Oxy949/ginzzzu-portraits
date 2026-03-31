@@ -5,6 +5,17 @@ Hooks.once("init", () => {
   // Helper to register
   const reg = (key, data) => game.settings.register(MODULE_ID, key, data);
 
+  // === Hide Portraits for Client (клиент / Client) ===
+  reg("hidePortraits", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.hidePortraits.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.hidePortraits.hint"),
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
   // === Player Dock: фильтр папок игроков (мир / World) ===
   const pcDockFolderChoices = {
     all: game.i18n.localize("GINZZZUPORTRAITS.pcFoldersAll"),

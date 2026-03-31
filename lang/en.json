@@ -75,6 +75,10 @@
     },
 
     "Settings": {
+      "hidePortraits": {
+        "name": "Do not display portraits",
+        "hint": "If enabled, you will not see any character portraits."
+      },
       "gmForcePortraitHeight": {
         "name": "Override player portrait height",
         "hint": "If enabled, the GM can set a specific height for player portraits."
