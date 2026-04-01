@@ -174,7 +174,7 @@ const FRAME = {
   const isGM = () => !!game.user?.isGM;
 
   // Simple image preloader with timeout
-  function _preloadImage(src, timeoutMs = 6000) {
+  function _preloadImage(src, timeoutMs = 60000) {
     return new Promise((resolve, reject) => {
       if (!src) return reject(new Error("No src"));
       const img = new Image();
@@ -1197,7 +1197,7 @@ function _onPortraitClick(ev) {
       console.warn("[threeO-portraits] image preload failed for", img, " — using placeholder");
       finalSrc = "icons/svg/mystery-man.svg";
       // attempt to preload placeholder (best-effort)
-      try { await _preloadImage(finalSrc, 2000); } catch {}
+      try { await _preloadImage(finalSrc); } catch {}
     }
 
         const el = document.createElement("img");
