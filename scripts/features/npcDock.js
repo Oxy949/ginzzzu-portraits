@@ -56,6 +56,8 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
   const NPC_DOCK_CARD_SIZE = 100;
   const NPC_DOCK_GAP = 8;
+  const PLAYER_DOCK_CARD_SIZE = 50;
+  const PLAYER_DOCK_GAP = 6;
 
   // Helper to apply NPC dock layout settings
   function applyNpcDockLayout() {
@@ -64,10 +66,16 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       const width = getNpcDockWidth();
       const rows = getNpcDockRows();
       const height = rows * NPC_DOCK_CARD_SIZE + Math.max(0, rows - 1) * NPC_DOCK_GAP;
+      const playerVisibleRows = rows * 2;
+      const playerHeight = playerVisibleRows * PLAYER_DOCK_CARD_SIZE + Math.max(0, playerVisibleRows - 1) * PLAYER_DOCK_GAP;
       root.style.width = `${width}vw`;
       root.style.setProperty("--ginzzzu-npc-dock-rows", String(rows));
       root.style.setProperty("--ginzzzu-npc-dock-height", `${height}px`);
       root.style.setProperty("--ginzzzu-npc-dock-grid-rows", `repeat(${rows}, ${NPC_DOCK_CARD_SIZE}px)`);
+      root.style.setProperty("--ginzzzu-player-panel-height", `${playerHeight}px`);
+      root.classList.toggle("npc-rows-1", rows === 1);
+      root.classList.toggle("npc-rows-2", rows === 2);
+      root.classList.toggle("npc-rows-3plus", rows >= 3);
     }
   }
 

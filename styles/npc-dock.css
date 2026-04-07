@@ -3,8 +3,11 @@
   --ginzzzu-npc-dock-rows: 1;
   --ginzzzu-npc-dock-height: 100px;
   --ginzzzu-npc-dock-grid-rows: repeat(1, 100px);
+  --ginzzzu-player-panel-height: 106px;
   --ginzzzu-npc-dock-card-size: 100px;
   --ginzzzu-npc-dock-gap: 8px;
+  --ginzzzu-player-card-size: 50px;
+  --ginzzzu-player-gap: 6px;
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
@@ -253,6 +256,39 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
 #ginzzzu-npc-dock .players:not(:has(.item:nth-child(1))) {
     display: none;
     visibility: hidden;
+}
+
+/* Layout overrides tied to NPC dock height/rows */
+#ginzzzu-npc-dock .players {
+  width: fit-content;
+  grid-template-columns: repeat(3, var(--ginzzzu-player-card-size));
+  grid-auto-rows: var(--ginzzzu-player-card-size);
+  gap: var(--ginzzzu-player-gap);
+  max-height: var(--ginzzzu-player-panel-height);
+}
+
+#ginzzzu-npc-dock .players:not(:has(.item:nth-child(5))) {
+  grid-template-columns: repeat(2, var(--ginzzzu-player-card-size));
+}
+
+#ginzzzu-npc-dock .players:not(:has(.item:nth-child(3))) {
+  grid-template-columns: repeat(1, var(--ginzzzu-player-card-size));
+}
+
+#ginzzzu-npc-dock.npc-rows-2 .players {
+  grid-template-columns: repeat(2, var(--ginzzzu-player-card-size));
+}
+
+#ginzzzu-npc-dock.npc-rows-2 .players:not(:has(.item:nth-child(3))) {
+  grid-template-columns: repeat(2, var(--ginzzzu-player-card-size));
+}
+
+#ginzzzu-npc-dock.npc-rows-2 .players:not(:has(.item:nth-child(2))) {
+  grid-template-columns: repeat(1, var(--ginzzzu-player-card-size));
+}
+
+#ginzzzu-npc-dock.npc-rows-3plus .players {
+  grid-template-columns: repeat(1, var(--ginzzzu-player-card-size));
 }
 
 /* Правая колонка: NPC-лента как раньше, со скроллом колёсиком */
