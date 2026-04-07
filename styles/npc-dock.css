@@ -1,5 +1,10 @@
 /* Extracted from threeO-npc-dock.js */
 #ginzzzu-npc-dock {
+  --ginzzzu-npc-dock-rows: 1;
+  --ginzzzu-npc-dock-height: 100px;
+  --ginzzzu-npc-dock-grid-rows: repeat(1, 100px);
+  --ginzzzu-npc-dock-card-size: 100px;
+  --ginzzzu-npc-dock-gap: 8px;
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
@@ -254,14 +259,17 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
 #ginzzzu-npc-dock .npcs {
   flex:1 1 auto; 
   overflow:hidden; 
-  height: 106px;
+  height: var(--ginzzzu-npc-dock-height);
 }
 #ginzzzu-npc-dock .npcs .rail { 
-  display:flex; 
-  flex-direction:row; 
-  align-items:center; 
-  height: 106px;
-  gap:8px; 
+  display:grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--ginzzzu-npc-dock-card-size);
+  grid-template-rows: var(--ginzzzu-npc-dock-grid-rows);
+  align-content: start;
+  justify-content: start;
+  height: var(--ginzzzu-npc-dock-height);
+  gap: var(--ginzzzu-npc-dock-gap); 
   overflow-x: auto; 
   overflow-y: hidden; 
   touch-action: pan-x;
@@ -270,6 +278,10 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
   -webkit-user-select: none;
   user-select: none;
   overscroll-behavior-x: contain;
+}
+
+#ginzzzu-npc-dock .npcs .rail.is-empty {
+  display: block;
 }
 
 /* Карточки базовые */

@@ -270,6 +270,10 @@
         "name": "NPC Dock: panel width",
         "hint": "Width of the NPC dock panel in viewport width units (e.g., 40 = 40vw)."
       },
+      "npcDockRows": {
+        "name": "NPC Dock: NPC rows",
+        "hint": "How many NPC rows to show in the dock. Increasing this value also increases the panel height."
+      },
       "pcDockFolder": {
         "name": "Player Dock: folder filter",
         "hint": "Controls which Actor folder is used for the Player Characters panel in the NPC dock. \"All players\" shows actors from all folders; \"Players without folder\" shows only actors that are not in any folder."

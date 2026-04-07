@@ -45,13 +45,29 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   const getPCFolderSel  = () => { try { return game.settings.get(MODULE_ID, "pcDockFolder") || "all"; } catch { return "all"; } };
   const setPCFolderSel  = (v) => { try { game.settings.set(MODULE_ID, "pcDockFolder", v); } catch {} };
   const getNpcDockWidth = () => { try { return game.settings.get(MODULE_ID, "npcDockWidth") || 40; } catch { return 40; } };
+  const getNpcDockRows = () => {
+    try {
+      const value = Number(game.settings.get(MODULE_ID, "npcDockRows")) || 1;
+      return Math.max(1, Math.min(5, Math.trunc(value)));
+    } catch {
+      return 1;
+    }
+  };
 
-  // Helper to apply NPC dock width setting
-  function applyNpcDockWidth() {
+  const NPC_DOCK_CARD_SIZE = 100;
+  const NPC_DOCK_GAP = 8;
+
+  // Helper to apply NPC dock layout settings
+  function applyNpcDockLayout() {
     const root = document.getElementById(DOCK_ID);
     if (root) {
       const width = getNpcDockWidth();
+      const rows = getNpcDockRows();
+      const height = rows * NPC_DOCK_CARD_SIZE + Math.max(0, rows - 1) * NPC_DOCK_GAP;
       root.style.width = `${width}vw`;
+      root.style.setProperty("--ginzzzu-npc-dock-rows", String(rows));
+      root.style.setProperty("--ginzzzu-npc-dock-height", `${height}px`);
+      root.style.setProperty("--ginzzzu-npc-dock-grid-rows", `repeat(${rows}, ${NPC_DOCK_CARD_SIZE}px)`);
     }
   }
 
@@ -139,8 +155,8 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     root.style.display = "none";
     document.body.appendChild(root);
 
-    // Apply NPC dock width setting
-    applyNpcDockWidth();
+    // Apply NPC dock layout settings
+    applyNpcDockLayout();
 
     // Mini dock container (CSS handles layout) — shows currently active portraits as circles
     const mini = document.createElement("div");
@@ -470,6 +486,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     // Построить карточки NPC (с учётом фильтров, БЕЗ избранных — они в отдельной колонке)
   function buildNPCs(containerRail) {
     if (!containerRail) return;
+    containerRail.classList.remove("is-empty");
     containerRail.innerHTML = "";
 
     let npcs = (game.actors?.contents ?? []).filter(a => isNPC(a));
@@ -506,6 +523,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     }
 
     if (!npcs.length) {
+      containerRail.classList.add("is-empty");
       containerRail.innerHTML = `<div class="empty">${game.i18n.localize("GINZZZUPORTRAITS.noNPCFound")}</div>`;
       return;
     }
@@ -518,6 +536,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     // если все совпадающие оказались избранными — основная лента пустая
     if (!rest.length) {
+      containerRail.classList.add("is-empty");
       containerRail.innerHTML = `<div class="empty">${game.i18n.localize("GINZZZUPORTRAITS.allInFavorites") || "Все подходящие NPC отмечены ★ и показаны в колонке избранных"}</div>`;
       return;
     }
@@ -710,6 +729,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   function buildDock() {
     if (!game.user?.isGM) return;
     const root = ensureDock();
+    applyNpcDockLayout();
     // rebuild mini-dock first so it's visible above the toolbar (only if enabled)
     try { if (getShowActivePortraits()) buildMiniDock(); } catch(e) { /* ignore */ }
     refreshFolderSelectOptions();
@@ -793,10 +813,13 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     ensureDock();
     buildDock();
 
-    // Listen for npcDockWidth setting changes
+    // Listen for NPC dock layout setting changes
     Hooks.on("preUpdateSetting", (setting, data) => {
-      if (setting.key === `${MODULE_ID}.npcDockWidth`) {
-        setTimeout(() => applyNpcDockWidth(), 50);
+      if (setting.key === `${MODULE_ID}.npcDockWidth` || setting.key === `${MODULE_ID}.npcDockRows`) {
+        setTimeout(() => {
+          applyNpcDockLayout();
+          scheduleRebuild(0);
+        }, 50);
       }
     });
 

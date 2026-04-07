@@ -530,6 +530,17 @@ Hooks.once("init", () => {
     range: { min: 10, max: 100, step: 1 },
     requiresReload: true
   });
+
+  reg("npcDockRows", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockRows.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.npcDockRows.hint"),
+    scope: "client",
+    config: true,
+    type: Number,
+    default: 1,
+    range: { min: 1, max: 5, step: 1 },
+    requiresReload: true
+  });
 });
 
 // Вспомогательные функции для сбора папок с персонажами игроков
