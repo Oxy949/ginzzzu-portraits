@@ -278,6 +278,7 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
   -webkit-user-select: none;
   user-select: none;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 #ginzzzu-npc-dock .npcs .rail.is-empty {
