@@ -208,20 +208,30 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
       const over = (el) => {
         if (!el) return false;
+        // Prefer containment check (more robust when elements are transformed
+        // or when the event target is a child element). Fallback to rect check.
+        if (ev.target instanceof Node && el.contains(ev.target)) return true;
         const r = el.getBoundingClientRect();
         return ev.clientX >= r.left && ev.clientX <= r.right &&
                ev.clientY >= r.top  && ev.clientY <= r.bottom;
       };
 
+      // Normalize delta across devices/modes (lines/pages)
+      let delta = ev.deltaY || 0;
+      if (ev.deltaMode === 1) delta *= 16; // DOM_DELTA_LINE ~ 16px
+      else if (ev.deltaMode === 2) delta *= window.innerHeight; // DOM_DELTA_PAGE
+
       if (over(players) || over(favs)) {
+        if (!delta) return;
         ev.preventDefault();
-        (over(players) ? players : favs).scrollTop += ev.deltaY;
+        const target = over(players) ? players : favs;
+        target.scrollTop += delta;
       } else {
-        if (!ev.deltaY) return;
+        if (!delta) return;
         ev.preventDefault();
-        npcsRail.scrollLeft += ev.deltaY;
+        npcsRail.scrollLeft += delta;
       }
-    }, { passive: false });
+    }, { passive: false, capture: true });
 
 
 
@@ -716,6 +726,30 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     if (npcFavsBox) buildNPCFavs(npcFavsBox);
     buildNPCs(npcRail);
+
+    // Attach per-container wheel handlers once so scrolling works even if
+    // some other listener stops propagation. These handlers normalize deltaMode
+    // and perform programmatic scroll on the element under the pointer.
+    if (!root.__threeOWheelAttached) {
+      const attachWheel = (el, vertical = true) => {
+        if (!el) return;
+        el.addEventListener("wheel", function(ev) {
+          let delta = ev.deltaY || 0;
+          if (ev.deltaMode === 1) delta *= 16;
+          else if (ev.deltaMode === 2) delta *= window.innerHeight;
+          if (!delta) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (vertical) this.scrollTop += delta;
+          else this.scrollLeft += delta;
+        }, { passive: false });
+      };
+
+      attachWheel(playersBox, true);
+      attachWheel(npcFavsBox, true);
+      attachWheel(npcRail, false);
+      root.__threeOWheelAttached = true;
+    }
 
     root.style.display = "";
   }

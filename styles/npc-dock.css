@@ -227,6 +227,12 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior-x: contain;
 }
 
 /* Если элементов < 5, используем 2 столбца */
@@ -256,7 +262,15 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
   align-items:center; 
   height: 106px;
   gap:8px; 
-  overflow:hidden; }
+  overflow-x: auto; 
+  overflow-y: hidden; 
+  touch-action: pan-x;
+  -ms-touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior-x: contain;
+}
 
 /* Карточки базовые */
 #ginzzzu-npc-dock .item {
@@ -374,6 +388,12 @@ body:has(#sidebar-content.expanded):has(#sidebar-content:not(.active)):has(#chat
   max-height: 106px;           /* ограничиваем высоту колонки */
   overflow-y: auto;            /* вертикальный скролл */
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior-x: contain;
   scrollbar-width: thin;
   scroll-behavior: smooth;
   scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
