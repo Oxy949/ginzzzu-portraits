@@ -50,6 +50,10 @@
   transition: left 0.3s ease-in-out;
 }
 
+body.ginzzzu-performance-mode #ginzzzu-npc-dock {
+  backdrop-filter: none !important;
+}
+
 /* 1. Панель свёрнута, быстрый чат не активен - минимальный отступ */
 body:has(#sidebar-content:not(.expanded)) #ginzzzu-npc-dock.collapsed {
   left: calc(100vw - var(--left-sidebar-width) - var(--buttons-total-width) + 52px);

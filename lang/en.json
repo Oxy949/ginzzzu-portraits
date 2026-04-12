@@ -274,6 +274,10 @@
         "name": "NPC Dock: NPC rows",
         "hint": "How many NPC rows to show in the dock. Increasing this value also increases the panel height."
       },
+      "performanceMode": {
+        "name": "Performance mode",
+        "hint": "Disables background and panel blur effects on this client to improve performance."
+      },
       "pcDockFolder": {
         "name": "Player Dock: folder filter",
         "hint": "Controls which Actor folder is used for the Player Characters panel in the NPC dock. \"All players\" shows actors from all folders; \"Players without folder\" shows only actors that are not in any folder."

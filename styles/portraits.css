@@ -297,6 +297,14 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
   --ginzzzu-blur-speed: var(--ginzzzu-blur-speed-value, 400ms);
 }
 
+body.ginzzzu-performance-mode #ginzzzu-portrait-layer::before,
+body.ginzzzu-performance-mode #ginzzzu-portraits-topbar,
+body.ginzzzu-performance-mode #ginzzzu-portrait-names .ginzzzu-portrait-name,
+body.ginzzzu-performance-mode #ginzzzu-portrait-ui-toggle-btn,
+body.ginzzzu-performance-mode #ginzzzu-player-portrait-toggle-btn {
+  backdrop-filter: none !important;
+}
+
 /* === Focus Blur Effect === */
 /* When focus blur is active, enhance the background blur effect */
 #ginzzzu-portrait-layer.ginzzzu-portrait-focus-blur-active {

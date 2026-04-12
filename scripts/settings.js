@@ -16,6 +16,16 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  reg("performanceMode", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.performanceMode.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.performanceMode.hint"),
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
   // === Player Dock: фильтр папок игроков (мир / World) ===
   const pcDockFolderChoices = {
     all: game.i18n.localize("GINZZZUPORTRAITS.pcFoldersAll"),
@@ -598,7 +608,15 @@ function collectPCFoldersForSettings() {
 }
 
 // После загрузки мира динамически дополняем choices для pcDockFolder папками с игроками
+function applyPerformanceModeClass() {
+  try {
+    const enabled = !!game.settings.get(MODULE_ID, "performanceMode");
+    document.body?.classList.toggle("ginzzzu-performance-mode", enabled);
+  } catch (_) {}
+}
+
 Hooks.once("ready", () => {
+  applyPerformanceModeClass();
   try {
     const settingKey = `${MODULE_ID}.pcDockFolder`;
     const setting = game.settings.settings.get(settingKey);
@@ -624,5 +642,11 @@ Hooks.once("ready", () => {
     };
   } catch (e) {
     console.warn("[ginzzzu-portraits] pcDockFolder dynamic choices error:", e);
+  }
+});
+
+Hooks.on("updateSetting", (setting) => {
+  if (setting?.key === `${MODULE_ID}.performanceMode`) {
+    applyPerformanceModeClass();
   }
 });
