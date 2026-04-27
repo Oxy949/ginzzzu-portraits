@@ -172,6 +172,42 @@ const FRAME = {
   };
 
   const isGM = () => !!game.user?.isGM;
+  let _blurRemovalTimeout = null;
+
+  function isPortraitUiHidden(root = document.getElementById("ginzzzu-portrait-layer")) {
+    return !!root?.classList?.contains("ginzzzu-portrait-ui-hidden");
+  }
+
+  function clearPortraitBlur(root = document.getElementById("ginzzzu-portrait-layer")) {
+    if (!root) return;
+
+    if (_blurRemovalTimeout !== null) {
+      clearTimeout(_blurRemovalTimeout);
+      _blurRemovalTimeout = null;
+    }
+
+    root.classList.remove("ginzzzu-portrait-blur-active", "ginzzzu-portrait-focus-blur-active");
+    root.style.removeProperty("--ginzzzu-blur-strength-value");
+    root.style.removeProperty("--ginzzzu-blur-speed-value");
+  }
+
+  function setPortraitUiHidden(root, hidden) {
+    if (!root) return;
+
+    root.classList.toggle("ginzzzu-portrait-ui-hidden", !!hidden);
+
+    if (hidden) {
+      root.querySelectorAll("#ginzzzu-portrait-names .ginzzzu-portrait-name.visible").forEach((badge) => {
+        badge.classList.remove("visible");
+      });
+      clearPortraitBlur(root);
+      return;
+    }
+
+    if (getActivePortraits().length > 0) {
+      _applyPortraitFocus();
+    }
+  }
 
   // Simple image preloader with timeout
   function _preloadImage(src, timeoutMs = 60000) {
@@ -346,7 +382,8 @@ const FRAME = {
       btn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         try {
-          const isHidden = root.classList.toggle('ginzzzu-portrait-ui-hidden');
+          const isHidden = !isPortraitUiHidden(root);
+          setPortraitUiHidden(root, isHidden);
           try { localStorage.setItem(toggleId, isHidden ? '1' : '0'); } catch (e) {}
           updateToggleButtonIcon(btn, isHidden);
         } catch (e) { console.error('[ginzzzu-portraits] toggle button error:', e); }
@@ -356,9 +393,10 @@ const FRAME = {
       try {
         const saved = localStorage.getItem(toggleId);
         if (saved === '1') {
-          root.classList.add('ginzzzu-portrait-ui-hidden');
+          setPortraitUiHidden(root, true);
           updateToggleButtonIcon(btn, true);
         } else {
+          setPortraitUiHidden(root, false);
           updateToggleButtonIcon(btn, false);
         }
       } catch (e) {}
@@ -628,6 +666,10 @@ const FRAME = {
     // === Apply focus blur effect to background ===
     const root = getDomHud();
     if (!root) return;
+    if (isPortraitUiHidden(root)) {
+      clearPortraitBlur(root);
+      return;
+    }
 
     const focusBlurEnabled = game.settings.get(MODULE_ID, "portraitFocusBlurEnabled");
     const blurEnabled = game.settings.get(MODULE_ID, "portraitBlurEnabled");
@@ -1985,11 +2027,14 @@ Hooks.once("ready", () => {
 
   // === Blur Effect Management ===
   // Track timeout for blur removal to allow cancellation on rapid show/hide
-  let _blurRemovalTimeout = null;
   
   function applyBlur() {
     const root = getDomHud();
     if (!root) return;
+    if (isPortraitUiHidden(root)) {
+      clearPortraitBlur(root);
+      return;
+    }
 
     // Cancel any pending blur removal timeout
     if (_blurRemovalTimeout !== null) {
@@ -2011,6 +2056,10 @@ Hooks.once("ready", () => {
   function removeBlur() {
     const root = getDomHud();
     if (!root) return;
+    if (isPortraitUiHidden(root)) {
+      clearPortraitBlur(root);
+      return;
+    }
 
     // Check if there are any active portraits left
     const activePortraits = getActivePortraits();

@@ -156,7 +156,8 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 }
 
 #ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden #ginzzzu-portrait-names .ginzzzu-portrait-name {
-  opacity: 0.5;
+  opacity: 0 !important;
+  visibility: hidden;
 }
 
 /* === UI Toggle Button Positioning === */
@@ -295,6 +296,10 @@ body:has(#sidebar-content.expanded):has(#sidebar-tab-chat:not(.active)):has(#cha
 #ginzzzu-portrait-layer.ginzzzu-portrait-blur-active {
   --ginzzzu-blur-strength: var(--ginzzzu-blur-strength-value, 8px);
   --ginzzzu-blur-speed: var(--ginzzzu-blur-speed-value, 400ms);
+}
+
+#ginzzzu-portrait-layer.ginzzzu-portrait-ui-hidden {
+  --ginzzzu-blur-strength: 0px;
 }
 
 body.ginzzzu-performance-mode #ginzzzu-portrait-layer::before,
