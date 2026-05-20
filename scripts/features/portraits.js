@@ -90,31 +90,39 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
   }
 
   // ---- Adaptive tone (по темноте сцены) ----
-function _toneGetDarkness() {
-  // 0..1 — чем больше, тем темнее; поддержка V10..V12
-  try {
-    const scene = canvas?.scene;
-    if (!scene) return 0;
-    const d = (scene.environment?.darkness ?? scene.darkness ?? 0);
-    return Math.max(0, Math.min(1, Number(d) || 0));
-  } catch (e) { return 0; }
+function _toneClamp01(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : 0;
 }
 
+function _toneSmoothstep(edge0, edge1, value) {
+  const t = _toneClamp01((value - edge0) / (edge1 - edge0));
+  return t * t * (3 - (2 * t));
+}
+
+function _toneRound(value) {
+  return Number(value.toFixed(4));
+}
 
 function _toneCompute(darkness, strength01) {
-  // strength01: 0..1
-  // Подбор “на глаз”: чуть приглушаем в темноте
-  const s = Math.min(1, Math.max(0, strength01));
-  const k  = darkness * s;
+  const d = _toneClamp01(darkness);
+  const s = _toneClamp01(strength01);
 
-  // коэффициенты (1 = без изменений)
-  const brightness = 1 - 0.35 * k;   // темнее
-  const contrast   = 1 + 0.18 * k;   // немного контраста
-  const saturate   = 1 - 0.20 * k;   // убрать “кислотность” в сумраке
-  // лёгкий сдвиг в более “холодные” тона к ночи
-  const hueDeg     = -10 * (k > 0.5 ? (k - 0.5) * 2 : 0); // от 0 до ~-10°
+  const dusk = _toneSmoothstep(0.12, 0.70, d) * s;
+  const night = _toneSmoothstep(0.55, 1.00, d) * s;
+  const deepNight = _toneSmoothstep(0.78, 1.00, d) * s;
 
-  return { brightness, contrast, saturate, hueDeg };
+  const brightness = 1 - (0.18 * dusk) - (0.16 * night) - (0.04 * deepNight);
+  const contrast = 1 + (0.07 * dusk) - (0.16 * deepNight);
+  const saturate = 1 - (0.10 * dusk) - (0.28 * night) - (0.07 * deepNight);
+  const hueDeg = (-3 * dusk) - (12 * night);
+
+  return {
+    brightness: _toneRound(brightness),
+    contrast: _toneRound(contrast),
+    saturate: _toneRound(saturate),
+    hueDeg: _toneRound(hueDeg)
+  };
 }
 
 function _toneGetDarknessLevel() {
