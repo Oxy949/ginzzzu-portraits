@@ -112,16 +112,19 @@ function _toneCompute(darkness, strength01) {
   const night = _toneSmoothstep(0.55, 1.00, d) * s;
   const deepNight = _toneSmoothstep(0.78, 1.00, d) * s;
 
-  const brightness = 1 - (0.18 * dusk) - (0.16 * night) - (0.04 * deepNight);
-  const contrast = 1 + (0.07 * dusk) - (0.16 * deepNight);
-  const saturate = 1 - (0.10 * dusk) - (0.28 * night) - (0.07 * deepNight);
-  const hueDeg = (-3 * dusk) - (12 * night);
+  const brightness = 1 - (0.20 * dusk) - (0.16 * night) - (0.04 * deepNight);
+  const contrast = 1 + (0.08 * dusk) - (0.03 * deepNight);
+  const saturate = 1 - (0.04 * dusk) - (0.08 * night);
+  const hueDeg = (-2 * dusk) - (10 * night);
+  const blueTint = (0.03 * dusk) + (0.10 * night) + (0.04 * deepNight);
 
   return {
     brightness: _toneRound(brightness),
     contrast: _toneRound(contrast),
     saturate: _toneRound(saturate),
-    hueDeg: _toneRound(hueDeg)
+    hueDeg: _toneRound(hueDeg),
+    blueTint: _toneRound(blueTint),
+    bluePostHueDeg: _toneRound(hueDeg - 180)
   };
 }
 
@@ -160,15 +163,19 @@ function _toneApplyToRootVars(root = document.getElementById("ginzzzu-portrait-l
     root.style.removeProperty("--tone-contrast");
     root.style.removeProperty("--tone-saturate");
     root.style.removeProperty("--tone-hue");
+    root.style.removeProperty("--tone-blue-tint");
+    root.style.removeProperty("--tone-blue-post-hue");
     return;
   }
   const strength = Math.max(0, Math.min(1, Number(game.settings.get(MODULE_ID, "portraitToneStrength")) || 0));
   const d = _toneGetDarknessLevel();
-  const { brightness, contrast, saturate, hueDeg } = _toneCompute(d, strength);
+  const { brightness, contrast, saturate, hueDeg, blueTint, bluePostHueDeg } = _toneCompute(d, strength);
   root.style.setProperty("--tone-brightness", String(brightness));
   root.style.setProperty("--tone-contrast",   String(contrast));
   root.style.setProperty("--tone-saturate",   String(saturate));
   root.style.setProperty("--tone-hue",        `${hueDeg}deg`);
+  root.style.setProperty("--tone-blue-tint",  String(blueTint));
+  root.style.setProperty("--tone-blue-post-hue", `${bluePostHueDeg}deg`);
 }
 
   // ---- Геометрия «рамки» портретов и анимации ----
@@ -1330,7 +1337,7 @@ function _onPortraitClick(ev) {
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
     if (game.settings.get(MODULE_ID, "visualNovelMode")) {
       Object.assign(el.style, {
-        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
+        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(180deg) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,-180deg))",
         transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
         pointerEvents: "none",
         opacity: "0",
@@ -1348,7 +1355,7 @@ function _onPortraitClick(ev) {
         height: "100%",
         objectFit: "contain",
         borderRadius: "10px",
-        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-hue,0deg))",
+        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(180deg) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,-180deg))",
         transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
         pointerEvents: "none",
         opacity: "0",
