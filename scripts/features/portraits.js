@@ -117,9 +117,35 @@ function _toneCompute(darkness, strength01) {
   return { brightness, contrast, saturate, hueDeg };
 }
 
-function _toneApplyToRootVars() {
+function _toneGetDarknessLevel() {
+  const readNumber = (getter) => {
+    try {
+      const value = getter();
+      const number = Number(value);
+      return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const candidates = [
+    () => canvas?.darknessLevel,
+    () => canvas?.environment?.darknessLevel,
+    () => canvas?.scene?.environment?.darknessLevel,
+    () => canvas?.scene?.environment?.darkness,
+    () => canvas?.scene?.darkness
+  ];
+
+  for (const getter of candidates) {
+    const darkness = readNumber(getter);
+    if (darkness !== null) return darkness;
+  }
+
+  return 0;
+}
+
+function _toneApplyToRootVars(root = document.getElementById("ginzzzu-portrait-layer")) {
   const enabled = game.settings.get(MODULE_ID, "portraitToneEnabled");
-  const root = document.getElementById("ginzzzu-portrait-layer");
   if (!root) return;
   if (!enabled) {
     root.style.removeProperty("--tone-brightness");
@@ -129,7 +155,7 @@ function _toneApplyToRootVars() {
     return;
   }
   const strength = Math.max(0, Math.min(1, Number(game.settings.get(MODULE_ID, "portraitToneStrength")) || 0));
-  const d = _toneGetDarkness();
+  const d = _toneGetDarknessLevel();
   const { brightness, contrast, saturate, hueDeg } = _toneCompute(d, strength);
   root.style.setProperty("--tone-brightness", String(brightness));
   root.style.setProperty("--tone-contrast",   String(contrast));
@@ -239,7 +265,10 @@ const FRAME = {
     }
 
     let root = document.getElementById("ginzzzu-portrait-layer");
-    if (root) return root;
+    if (root) {
+      _toneApplyToRootVars(root);
+      return root;
+    }
 
     const iface = document.getElementById("interface");
     if (!iface) {
@@ -384,22 +413,13 @@ const FRAME = {
         try {
           const isHidden = !isPortraitUiHidden(root);
           setPortraitUiHidden(root, isHidden);
-          try { localStorage.setItem(toggleId, isHidden ? '1' : '0'); } catch (e) {}
           updateToggleButtonIcon(btn, isHidden);
         } catch (e) { console.error('[ginzzzu-portraits] toggle button error:', e); }
       }, { passive: true });
 
-      // Restore saved state per-client if any
-      try {
-        const saved = localStorage.getItem(toggleId);
-        if (saved === '1') {
-          setPortraitUiHidden(root, true);
-          updateToggleButtonIcon(btn, true);
-        } else {
-          setPortraitUiHidden(root, false);
-          updateToggleButtonIcon(btn, false);
-        }
-      } catch (e) {}
+      try { localStorage.removeItem(toggleId); } catch (e) {}
+      setPortraitUiHidden(root, false);
+      updateToggleButtonIcon(btn, false);
 
       // Add button to root so it's positioned relative to portrait layer
       root.appendChild(btn);
@@ -407,6 +427,7 @@ const FRAME = {
       console.warn('[ginzzzu-portraits] failed to create UI toggle button:', e);
     }
 
+    _toneApplyToRootVars(root);
     document.getElementById("interface").appendChild(root);
     return root;
   }
