@@ -1,4 +1,5 @@
 import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } from "../core/constants.js";
+import { isActorInIgnoredNPCFolder } from "../settings.js";
 import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/index.js";
 
 (()=>{
@@ -139,7 +140,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   }
 
   function collectActorFoldersWithNPC() {
-    const actors = (game.actors?.contents ?? []).filter(a => isNPC(a));
+    const actors = (game.actors?.contents ?? []).filter(a => isNPC(a) && !isActorInIgnoredNPCFolder(a));
     const usedFolderIds = new Set();
     for (const a of actors) {
       let f = a.folder ?? null;
@@ -497,7 +498,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     containerRail.classList.remove("is-empty");
     containerRail.innerHTML = "";
 
-    let npcs = (game.actors?.contents ?? []).filter(a => isNPC(a));
+    let npcs = (game.actors?.contents ?? []).filter(a => isNPC(a) && !isActorInIgnoredNPCFolder(a));
 
     // фильтр по источнику (папка / со сцены / все)
     const folderSel = getFolderSel();
@@ -614,7 +615,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     // собираем ТОЛЬКО избранных NPC (независимо от фильтров)
     let favs = (game.actors?.contents ?? [])
-      .filter(a => isNPC(a) && !!foundry.utils.getProperty(a, FLAG_FAVORITE));
+      .filter(a => isNPC(a) && !isActorInIgnoredNPCFolder(a) && !!foundry.utils.getProperty(a, FLAG_FAVORITE));
 
     if (!favs.length) {
       containerFavs.style.display = "none";
@@ -683,7 +684,11 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       mini.innerHTML = "";
 
       // собираем актёров с поднятым флагом портрета
-      let active = (game.actors?.contents ?? []).filter(a => !!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN) && (isNPC(a) || isPC(a)));
+      let active = (game.actors?.contents ?? []).filter(a => {
+        if (!foundry.utils.getProperty(a, FLAG_PORTRAIT_SHOWN)) return false;
+        if (isPC(a)) return true;
+        return isNPC(a) && !isActorInIgnoredNPCFolder(a);
+      });
       if (!active.length) {
         mini.style.display = 'none';
         return;

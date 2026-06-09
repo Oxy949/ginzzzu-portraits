@@ -1,0 +1,34 @@
+<form class="ginzzzu-ignored-npc-folders-config">
+  <p class="notes">{{localize "GINZZZUPORTRAITS.Settings.ignoredNpcFolders.description"}}</p>
+
+  {{#if hasFolders}}
+    <div class="ginzzzu-ignored-npc-folders-actions">
+      <button type="button" data-action="select-all">
+        <i class="fas fa-check-double"></i>
+        {{localize "GINZZZUPORTRAITS.Settings.ignoredNpcFolders.selectAll"}}
+      </button>
+      <button type="button" data-action="clear-all">
+        <i class="fas fa-eraser"></i>
+        {{localize "GINZZZUPORTRAITS.Settings.ignoredNpcFolders.clearAll"}}
+      </button>
+    </div>
+
+    <div class="ginzzzu-ignored-npc-folders-list">
+      {{#each folders}}
+        <label class="ginzzzu-ignored-npc-folders-option">
+          <input type="checkbox" name="folders.{{id}}" {{checked checked}}>
+          <span>{{label}}</span>
+        </label>
+      {{/each}}
+    </div>
+  {{else}}
+    <p class="notes">{{localize "GINZZZUPORTRAITS.Settings.ignoredNpcFolders.noFolders"}}</p>
+  {{/if}}
+
+  <footer class="sheet-footer flexrow">
+    <button type="submit">
+      <i class="fas fa-save"></i>
+      {{localize "GINZZZUPORTRAITS.Settings.ignoredNpcFolders.save"}}
+    </button>
+  </footer>
+</form>

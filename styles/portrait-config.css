@@ -218,3 +218,48 @@
   padding: 6px;
   font-size: 0.9em;
 }
+
+.ginzzzu-ignored-npc-folders-config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ginzzzu-ignored-npc-folders-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ginzzzu-ignored-npc-folders-actions button {
+  flex: 1;
+}
+
+.ginzzzu-ignored-npc-folders-list {
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.ginzzzu-ignored-npc-folders-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.ginzzzu-ignored-npc-folders-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ginzzzu-ignored-npc-folders-option input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.ginzzzu-ignored-npc-folders-option span {
+  overflow-wrap: anywhere;
+}

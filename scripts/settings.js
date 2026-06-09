@@ -1,5 +1,203 @@
 import { MODULE_ID } from "./core/constants.js";
 
+export const IGNORED_NPC_FOLDER_IDS_SETTING = "ignoredNpcFolderIds";
+
+function getActorFolderPath(folder) {
+  const names = [];
+  let current = folder ?? null;
+  while (current) {
+    names.unshift(current.name || "");
+    current = current.folder ?? null;
+  }
+  return names.join(" / ");
+}
+
+function getAllFoldersForSettings() {
+  const folders = game.folders;
+  if (!folders) return [];
+  if (Array.isArray(folders)) return folders;
+  if (Array.isArray(folders.contents)) return folders.contents;
+  if (typeof folders.filter === "function") return folders.filter(() => true);
+  if (typeof folders.values === "function") return Array.from(folders.values());
+  return Array.from(folders);
+}
+
+function collectActorFoldersForIgnoredNPCSettings() {
+  const allFolders = getAllFoldersForSettings();
+  const actorFolders = allFolders.filter(folder =>
+    String(folder?.type ?? folder?.documentName ?? "").toLowerCase() === "actor"
+  );
+  const foldersToShow = actorFolders.length ? actorFolders : allFolders;
+
+  const folders = foldersToShow
+    .filter(f => f?.id)
+    .map(f => ({ id: f.id, label: getActorFolderPath(f) || f.name || f.id }));
+
+  folders.sort((a, b) =>
+    (a.label || "").localeCompare(b.label || "", game.i18n.lang || undefined, { sensitivity: "base" })
+  );
+
+  return folders;
+}
+
+function normalizeIgnoredFolderIds(value) {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (value instanceof Set) return Array.from(value).map(String).filter(Boolean);
+  if (value && typeof value === "object") {
+    return Object.values(value).map(String).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+export function getIgnoredNPCFolderIds() {
+  try {
+    return new Set(normalizeIgnoredFolderIds(game.settings.get(MODULE_ID, IGNORED_NPC_FOLDER_IDS_SETTING)));
+  } catch {
+    return new Set();
+  }
+}
+
+export function isActorInIgnoredNPCFolder(actor) {
+  const ignoredFolderIds = getIgnoredNPCFolderIds();
+  if (!ignoredFolderIds.size) return false;
+
+  let folder = actor?.folder ?? null;
+  while (folder) {
+    if (ignoredFolderIds.has(folder.id)) return true;
+    folder = folder.folder ?? null;
+  }
+  return false;
+}
+
+function getIgnoredNPCFoldersConfigData(baseData = {}) {
+  const ignoredFolderIds = getIgnoredNPCFolderIds();
+  const folders = collectActorFoldersForIgnoredNPCSettings()
+    .map(folder => ({
+      ...folder,
+      checked: ignoredFolderIds.has(folder.id)
+    }));
+
+  return {
+    ...baseData,
+    folders,
+    hasFolders: folders.length > 0
+  };
+}
+
+function getSelectedIgnoredNPCFolderIdsFromEntries(entries) {
+  return entries
+    .filter(([key, value]) => key.startsWith("folders.") && !!value)
+    .map(([key]) => key.slice("folders.".length));
+}
+
+async function saveIgnoredNPCFolderIds(folderIds) {
+  await game.settings.set(MODULE_ID, IGNORED_NPC_FOLDER_IDS_SETTING, folderIds);
+  globalThis.GinzzzuNPCDock?.rebuild?.();
+}
+
+const IgnoredNPCFoldersConfig = (() => {
+  const ApplicationV2 = foundry.applications?.api?.ApplicationV2;
+  const HandlebarsApplicationMixin = foundry.applications?.api?.HandlebarsApplicationMixin;
+
+  if (ApplicationV2 && HandlebarsApplicationMixin) {
+    return class IgnoredNPCFoldersConfigV2 extends HandlebarsApplicationMixin(ApplicationV2) {
+      static DEFAULT_OPTIONS = {
+        id: "ginzzzu-ignored-npc-folders-config",
+        position: { width: 520 },
+        window: {
+          resizable: true
+        }
+      };
+
+      static PARTS = {
+        body: {
+          template: `modules/${MODULE_ID}/templates/ignored-npc-folders.hbs`
+        }
+      };
+
+      constructor(options = {}) {
+        super(foundry.utils.mergeObject({
+          window: {
+            title: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.title")
+          }
+        }, options, { inplace: false }));
+      }
+
+      async _prepareContext(options) {
+        return getIgnoredNPCFoldersConfigData(await super._prepareContext(options));
+      }
+
+      async _onRender(context, options) {
+        await super._onRender(context, options);
+
+        const form = this.element.querySelector("form");
+        if (!form) return;
+
+        form.querySelector("[data-action='select-all']")?.addEventListener("click", event => {
+          event.preventDefault();
+          form.querySelectorAll("input[type='checkbox'][name^='folders.']")
+            .forEach(input => { input.checked = true; });
+        });
+
+        form.querySelector("[data-action='clear-all']")?.addEventListener("click", event => {
+          event.preventDefault();
+          form.querySelectorAll("input[type='checkbox'][name^='folders.']")
+            .forEach(input => { input.checked = false; });
+        });
+
+        form.addEventListener("submit", async event => {
+          event.preventDefault();
+          const folderIds = getSelectedIgnoredNPCFolderIdsFromEntries(Array.from(new FormData(form).entries()));
+          await saveIgnoredNPCFolderIds(folderIds);
+          await this.close();
+        });
+      }
+    };
+  }
+
+  return class IgnoredNPCFoldersConfigV1 extends FormApplication {
+    static get defaultOptions() {
+      return foundry.utils.mergeObject(super.defaultOptions, {
+        id: "ginzzzu-ignored-npc-folders-config",
+        title: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.title"),
+        template: `modules/${MODULE_ID}/templates/ignored-npc-folders.hbs`,
+        width: 520,
+        height: "auto",
+        closeOnSubmit: true
+      });
+    }
+
+    getData(options = {}) {
+      return getIgnoredNPCFoldersConfigData(super.getData(options));
+    }
+
+    activateListeners(html) {
+      super.activateListeners(html);
+
+      html.find("[data-action='select-all']").on("click", event => {
+        event.preventDefault();
+        html.find("input[type='checkbox'][name^='folders.']").prop("checked", true);
+      });
+
+      html.find("[data-action='clear-all']").on("click", event => {
+        event.preventDefault();
+        html.find("input[type='checkbox'][name^='folders.']").prop("checked", false);
+      });
+    }
+
+    async _updateObject(event, formData) {
+      const folderEntries = (formData.folders && typeof formData.folders === "object")
+        ? Object.entries(formData.folders).map(([key, value]) => [`folders.${key}`, value])
+        : Object.entries(formData);
+
+      await saveIgnoredNPCFolderIds(getSelectedIgnoredNPCFolderIdsFromEntries(folderEntries));
+    }
+  };
+})();
+
 // Settings for ginzzzu-portraits
 Hooks.once("init", () => { 
   // Helper to register
@@ -378,6 +576,25 @@ Hooks.once("init", () => {
     type: String,
     default: "npc, adversary, creature, monster, minion",
     requiresReload: true
+  });
+
+  reg(IGNORED_NPC_FOLDER_IDS_SETTING, {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.hint"),
+    scope: "world",
+    config: false,
+    type: Object,
+    default: [],
+    onChange: () => globalThis.GinzzzuNPCDock?.rebuild?.()
+  });
+
+  game.settings.registerMenu(MODULE_ID, "ignoredNpcFoldersMenu", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.name"),
+    label: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.open"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.ignoredNpcFolders.hint"),
+    icon: "fas fa-folder-minus",
+    type: IgnoredNPCFoldersConfig,
+    restricted: true
   });
 
   // === Портреты: анимация (мир / World) ===

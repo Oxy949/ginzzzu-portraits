@@ -210,6 +210,17 @@
         "name": "Actor Types: NPCs (CSV)",
         "hint": "List of Actor types separated by commas to be considered as NPCs. Examples: npc, adversary, creature, monster, minion"
       },
+      "ignoredNpcFolders": {
+        "name": "NPC Dock: ignored actor folders",
+        "hint": "Choose Actor folders whose NPCs should be hidden from the NPC dock. Selecting a parent folder also ignores its subfolders.",
+        "open": "Choose folders",
+        "title": "Ignored NPC folders",
+        "description": "NPCs in selected Actor folders will not appear in the NPC dock, favorites column, source folder list, or active portraits mini dock.",
+        "selectAll": "Select all",
+        "clearAll": "Clear all",
+        "noFolders": "No Actor folders found.",
+        "save": "Save"
+      },
       "portraitFadeMs": {
         "name": "Portraits: fade-in duration (ms)",
         "hint": "Duration in milliseconds for portrait fade-in animation."
