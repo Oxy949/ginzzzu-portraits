@@ -263,3 +263,28 @@
 .ginzzzu-ignored-npc-folders-option span {
   overflow-wrap: anywhere;
 }
+
+.ginzzzu-settings-heading {
+  margin: 18px 0 8px;
+  padding: 9px 12px;
+  border-left: 3px solid #8fbfe8;
+  border-radius: 4px;
+  background: rgba(143, 191, 232, 0.1);
+}
+
+.ginzzzu-settings-heading:first-child {
+  margin-top: 0;
+}
+
+.ginzzzu-settings-heading h3 {
+  margin: 0;
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.ginzzzu-settings-heading p {
+  margin: 3px 0 0;
+  color: var(--color-text-dark-secondary, #777);
+  font-size: 0.92em;
+  line-height: 1.35;
+}

@@ -198,6 +198,193 @@ const IgnoredNPCFoldersConfig = (() => {
   };
 })();
 
+const SETTINGS_GROUPS = [
+  {
+    id: "quick",
+    keys: [
+      "hidePortraits",
+      "performanceMode"
+    ]
+  },
+  {
+    id: "npcDock",
+    keys: [
+      "playerCharactersPanelEnabled",
+      "pcDockFolder",
+      "showActivePortraits",
+      "npcDockWidth",
+      "npcDockRows",
+      "npcDockFolder",
+      "npcDockSearch",
+      "npcDockSort",
+      "showGroupActorsInSources",
+      "ignoredNpcFoldersMenu"
+    ]
+  },
+  {
+    id: "portraitLayout",
+    keys: [
+      "visualNovelMode",
+      "resizeToFit",
+      "adjustForSidebar",
+      "gmForcePortraitHeight",
+      "gmPortraitHeight",
+      "portraitHeight",
+      "portraitBottomOffset",
+      "portraitNamesAlwaysVisible",
+      "portraitNameVertical",
+      "portraitNameFontSize"
+    ]
+  },
+  {
+    id: "portraitVisuals",
+    keys: [
+      "portraitToneEnabled",
+      "portraitToneStrength",
+      "portraitFocusHighlightStrength",
+      "portraitShadowDimStrength",
+      "portraitBlurEnabled",
+      "portraitBlurStrength",
+      "portraitBlurSpeed",
+      "portraitFocusBlurEnabled",
+      "portraitFocusBlurStrength",
+      "portraitFocusPortraitBlurEnabled",
+      "portraitFocusPortraitBlurStrength",
+      "portraitFadeMs",
+      "portraitMoveMs",
+      "portraitEasing"
+    ]
+  },
+  {
+    id: "access",
+    keys: [
+      "portraitFlipAccess",
+      "portraitUIToggleVisibility",
+      "playerPortraitToolbarButton"
+    ]
+  },
+  {
+    id: "emotions",
+    keys: [
+      "emotionPanelVisibility",
+      "emotionPanelScale",
+      "emotionPanelPosition",
+      "emotionColorIntensity",
+      "emotionImageTransitionMs",
+      "resetEmotionOnHide"
+    ]
+  },
+  {
+    id: "advanced",
+    keys: [
+      "actorImagePaths",
+      "pcActorTypes",
+      "npcActorTypes"
+    ]
+  }
+];
+
+function escapeAttributeValue(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function getRenderedSettingsElement(app, htmlOrElement) {
+  if (htmlOrElement?.jquery) return htmlOrElement[0];
+  if (htmlOrElement instanceof HTMLElement) return htmlOrElement;
+  if (app?.element?.jquery) return app.element[0];
+  if (app?.element instanceof HTMLElement) return app.element;
+  return null;
+}
+
+function getSettingOrMenuConfig(key) {
+  const fullKey = `${MODULE_ID}.${key}`;
+  return game.settings?.settings?.get(fullKey) ?? game.settings?.menus?.get(fullKey) ?? null;
+}
+
+function findSettingsRow(root, key) {
+  const fullKey = `${MODULE_ID}.${key}`;
+  const escapedFullKey = escapeAttributeValue(fullKey);
+  const target = root.querySelector([
+    `[name="${escapedFullKey}"]`,
+    `[id="${escapedFullKey}"]`,
+    `[data-key="${escapedFullKey}"]`,
+    `[data-setting="${escapedFullKey}"]`,
+    `[data-setting-key="${escapedFullKey}"]`,
+    `[data-setting-id="${escapedFullKey}"]`
+  ].join(","));
+
+  if (target) return target.closest(".form-group, .form-group-stacked, li, .setting") ?? target.parentElement;
+
+  const config = getSettingOrMenuConfig(key);
+  const labels = [config?.name, config?.label].filter(Boolean).map(String);
+  if (!labels.length) return null;
+
+  for (const row of root.querySelectorAll(".form-group, .form-group-stacked, li, .setting")) {
+    const text = row.textContent || "";
+    if (labels.some(label => text.includes(label))) return row;
+  }
+
+  return null;
+}
+
+function makeSettingsGroupHeader(groupId) {
+  const header = document.createElement("div");
+  header.className = "ginzzzu-settings-heading";
+  header.dataset.groupId = groupId;
+
+  const title = document.createElement("h3");
+  title.textContent = game.i18n.localize(`GINZZZUPORTRAITS.SettingsGroups.${groupId}.title`);
+  header.appendChild(title);
+
+  const hint = game.i18n.localize(`GINZZZUPORTRAITS.SettingsGroups.${groupId}.hint`);
+  if (hint && !hint.startsWith("GINZZZUPORTRAITS.")) {
+    const description = document.createElement("p");
+    description.textContent = hint;
+    header.appendChild(description);
+  }
+
+  return header;
+}
+
+function organizeModuleSettingsConfig(app, htmlOrElement) {
+  const root = getRenderedSettingsElement(app, htmlOrElement);
+  if (!root) return;
+
+  const allRows = SETTINGS_GROUPS
+    .flatMap(group => group.keys)
+    .map(key => findSettingsRow(root, key))
+    .filter(Boolean);
+  if (!allRows.length) return;
+
+  for (const header of root.querySelectorAll(".ginzzzu-settings-heading")) {
+    header.remove();
+  }
+
+  for (const group of SETTINGS_GROUPS) {
+    const rows = group.keys
+      .map(key => findSettingsRow(root, key))
+      .filter(Boolean);
+    if (!rows.length) continue;
+
+    const container = rows[0].parentElement;
+    if (!container) continue;
+
+    const header = makeSettingsGroupHeader(group.id);
+    container.insertBefore(header, rows[0]);
+
+    let marker = header;
+    for (const row of rows) {
+      if (row.parentElement !== container) continue;
+      marker.after(row);
+      marker = row;
+    }
+  }
+}
+
+function scheduleOrganizeModuleSettingsConfig(app, htmlOrElement) {
+  window.setTimeout(() => organizeModuleSettingsConfig(app, htmlOrElement), 0);
+}
+
 // Settings for ginzzzu-portraits
 Hooks.once("init", () => { 
   // Helper to register
@@ -605,6 +792,7 @@ Hooks.once("init", () => {
     config: true,
     type: Number,
     default: 300,
+    range: { min: 0, max: 2000, step: 50 },
     requiresReload: true
   });
 
@@ -615,6 +803,7 @@ Hooks.once("init", () => {
     config: true,
     type: Number,
     default: 450,
+    range: { min: 0, max: 2000, step: 50 },
     requiresReload: true
   });
 
@@ -743,6 +932,10 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: String,
+    choices: {
+      "name-asc": game.i18n.localize("GINZZZUPORTRAITS.sortByName"),
+      "folder-asc": game.i18n.localize("GINZZZUPORTRAITS.sortByFolder")
+    },
     default: "name-asc",
     requiresReload: true
   });
@@ -866,4 +1059,15 @@ Hooks.on("updateSetting", (setting) => {
   if (setting?.key === `${MODULE_ID}.performanceMode`) {
     applyPerformanceModeClass();
   }
+});
+
+Hooks.on("renderSettingsConfig", (app, html) => {
+  scheduleOrganizeModuleSettingsConfig(app, html);
+});
+
+Hooks.on("renderApplicationV2", (app, element) => {
+  const appId = app?.id ?? app?.options?.id ?? "";
+  const appName = app?.constructor?.name ?? "";
+  if (appId !== "settings-config" && appName !== "SettingsConfig") return;
+  scheduleOrganizeModuleSettingsConfig(app, element);
 });

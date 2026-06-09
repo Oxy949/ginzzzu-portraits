@@ -80,20 +80,20 @@
         "hint": "If enabled, you will not see any character portraits."
       },
       "gmForcePortraitHeight": {
-        "name": "Override player portrait height",
-        "hint": "If enabled, the GM can set a specific height for player portraits."
+        "name": "Force one portrait height for all players",
+        "hint": "If enabled, the world height below is used for every client instead of each player's personal portrait height."
       },
       "playerCharactersPanelEnabled": {
-        "name": "Enable Player Characters Panel",
-        "hint": "If enabled, a panel for player characters will be displayed."
+        "name": "NPC Dock: show player character panel",
+        "hint": "Shows the small player character column on the left side of the NPC dock."
       },
       "gmPortraitHeight": {
-        "name": "[world] Portraits: height",
-        "hint": "0 - bottom strip, 1 - full height"
+        "name": "Portrait height forced by GM",
+        "hint": "Used only when the forced height option is enabled. 0 = bottom strip, 1 = full height."
       },
       "portraitHeight": {
-        "name": "Portraits: height",
-        "hint": "0 - bottom strip, 1 - full height. Used if GM hasn't forced a value."
+        "name": "Portrait height on this client",
+        "hint": "Personal portrait height for this client. 0 = bottom strip, 1 = full height. Ignored when the GM forces a world height."
       },
       "portraitBottomOffset": {
        "name": "Bottom Offset (px)",
@@ -199,15 +199,15 @@
         "hint": "Characters to cut off NPC names for players. Comma-separated. Example: #,: — then \"Karl#Main boss\" will show players only \"Karl\"."
       },
       "actorImagePaths": {
-        "name": "Actor image paths (CSV)",
+        "name": "Advanced: actor image paths (CSV)",
         "hint": "List of Actor dot-path fields separated by commas, used in order as image source. Example: img, prototypeToken.texture.src, system.image"
       },
       "pcActorTypes": {
-        "name": "Actor Types: Players (CSV)",
+        "name": "Advanced: player actor types (CSV)",
         "hint": "List of Actor types separated by commas to be considered as 'players'. Examples: character, pc, hero, player"
       },
       "npcActorTypes": {
-        "name": "Actor Types: NPCs (CSV)",
+        "name": "Advanced: NPC actor types (CSV)",
         "hint": "List of Actor types separated by commas to be considered as NPCs. Examples: npc, adversary, creature, monster, minion"
       },
       "ignoredNpcFolders": {
@@ -262,20 +262,20 @@
         "hint": "Strength of the blur effect applied to unfocused portraits (1-30 pixels)."
       },
       "npcDockFolder": {
-        "name": "NPC Dock: default folder filter",
-        "hint": "Example: 'all'. Can be overridden by the dock during operation."
+        "name": "NPC Dock: remembered source filter",
+        "hint": "Stores the source selected in the dock itself, such as all folders, current scene, or a folder id. In normal play, change this from the dock dropdown."
       },
       "showGroupActorsInSources": {
         "name": "Show group actors in source list",
         "hint": "If enabled, actors representing groups/parties will be included in the Source dropdown in the NPC dock."
       },
       "npcDockSearch": {
-        "name": "NPC Dock: default search string",
-        "hint": "Example: 'Goblin' or 'Merchant'."
+        "name": "NPC Dock: remembered search",
+        "hint": "Stores the search text from the dock. In normal play, change this from the dock search field."
       },
       "npcDockSort": {
-        "name": "NPC Dock: default sorting",
-        "hint": "Example: 'name-asc' or 'name-desc'."
+        "name": "NPC Dock: sorting",
+        "hint": "Controls how NPC cards are ordered in the dock."
       },
       "npcDockWidth": {
         "name": "NPC Dock: panel width",
@@ -290,12 +290,42 @@
         "hint": "Disables background and panel blur effects on this client to improve performance."
       },
       "pcDockFolder": {
-        "name": "Player Dock: folder filter",
+        "name": "NPC Dock: player panel folder",
         "hint": "Controls which Actor folder is used for the Player Characters panel in the NPC dock. \"All players\" shows actors from all folders; \"Players without folder\" shows only actors that are not in any folder."
       },
       "showActivePortraits": {
-        "name": "Show Active Portraits Dock",
-        "hint": "When enabled, a mini dock with active portrait circles is shown above the NPC dock."
+        "name": "NPC Dock: show active portraits mini dock",
+        "hint": "Shows the row of small active portrait circles above the NPC dock."
+      }
+    },
+    "SettingsGroups": {
+      "quick": {
+        "title": "Quick client options",
+        "hint": "Personal switches that affect only how this client sees the module."
+      },
+      "npcDock": {
+        "title": "NPC Dock and player panel",
+        "hint": "Controls the dock layout, its remembered filters, and which Actor folders are shown or ignored."
+      },
+      "portraitLayout": {
+        "title": "Portrait layout and size",
+        "hint": "Controls how portraits fit on screen, where name badges appear, and whether the GM overrides player sizing."
+      },
+      "portraitVisuals": {
+        "title": "Portrait visuals and animation",
+        "hint": "Brightness, focus, blur, movement, and transition timing."
+      },
+      "access": {
+        "title": "Access and controls",
+        "hint": "Who can use portrait controls and which UI buttons are visible."
+      },
+      "emotions": {
+        "title": "Emotions",
+        "hint": "Controls the emotion panel, emotion color strength, and portrait image transitions."
+      },
+      "advanced": {
+        "title": "Advanced system compatibility",
+        "hint": "Only change these when your game system stores actors or images differently."
       }
     },
     "PortraitUIToggle": {
