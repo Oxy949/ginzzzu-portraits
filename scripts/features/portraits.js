@@ -1407,6 +1407,7 @@ function _onPortraitClick(ev) {
     
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
+    schedulePortraitSequenceSave();
     // Ensure badges are positioned after layout
     requestAnimationFrame(() => updateNamePositions());
 
@@ -1493,6 +1494,7 @@ function _onPortraitClick(ev) {
       } catch (e) {}
       map.delete(actorId);
       relayoutDomHud(firstRects);
+      schedulePortraitSequenceSave();
       // Remove blur effect if no more portraits are active
       removeBlur();
     }, timeout);
@@ -2354,21 +2356,41 @@ Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
   buttons.unshift(...theatreButtons);
 });
 
-// Add a function to save the current portrait sequence to module settings
-function savePortraitSequence() {
+let portraitSequenceSaveTimer = null;
+let lastSavedPortraitSequenceJson = null;
+
+function getCurrentPortraitSequence() {
   const root = getDomHud();
-  if (!root) return;
+  if (!root) return [];
 
   const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
   const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
 
-  const sequence = imgs.map(img => img.dataset.actorId).filter(Boolean);
+  return imgs.map(img => img.dataset.actorId).filter(Boolean);
+}
+
+// Add a function to save the current portrait sequence to module settings
+function savePortraitSequence() {
+  const sequence = getCurrentPortraitSequence();
+  const serialized = JSON.stringify(sequence);
+  if (serialized === lastSavedPortraitSequenceJson) return;
+
+  lastSavedPortraitSequenceJson = serialized;
   game.settings.set(MODULE_ID, "portraitSequence", sequence);
+}
+
+function schedulePortraitSequenceSave(delay = 150) {
+  clearTimeout(portraitSequenceSaveTimer);
+  portraitSequenceSaveTimer = setTimeout(() => {
+    portraitSequenceSaveTimer = null;
+    savePortraitSequence();
+  }, delay);
 }
 
 // Add a function to load the portrait sequence from module settings
 function loadPortraitSequence() {
   const sequence = game.settings.get(MODULE_ID, "portraitSequence") || [];
+  lastSavedPortraitSequenceJson = JSON.stringify(sequence);
   const root = getDomHud();
   if (!root) return;
 
@@ -2389,9 +2411,7 @@ function loadPortraitSequence() {
 Hooks.once("ready", () => {
   loadPortraitSequence();
 
-  // Save the sequence whenever the DOM HUD is relaid out
-  Hooks.on("canvasReady", savePortraitSequence);
-  Hooks.on("updateActor", savePortraitSequence);
+  Hooks.on("canvasReady", () => schedulePortraitSequenceSave());
 });
 
 })();
