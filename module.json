@@ -4,6 +4,7 @@
   "description": "System-agnostic actor's portraits and NPC dock.",
   "version": "#{VERSION}#",
   "library": "false",
+  "socket": true,
   "compatibility": {
     "minimum": 12,
     "verified": 14

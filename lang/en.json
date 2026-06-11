@@ -148,6 +148,18 @@
       "gm": "GM only",
       "owners": "GM and Owners"
     },
+      "portraitDragAccess": {
+        "name": "Who can drag portraits",
+        "hint": "Controls who can reorder portraits by dragging. Players can drag only portraits they own.",
+        "all": "Players and GM",
+        "gm": "GM only",
+        "players": "Players only",
+        "none": "No one"
+      },
+      "portraitDragAnimate": {
+        "name": "Animate portrait dragging",
+        "hint": "If enabled, other clients see the live drag movement. If disabled, only the final portrait swap is synchronized and animated."
+      },
         "emotionPanelVisibility": {
         "name": "Emotion Panel Visibility",
         "hint": "Controls who can see the emotion panel when hovering over a portrait.",

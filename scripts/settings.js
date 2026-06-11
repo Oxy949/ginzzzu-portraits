@@ -252,6 +252,7 @@ const SETTINGS_GROUPS = [
       "portraitFocusPortraitBlurStrength",
       "portraitFadeMs",
       "portraitMoveMs",
+      "portraitDragAnimate",
       "portraitEasing"
     ]
   },
@@ -259,6 +260,7 @@ const SETTINGS_GROUPS = [
     id: "access",
     keys: [
       "portraitFlipAccess",
+      "portraitDragAccess",
       "portraitUIToggleVisibility",
       "playerPortraitToolbarButton"
     ]
@@ -628,6 +630,23 @@ Hooks.once("init", () => {
     requiresReload: true
   });
 
+  reg("portraitDragAccess", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      all: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.all"),
+      gm: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.gm"),
+      players: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.players"),
+      none: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.none")
+    },
+    default: "all",
+    requiresReload: false,
+    onChange: () => globalThis.GinzzzuPortraits?.refreshDisplayNames?.()
+  });
+
   // === Панель эмоций на портретах ===
   reg("emotionPanelVisibility", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.emotionPanelVisibility.name"),
@@ -805,6 +824,16 @@ Hooks.once("init", () => {
     default: 450,
     range: { min: 0, max: 2000, step: 50 },
     requiresReload: true
+  });
+
+  reg("portraitDragAnimate", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAnimate.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAnimate.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: false
   });
 
   reg("portraitEasing", {

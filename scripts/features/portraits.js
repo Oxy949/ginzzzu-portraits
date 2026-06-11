@@ -460,6 +460,12 @@ const FRAME = {
         if (!actorId) continue;
         const badge = namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`);
         if (!badge) continue;
+        if (
+          badge.classList.contains("ginzzzu-portrait-name-dragging") ||
+          badge.classList.contains("ginzzzu-portrait-name-returning")
+        ) {
+          continue;
+        }
 
         // Horizontal: center above wrapper
         try {
@@ -523,6 +529,600 @@ const FRAME = {
     return globalThis.__ginzzzuDomPortraits;
   }
 
+  const PORTRAIT_DRAG = {
+    startThresholdPx: 6,
+    detachRatio: 0.22,
+    minDetachPx: 44,
+    maxTiltDeg: 9,
+    targetBufferRatio: 0.08
+  };
+
+  let activePortraitDrag = null;
+  let pendingSharedPortraitSequence = null;
+  let namePositionFrame = null;
+  let lastPortraitDragSocketAt = 0;
+  const remotePortraitDrags = new Map();
+
+  function scheduleNamePositionsUpdate() {
+    if (namePositionFrame !== null) return;
+    namePositionFrame = requestAnimationFrame(() => {
+      namePositionFrame = null;
+      try { updateNamePositions(); } catch (e) {}
+    });
+  }
+
+  function clampNumber(value, min, max) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return min;
+    return Math.max(min, Math.min(max, number));
+  }
+
+  function getPortraitRail(root = getDomHud()) {
+    if (!root) return null;
+    return root.querySelector("#ginzzzu-portrait-rail") || root;
+  }
+
+  function shouldIgnorePortraitDragTarget(target) {
+    if (!target?.closest) return false;
+    return !!target.closest(".threeo-emo-toolbar, button, input, select, textarea, a, [data-no-portrait-drag]");
+  }
+
+  function updatePortraitReorderCursor(wrapper, actorId = wrapper?.dataset?.actorId) {
+    if (!wrapper) return;
+    wrapper.classList.toggle("ginzzzu-portrait-reorderable", canUserReorderPortrait(actorId, game.user));
+  }
+
+  function getPortraitNameBadge(actorId, root = getDomHud()) {
+    if (!actorId || !root) return null;
+    const namesContainer = root.querySelector("#ginzzzu-portrait-names");
+    return namesContainer?.querySelector?.(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`) || null;
+  }
+
+  function getPortraitDragActor(actorId) {
+    if (!actorId) return null;
+    try { return game.actors?.get(actorId) || null; } catch (e) { return null; }
+  }
+
+  function getUserById(userOrId = game.user) {
+    if (!userOrId) return null;
+    if (typeof userOrId !== "string") return userOrId;
+    try { return game.users?.get(userOrId) || null; } catch (e) { return null; }
+  }
+
+  function getPortraitDragAccessMode() {
+    try {
+      return game.settings.get(MODULE_ID, "portraitDragAccess") || "all";
+    } catch (e) {
+      return "all";
+    }
+  }
+
+  function isPortraitDragSyncEnabled() {
+    try {
+      return game.settings.get(MODULE_ID, "portraitDragAnimate") !== false;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function userOwnsPortraitActor(actor, user) {
+    if (!actor || !user) return false;
+    if (user.id === game.user?.id) return !!actor.isOwner;
+
+    try {
+      if (typeof actor.testUserPermission === "function") {
+        if (actor.testUserPermission(user, "OWNER")) return true;
+        const ownerLevel = globalThis.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER;
+        if (ownerLevel != null && actor.testUserPermission(user, ownerLevel)) return true;
+      }
+    } catch (e) {}
+
+    const ownership = actor.ownership?.[user.id] ?? actor.data?.permission?.[user.id] ?? actor.permission?.[user.id];
+    return Number(ownership) >= 3;
+  }
+
+  function canUserReorderPortrait(actorId, userOrId = game.user) {
+    const actor = getPortraitDragActor(actorId);
+    const user = getUserById(userOrId);
+    const mode = getPortraitDragAccessMode();
+    if (!actor || !user || mode === "none") return false;
+    if (user.isGM) return mode === "all" || mode === "gm";
+    if (mode !== "all" && mode !== "players") return false;
+
+    return userOwnsPortraitActor(actor, user);
+  }
+
+  function collectPortraitDragSlots(rail, draggedWrapper) {
+    if (!rail) return [];
+
+    return Array.from(rail.querySelectorAll(".ginzzzu-portrait-wrapper"))
+      .map((wrapper, index) => {
+        const rect = wrapper.getBoundingClientRect();
+        return {
+          wrapper,
+          index,
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          centerX: rect.left + (rect.width / 2),
+          isDragged: wrapper === draggedWrapper
+        };
+      });
+  }
+
+  function setPortraitDragTarget(state, targetWrapper) {
+    if (!state) return;
+    if (state.targetWrapper === targetWrapper) return;
+    state.targetWrapper?.classList?.remove("ginzzzu-portrait-drag-target");
+    state.targetWrapper = targetWrapper || null;
+    state.targetWrapper?.classList?.add("ginzzzu-portrait-drag-target");
+  }
+
+  function setPortraitNameDragVisual(state, dx, dy, lift) {
+    const badge = state?.nameBadge || getPortraitNameBadge(state?.actorId, state?.root);
+    if (!badge) return;
+
+    state.nameBadge = badge;
+    badge.classList.add("ginzzzu-portrait-name-dragging");
+    badge.classList.remove("ginzzzu-portrait-name-returning");
+    badge.classList.toggle("ginzzzu-portrait-name-remote-dragging", !!state.remote);
+    badge.style.setProperty("--ginzzzu-name-drag-duration", state.remote
+      ? "90ms"
+      : `${Math.max(0, Number(_ANIM.moveMs) || 0)}ms`);
+    badge.style.setProperty("--ginzzzu-name-drag-easing", state.remote ? "linear" : (_ANIM.easing || "ease-out"));
+    badge.style.setProperty("--ginzzzu-name-drag-x", `${Math.round(dx)}px`);
+  }
+
+  function clearPortraitNameDragVisual(state, { animateBack = false } = {}) {
+    const badge = state?.nameBadge || getPortraitNameBadge(state?.actorId, state?.root);
+    if (!badge) return;
+
+    if (animateBack) {
+      badge.classList.remove("ginzzzu-portrait-name-dragging");
+      badge.classList.remove("ginzzzu-portrait-name-remote-dragging");
+      badge.classList.add("ginzzzu-portrait-name-returning");
+    } else {
+      badge.classList.add("ginzzzu-portrait-name-dragging");
+    }
+
+    badge.style.removeProperty("--ginzzzu-name-drag-x");
+
+    if (!animateBack) {
+      requestAnimationFrame(() => {
+        if (badge.isConnected) {
+          badge.classList.remove("ginzzzu-portrait-name-dragging");
+          badge.classList.remove("ginzzzu-portrait-name-remote-dragging");
+        }
+      });
+    } else {
+      const delay = Math.max(0, Number(_ANIM.moveMs) || 0) + 80;
+      setTimeout(() => {
+        if (badge.isConnected) {
+          badge.classList.remove("ginzzzu-portrait-name-returning");
+        }
+      }, delay);
+    }
+  }
+
+  function applyPortraitDragVisual(state, dx, dy, { targetWrapper = null, detached = false, detachThreshold = null } = {}) {
+    if (!state?.wrapper) return;
+
+    const threshold = Math.max(1, detachThreshold ?? state.detachThreshold ?? PORTRAIT_DRAG.minDetachPx);
+    const lift = -Math.min(12, 12 * (Math.abs(dx) / threshold));
+    const tilt = clampNumber((dx / Math.max(1, state.startRect.width)) * PORTRAIT_DRAG.maxTiltDeg, -PORTRAIT_DRAG.maxTiltDeg, PORTRAIT_DRAG.maxTiltDeg);
+
+    state.lastDx = dx;
+    state.lastDy = dy;
+    state.detached = !!detached;
+
+    state.wrapper.classList.toggle("ginzzzu-portrait-detached", !!detached);
+    setPortraitDragTarget(state, targetWrapper);
+
+    state.wrapper.style.setProperty("--ginzzzu-drag-x", `${Math.round(dx)}px`);
+    state.wrapper.style.setProperty("--ginzzzu-drag-y", `${Math.round(dy)}px`);
+    state.wrapper.style.setProperty("--ginzzzu-drag-lift", `${lift.toFixed(2)}px`);
+    state.wrapper.style.setProperty("--ginzzzu-drag-tilt", `${tilt.toFixed(2)}deg`);
+
+    setPortraitNameDragVisual(state, dx, dy, lift);
+  }
+
+  function getPortraitDragPayload(state, phase, extra = {}) {
+    const width = Math.max(1, state?.startRect?.width || 1);
+    const height = Math.max(1, state?.startRect?.height || 1);
+
+    return {
+      type: "portraitDragPreview",
+      phase,
+      actorId: state.actorId,
+      userId: game.user?.id,
+      sceneId: canvas?.scene?.id,
+      dxRatio: (state.lastDx || 0) / width,
+      dyRatio: (state.lastDy || 0) / height,
+      detached: !!state.detached,
+      targetActorId: state.targetWrapper?.dataset?.actorId || null,
+      ...extra
+    };
+  }
+
+  function emitPortraitDragPreview(state, phase, { force = false, ...extra } = {}) {
+    if (!state || !game.socket) return;
+    if (!isPortraitDragSyncEnabled()) return;
+
+    const now = performance?.now?.() ?? Date.now();
+    if (!force && phase === "move" && now - lastPortraitDragSocketAt < 33) return;
+
+    lastPortraitDragSocketAt = now;
+    try {
+      game.socket.emit(`module.${MODULE_ID}`, getPortraitDragPayload(state, phase, extra));
+    } catch (e) {
+      console.error("[threeO-portraits] portrait drag preview emit failed:", e);
+    }
+  }
+
+  function getRemotePortraitDragKey(data) {
+    return `${data.sceneId || ""}:${data.userId || ""}:${data.actorId || ""}`;
+  }
+
+  function getWrapperByActorId(actorId, root = getDomHud()) {
+    if (!actorId || !root) return null;
+    try {
+      return root.querySelector(`.ginzzzu-portrait-wrapper[data-actor-id="${actorId}"]`);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function beginRemotePortraitDrag(data) {
+    const root = getDomHud();
+    const rail = getPortraitRail(root);
+    const wrapper = getWrapperByActorId(data.actorId, root);
+    if (!root || !rail || !wrapper) return null;
+
+    const startRect = wrapper.getBoundingClientRect();
+    const state = {
+      actorId: data.actorId,
+      userId: data.userId,
+      root,
+      rail,
+      wrapper,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      lastDx: 0,
+      lastDy: 0,
+      startRect,
+      startCenterX: startRect.left + (startRect.width / 2),
+      detachThreshold: Math.max(
+        PORTRAIT_DRAG.minDetachPx,
+        startRect.width * PORTRAIT_DRAG.detachRatio
+      ),
+      slots: collectPortraitDragSlots(rail, wrapper),
+      originalTransition: wrapper.style.transition,
+      dragging: true,
+      detached: false,
+      targetWrapper: null,
+      remote: true
+    };
+
+    wrapper.classList.add("ginzzzu-portrait-dragging", "ginzzzu-portrait-remote-dragging");
+    wrapper.style.setProperty("--ginzzzu-remote-drag-duration", "90ms");
+    wrapper.style.transition = [
+      "--ginzzzu-drag-x 90ms linear",
+      "--ginzzzu-drag-y 90ms linear",
+      "--ginzzzu-drag-lift 90ms linear",
+      "--ginzzzu-drag-tilt 90ms linear"
+    ].join(", ");
+    setPortraitNameDragVisual(state, 0, 0, 0);
+    remotePortraitDrags.set(getRemotePortraitDragKey(data), state);
+    return state;
+  }
+
+  function applyRemotePortraitDragPreview(data) {
+    if (!data?.actorId || data.userId === game.user?.id) return;
+    if (data.sceneId && data.sceneId !== canvas?.scene?.id) return;
+    if (!getPortraitDragActor(data.actorId)) return;
+    if (!canUserReorderPortrait(data.actorId, data.userId)) return;
+
+    const key = getRemotePortraitDragKey(data);
+    let state = remotePortraitDrags.get(key);
+    if (!isPortraitDragSyncEnabled()) {
+      if (state) {
+        remotePortraitDrags.delete(key);
+        clearPortraitDragVisual(state, { animateBack: false });
+      }
+      return;
+    }
+
+    if (data.phase === "start") {
+      if (state) clearPortraitDragVisual(state, { animateBack: false });
+      beginRemotePortraitDrag(data);
+      return;
+    }
+
+    if (!state) state = beginRemotePortraitDrag(data);
+    if (!state) return;
+
+    if (data.phase === "end" || data.phase === "cancel") {
+      remotePortraitDrags.delete(key);
+      clearPortraitDragVisual(state, { animateBack: data.phase === "cancel" || !data.swapped });
+      return;
+    }
+
+    const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
+    const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
+    applyPortraitDragVisual(state, dx, dy, {
+      targetWrapper: null,
+      detached: !!data.detached,
+      detachThreshold: state.detachThreshold
+    });
+  }
+
+  function findPortraitDragTarget(state) {
+    if (!state?.slots?.length || !state.wrapper) return null;
+
+    const direction = Math.sign(state.lastDx);
+    if (!direction) return null;
+
+    const dragCenterX = state.startCenterX + state.lastDx;
+
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const slot of state.slots) {
+      if (slot.isDragged) continue;
+
+      const isOnDragSide = direction > 0
+        ? slot.centerX > state.startCenterX
+        : slot.centerX < state.startCenterX;
+      if (!isOnDragSide) continue;
+
+      const buffer = Math.min(slot.width * PORTRAIT_DRAG.targetBufferRatio, 24);
+      const overlaps = dragCenterX >= slot.left && dragCenterX <= slot.right;
+      const crossed = direction > 0
+        ? dragCenterX >= slot.centerX - buffer
+        : dragCenterX <= slot.centerX + buffer;
+      if (!overlaps && !crossed) continue;
+
+      const distance = Math.abs(dragCenterX - slot.centerX);
+      if (distance < bestDistance) {
+        best = slot.wrapper;
+        bestDistance = distance;
+      }
+    }
+
+    return best;
+  }
+
+  function swapPortraitWrappers(a, b) {
+    if (!a || !b || a === b || a.parentNode !== b.parentNode) return false;
+
+    const parent = a.parentNode;
+    const aNext = a.nextSibling;
+    const bNext = b.nextSibling;
+
+    if (aNext === b) {
+      parent.insertBefore(b, a);
+    } else if (bNext === a) {
+      parent.insertBefore(a, b);
+    } else {
+      parent.insertBefore(a, bNext);
+      parent.insertBefore(b, aNext);
+    }
+
+    return true;
+  }
+
+  function clearPortraitDragVisual(state, { animateBack = false } = {}) {
+    if (!state?.wrapper) return;
+
+    const wrapper = state.wrapper;
+    const shouldAnimateBack = animateBack;
+    setPortraitDragTarget(state, null);
+    if (!state.remote) state.root?.classList?.remove("ginzzzu-portrait-drag-active");
+    wrapper.classList.remove(
+      "ginzzzu-portrait-drag-pending",
+      "ginzzzu-portrait-dragging",
+      "ginzzzu-portrait-remote-dragging",
+      "ginzzzu-portrait-detached"
+    );
+
+    if (shouldAnimateBack) {
+      wrapper.style.transition = state.originalTransition || `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`;
+      void wrapper.offsetWidth;
+    } else {
+      wrapper.style.transition = "none";
+    }
+
+    wrapper.style.removeProperty("--ginzzzu-remote-drag-duration");
+    wrapper.style.removeProperty("--ginzzzu-drag-x");
+    wrapper.style.removeProperty("--ginzzzu-drag-y");
+    wrapper.style.removeProperty("--ginzzzu-drag-lift");
+    wrapper.style.removeProperty("--ginzzzu-drag-tilt");
+    clearPortraitNameDragVisual(state, { animateBack: shouldAnimateBack });
+
+    if (!shouldAnimateBack) {
+      requestAnimationFrame(() => {
+        if (wrapper.isConnected) {
+          wrapper.style.transition = state.originalTransition || `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`;
+        }
+      });
+    }
+
+    if (shouldAnimateBack) {
+      const delay = Math.max(0, Number(_ANIM.moveMs) || 0) + 80;
+      setTimeout(() => scheduleNamePositionsUpdate(), delay);
+    } else {
+      scheduleNamePositionsUpdate();
+    }
+  }
+
+  function finishPortraitDrag(ev, { cancelled = false } = {}) {
+    const state = activePortraitDrag;
+    if (!state) return;
+    if (ev && ev.pointerId != null && ev.pointerId !== state.pointerId) return;
+
+    activePortraitDrag = null;
+
+    window.removeEventListener("pointermove", _onPortraitPointerMove);
+    window.removeEventListener("pointerup", _onPortraitPointerUp);
+    window.removeEventListener("pointercancel", _onPortraitPointerCancel);
+
+    try { state.wrapper.releasePointerCapture?.(state.pointerId); } catch (e) {}
+
+    const shouldSwap = !cancelled && state.dragging && state.detached && state.targetWrapper?.isConnected;
+    const firstRects = shouldSwap ? collectFirstRects() : null;
+    const targetWrapper = state.targetWrapper;
+
+    if (ev && state.dragging) {
+      ev.preventDefault?.();
+      ev.stopPropagation?.();
+    }
+
+    if (state.dragging) {
+      emitPortraitDragPreview(state, cancelled ? "cancel" : "end", {
+        force: true,
+        swapped: shouldSwap
+      });
+    }
+
+    clearPortraitDragVisual(state, { animateBack: state.dragging && !shouldSwap });
+
+    if (shouldSwap && swapPortraitWrappers(state.wrapper, targetWrapper)) {
+      relayoutDomHud(firstRects);
+      setSharedPortraitSequence(getCurrentPortraitSequence(), { movedActorId: state.actorId });
+    } else if (pendingSharedPortraitSequence) {
+      const sequence = pendingSharedPortraitSequence;
+      pendingSharedPortraitSequence = null;
+      applySharedPortraitSequence(sequence, { animate: true });
+    }
+  }
+
+  function beginPortraitDrag(state) {
+    if (!state || state.dragging) return;
+    state.dragging = true;
+    state.wrapper.classList.remove("ginzzzu-portrait-drag-pending");
+    state.wrapper.classList.add("ginzzzu-portrait-dragging");
+    state.wrapper.style.transition = "none";
+    setPortraitNameDragVisual(state, 0, 0, 0);
+    emitPortraitDragPreview(state, "start", { force: true });
+  }
+
+  function updatePortraitDrag(ev) {
+    const state = activePortraitDrag;
+    if (!state || ev.pointerId !== state.pointerId) return;
+
+    const dx = ev.clientX - state.startX;
+    const dy = ev.clientY - state.startY;
+    const distance = Math.hypot(dx, dy);
+
+    if (!state.dragging && distance < PORTRAIT_DRAG.startThresholdPx) return;
+    beginPortraitDrag(state);
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const detachThreshold = Math.max(
+      PORTRAIT_DRAG.minDetachPx,
+      state.startRect.width * PORTRAIT_DRAG.detachRatio
+    );
+    state.detachThreshold = detachThreshold;
+    state.lastDx = dx;
+    state.lastDy = dy;
+    const targetWrapper = Math.abs(dx) >= detachThreshold ? findPortraitDragTarget(state) : null;
+    const detached = Math.abs(dx) >= detachThreshold || !!targetWrapper;
+
+    applyPortraitDragVisual(state, dx, dy, { targetWrapper, detached, detachThreshold });
+    emitPortraitDragPreview(state, "move");
+  }
+
+  function _onPortraitPointerMove(ev) {
+    updatePortraitDrag(ev);
+  }
+
+  function _onPortraitPointerUp(ev) {
+    finishPortraitDrag(ev);
+  }
+
+  function _onPortraitPointerCancel(ev) {
+    finishPortraitDrag(ev, { cancelled: true });
+  }
+
+  function _onPortraitPointerDown(ev) {
+    if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (shouldIgnorePortraitDragTarget(ev.target)) return;
+
+    const wrapper = ev.currentTarget?.closest?.(".ginzzzu-portrait-wrapper");
+    if (!wrapper) return;
+    const img = wrapper.querySelector("img.ginzzzu-portrait");
+    if (!img?.dataset?.actorId) return;
+    const actorId = img.dataset.actorId;
+
+    if (!canUserReorderPortrait(actorId, game.user)) return;
+
+    if (activePortraitDrag) {
+      finishPortraitDrag(null, { cancelled: true });
+    }
+
+    const root = getDomHud();
+    const rail = getPortraitRail(root);
+    if (!root || !rail) return;
+
+    const startRect = wrapper.getBoundingClientRect();
+
+    activePortraitDrag = {
+      actorId,
+      root,
+      rail,
+      wrapper,
+      pointerId: ev.pointerId,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      lastDx: 0,
+      lastDy: 0,
+      startRect,
+      startCenterX: startRect.left + (startRect.width / 2),
+      detachThreshold: Math.max(
+        PORTRAIT_DRAG.minDetachPx,
+        startRect.width * PORTRAIT_DRAG.detachRatio
+      ),
+      slots: collectPortraitDragSlots(rail, wrapper),
+      originalTransition: wrapper.style.transition,
+      dragging: false,
+      detached: false,
+      targetWrapper: null
+    };
+
+    root.classList.add("ginzzzu-portrait-drag-active");
+    wrapper.classList.add("ginzzzu-portrait-drag-pending");
+
+    try { wrapper.setPointerCapture?.(ev.pointerId); } catch (e) {}
+
+    window.addEventListener("pointermove", _onPortraitPointerMove, { passive: false });
+    window.addEventListener("pointerup", _onPortraitPointerUp, { passive: false });
+    window.addEventListener("pointercancel", _onPortraitPointerCancel, { passive: false });
+  }
+
+  function insertPortraitWrapperBySharedOrder(rail, wrapper) {
+    const actorId = wrapper?.dataset?.actorId;
+    const sequence = getSharedPortraitSequence();
+
+    if (!rail || !actorId || !sequence.length || !sequence.includes(actorId)) {
+      rail?.appendChild(wrapper);
+      return;
+    }
+
+    const ownIndex = sequence.indexOf(actorId);
+    const existingWrappers = Array.from(rail.querySelectorAll(".ginzzzu-portrait-wrapper"));
+    const before = existingWrappers.find(existing => {
+      const otherId = existing.dataset.actorId;
+      const otherIndex = sequence.indexOf(otherId);
+      return otherIndex !== -1 && otherIndex > ownIndex;
+    });
+
+    if (before) rail.insertBefore(wrapper, before);
+    else rail.appendChild(wrapper);
+  }
+
     // --- Фокус портрета (middle-click) ---
 
   // actorId того, кто сейчас "в фокусе" (или null, если никого)
@@ -549,6 +1149,7 @@ const FRAME = {
     const rawName = wrapper.dataset.rawName ?? "";
     const safeName = String(displayName || rawName);
 
+    updatePortraitReorderCursor(wrapper, actorId);
     wrapper.dataset.displayName = safeName;
     const root = getDomHud();
     const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
@@ -1282,6 +1883,7 @@ function _onPortraitClick(ev) {
         el.className = "ginzzzu-portrait";
         el.alt = safeName || "Portrait";
         el.src = finalSrc;
+        el.draggable = false;
         el.dataset.actorId = actorId;
         el.dataset.src = img;
         el.dataset.rawName = rawName;
@@ -1297,9 +1899,11 @@ function _onPortraitClick(ev) {
         // позволяем кликать по портрету
         Object.assign(wrapper.style, {
           pointerEvents: "auto",
-          cursor: "pointer",
           transition: `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`
         });
+        wrapper.style.setProperty("--ginzzzu-flip-duration", `${Math.max(0, Number(_ANIM.moveMs) || 0)}ms`);
+        wrapper.style.setProperty("--ginzzzu-flip-easing", _ANIM.easing || "ease-out");
+        updatePortraitReorderCursor(wrapper, actorId);
 
         const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
 
@@ -1395,9 +1999,11 @@ function _onPortraitClick(ev) {
     wrapper.addEventListener("auxclick", _onPortraitAuxClick);
     wrapper.addEventListener("contextmenu", _onPortraitClick);
     wrapper.addEventListener("click", _onPortraitCtrlClick);
+    wrapper.addEventListener("pointerdown", _onPortraitPointerDown);
+    wrapper.addEventListener("dragstart", ev => ev.preventDefault());
 
     wrapper.appendChild(el);
-    rail.appendChild(wrapper);
+    insertPortraitWrapperBySharedOrder(rail, wrapper);
     map.set(actorId, el);
 
     // === Подключение панели эмоций к HUD-портрету ===
@@ -1407,7 +2013,6 @@ function _onPortraitClick(ev) {
     
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
-    schedulePortraitSequenceSave();
     // Ensure badges are positioned after layout
     requestAnimationFrame(() => updateNamePositions());
 
@@ -1494,7 +2099,6 @@ function _onPortraitClick(ev) {
       } catch (e) {}
       map.delete(actorId);
       relayoutDomHud(firstRects);
-      schedulePortraitSequenceSave();
       // Remove blur effect if no more portraits are active
       removeBlur();
     }, timeout);
@@ -1804,8 +2408,48 @@ function _onPortraitClick(ev) {
     globalThis.GinzzzuPortraits.refreshDisplayNames();
   });
 
+let portraitSocketHandlersRegistered = false;
+
+function registerPortraitSocketHandlers() {
+  if (portraitSocketHandlersRegistered || !game.socket) return;
+  portraitSocketHandlersRegistered = true;
+
+  game.socket.on(`module.${MODULE_ID}`, (data) => {
+    if (!data) return;
+
+    if (data.type === "portraitDragPreview") {
+      applyRemotePortraitDragPreview(data);
+      return;
+    }
+
+    if (!game.user?.isGM) return;
+
+    if (data.type === "flipPortrait") {
+      const { actorId, isFlipped } = data;
+      if (!actorId) return;
+
+      setSharedPortraitFlip(actorId, !!isFlipped);
+      return;
+    }
+
+    if (data.type === "reorderPortraits") {
+      const actorId = String(data.actorId || "");
+      const userId = String(data.userId || "");
+      if (data.sceneId && data.sceneId !== canvas?.scene?.id) return;
+      if (!actorId || !userId || !canUserReorderPortrait(actorId, userId)) return;
+
+      setSharedPortraitSequence(data.sequence, {
+        applyLocal: true,
+        movedActorId: actorId,
+        skipPermissionCheck: true
+      });
+    }
+  });
+}
 
 Hooks.once("ready", () => {
+  registerPortraitSocketHandlers();
+
   // log(`Ready. DOM portraits HUD (WAAPI FLIP). MODULE_ID=${MODULE_ID}`);
   try {
     // Skip portrait setup if hidePortraits is enabled for this client
@@ -1885,17 +2529,7 @@ Hooks.once("ready", () => {
   });
 
   // Приём socket-запросов на флип от игроков (обрабатывает только ГМ)
-  if (game.socket) {
-    game.socket.on(`module.${MODULE_ID}`, (data) => {
-      if (!data || data.type !== "flipPortrait") return;
-      if (!game.user?.isGM) return;
-
-      const { actorId, isFlipped } = data;
-      if (!actorId) return;
-
-      setSharedPortraitFlip(actorId, !!isFlipped);
-    });
-  }
+  registerPortraitSocketHandlers();
 });
 
   // Регистрация хукoв и слушателей, которые используют внутренние функции — внутри IIFE
@@ -1913,6 +2547,11 @@ Hooks.once("ready", () => {
       } catch (e2) {
         console.error("[threeO-portraits] canvasReady flip restore error:", e2);
       }
+    try {
+      applySharedPortraitSequence(getSharedPortraitSequence(), { animate: false });
+    } catch (e3) {
+      console.error("[threeO-portraits] canvasReady sequence restore error:", e3);
+    }
   });
 
   Hooks.on("updateScene", (scene, diff) => {
@@ -1938,6 +2577,15 @@ Hooks.once("ready", () => {
         for (const [actorId, isFlipped] of Object.entries(flippedPatch)) {
           _setLocalFlipByActorId(actorId, !!isFlipped);
         }
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(modFlags, "portraitSequence")) {
+      const sequence = normalizePortraitSequence(modFlags.portraitSequence);
+      if (activePortraitDrag) {
+        pendingSharedPortraitSequence = sequence;
+      } else {
+        applySharedPortraitSequence(sequence, { animate: true });
       }
     }
   });
@@ -2356,62 +3004,152 @@ Hooks.on("getHeaderControlsDocumentSheetV2", (app, buttons) => {
   buttons.unshift(...theatreButtons);
 });
 
-let portraitSequenceSaveTimer = null;
-let lastSavedPortraitSequenceJson = null;
+function normalizePortraitSequence(sequence) {
+  if (!Array.isArray(sequence)) return [];
+
+  const seen = new Set();
+  const normalized = [];
+
+  for (const actorId of sequence) {
+    const id = String(actorId || "").trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    normalized.push(id);
+  }
+
+  return normalized;
+}
+
+function getSharedPortraitSequence() {
+  try {
+    return normalizePortraitSequence(canvas?.scene?.getFlag?.(MODULE_ID, "portraitSequence") || []);
+  } catch (e) {
+    return [];
+  }
+}
 
 function getCurrentPortraitSequence() {
   const root = getDomHud();
   if (!root) return [];
 
-  const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
+  const rail = getPortraitRail(root);
   const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
 
-  return imgs.map(img => img.dataset.actorId).filter(Boolean);
+  return normalizePortraitSequence(imgs.map(img => img.dataset.actorId).filter(Boolean));
 }
 
-// Add a function to save the current portrait sequence to module settings
-function savePortraitSequence() {
-  const sequence = getCurrentPortraitSequence();
-  const serialized = JSON.stringify(sequence);
-  if (serialized === lastSavedPortraitSequenceJson) return;
+function getShownPortraitActorIds() {
+  const ids = [];
 
-  lastSavedPortraitSequenceJson = serialized;
-  game.settings.set(MODULE_ID, "portraitSequence", sequence);
-}
-
-function schedulePortraitSequenceSave(delay = 150) {
-  clearTimeout(portraitSequenceSaveTimer);
-  portraitSequenceSaveTimer = setTimeout(() => {
-    portraitSequenceSaveTimer = null;
-    savePortraitSequence();
-  }, delay);
-}
-
-// Add a function to load the portrait sequence from module settings
-function loadPortraitSequence() {
-  const sequence = game.settings.get(MODULE_ID, "portraitSequence") || [];
-  lastSavedPortraitSequenceJson = JSON.stringify(sequence);
-  const root = getDomHud();
-  if (!root) return;
-
-  const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
-  const map = domStore();
-
-  sequence.forEach(actorId => {
-    const img = map.get(actorId);
-    if (img) {
-      rail.appendChild(img.closest(".ginzzzu-portrait-wrapper"));
+  try {
+    for (const actor of game.actors ?? []) {
+      if (foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN)) ids.push(actor.id);
     }
-  });
+  } catch (e) {}
 
-  relayoutDomHud();
+  return normalizePortraitSequence(ids);
 }
 
-// Hook into the ready event to load the sequence on startup
-Hooks.once("ready", () => {
-  loadPortraitSequence();
+function sanitizeSharedPortraitSequence(sequence) {
+  const current = getCurrentPortraitSequence();
+  const allowedIds = new Set([...getShownPortraitActorIds(), ...current]);
+  const sanitized = normalizePortraitSequence(sequence).filter(actorId => allowedIds.has(actorId));
 
-  Hooks.on("canvasReady", () => schedulePortraitSequenceSave());
+  for (const actorId of current) {
+    if (!sanitized.includes(actorId)) sanitized.push(actorId);
+  }
+
+  return sanitized;
+}
+
+function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), { animate = true } = {}) {
+  const normalized = normalizePortraitSequence(sequence);
+
+  const root = getDomHud();
+  if (!root || !normalized.length) return false;
+
+  if (activePortraitDrag) {
+    pendingSharedPortraitSequence = normalized;
+    return false;
+  }
+
+  const rail = getPortraitRail(root);
+  if (!rail) return false;
+
+  const wrappers = Array.from(rail.querySelectorAll(".ginzzzu-portrait-wrapper"));
+  if (!wrappers.length) return false;
+
+  const byActorId = new Map(wrappers.map(wrapper => [wrapper.dataset.actorId, wrapper]));
+  const ordered = normalized
+    .map(actorId => byActorId.get(actorId))
+    .filter(Boolean);
+
+  const orderedSet = new Set(ordered);
+  for (const wrapper of wrappers) {
+    if (!orderedSet.has(wrapper)) ordered.push(wrapper);
+  }
+
+  const changed = ordered.some((wrapper, index) => wrappers[index] !== wrapper);
+  if (!changed) {
+    scheduleNamePositionsUpdate();
+    return false;
+  }
+
+  const firstRects = animate ? collectFirstRects() : null;
+  for (const wrapper of ordered) {
+    rail.appendChild(wrapper);
+  }
+
+  if (animate) relayoutDomHud(firstRects);
+  else relayoutDomHud();
+
+  scheduleNamePositionsUpdate();
+  return true;
+}
+
+function setSharedPortraitSequence(sequence, {
+  applyLocal = false,
+  movedActorId = null,
+  userId = game.user?.id,
+  skipPermissionCheck = false
+} = {}) {
+  if (!skipPermissionCheck && movedActorId && !canUserReorderPortrait(movedActorId, userId)) return;
+
+  const sanitized = sanitizeSharedPortraitSequence(sequence);
+  const serialized = JSON.stringify(sanitized);
+
+  if (applyLocal) {
+    applySharedPortraitSequence(sanitized, { animate: true });
+  }
+
+  if (!game.user?.isGM) {
+    try {
+      game.socket?.emit?.(`module.${MODULE_ID}`, {
+        type: "reorderPortraits",
+        actorId: movedActorId,
+        userId: game.user?.id,
+        sceneId: canvas?.scene?.id,
+        sequence: sanitized
+      });
+    } catch (e) {
+      console.error("[threeO-portraits] reorder socket emit failed:", e);
+    }
+    return;
+  }
+
+  const scene = canvas?.scene;
+  if (!scene) return;
+
+  const currentSerialized = JSON.stringify(getSharedPortraitSequence());
+  if (serialized === currentSerialized) return;
+
+  scene.update({ [`flags.${MODULE_ID}.portraitSequence`]: sanitized }).catch(e => {
+    console.error("[threeO-portraits] setSharedPortraitSequence error:", e);
+  });
+}
+
+Hooks.once("ready", () => {
+  requestAnimationFrame(() => applySharedPortraitSequence(getSharedPortraitSequence(), { animate: false }));
 });
 
 })();
