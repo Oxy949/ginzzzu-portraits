@@ -253,6 +253,7 @@ const SETTINGS_GROUPS = [
       "portraitFadeMs",
       "portraitMoveMs",
       "portraitDragAnimate",
+      "portraitDragResetOnRelease",
       "portraitEasing"
     ]
   },
@@ -637,8 +638,8 @@ Hooks.once("init", () => {
     config: true,
     type: String,
     choices: {
-      all: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.all"),
-      gm: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.gm"),
+      all: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.owners"),
+      gm: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitFlipAccess.gm"),
       players: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.players"),
       none: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAccess.none")
     },
@@ -829,6 +830,16 @@ Hooks.once("init", () => {
   reg("portraitDragAnimate", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAnimate.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragAnimate.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: false
+  });
+
+  reg("portraitDragResetOnRelease", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragResetOnRelease.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragResetOnRelease.hint"),
     scope: "world",
     config: true,
     type: Boolean,

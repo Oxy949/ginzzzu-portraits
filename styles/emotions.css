@@ -188,22 +188,29 @@
   --bobY: 0px;
   --pulse: 1;
   --tilt: 0deg;
+  --ginzzzu-manual-x: 0px;
+  --ginzzzu-manual-y: 0px;
+  --ginzzzu-manual-tilt: 0deg;
+  --ginzzzu-manual-scale: 1;
   --ginzzzu-drag-x: 0px;
   --ginzzzu-drag-y: 0px;
   --ginzzzu-drag-lift: 0px;
   --ginzzzu-drag-tilt: 0deg;
+  --ginzzzu-drag-scale: 1;
   --flip-scale-x: var(--flip-scale-x, 1);
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
   transform:
     translate3d(
-      calc(var(--shakeX, 0px) + var(--ginzzzu-drag-x, 0px)),
-      calc(var(--bobY, 0px) + var(--ginzzzu-dim-offset-y, 0px) + var(--ginzzzu-drag-y, 0px) + var(--ginzzzu-drag-lift, 0px)),
+      calc(var(--shakeX, 0px) + var(--ginzzzu-manual-x, 0px) + var(--ginzzzu-drag-x, 0px)),
+      calc(var(--bobY, 0px) + var(--ginzzzu-dim-offset-y, 0px) + var(--ginzzzu-manual-y, 0px) + var(--ginzzzu-drag-y, 0px) + var(--ginzzzu-drag-lift, 0px)),
       0
     )
     scale(var(--pulse, 1))
-    rotate(calc(var(--tilt, 0deg) + var(--ginzzzu-drag-tilt, 0deg)))
+    scale(var(--ginzzzu-manual-scale, 1))
+    scale(var(--ginzzzu-drag-scale, 1))
+    rotate(calc(var(--tilt, 0deg) + var(--ginzzzu-manual-tilt, 0deg) + var(--ginzzzu-drag-tilt, 0deg)))
     scaleX(var(--ginzzzu-flip-scale-x, 1));
 }
 

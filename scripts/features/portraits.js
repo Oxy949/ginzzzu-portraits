@@ -460,13 +460,6 @@ const FRAME = {
         if (!actorId) continue;
         const badge = namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`);
         if (!badge) continue;
-        if (
-          badge.classList.contains("ginzzzu-portrait-name-dragging") ||
-          badge.classList.contains("ginzzzu-portrait-name-returning")
-        ) {
-          continue;
-        }
-
         // Horizontal: center above wrapper
         try {
           const rect = wrapper.getBoundingClientRect();
@@ -534,21 +527,43 @@ const FRAME = {
     detachRatio: 0.22,
     minDetachPx: 44,
     maxTiltDeg: 9,
-    targetBufferRatio: 0.08
+    targetBufferRatio: 0.08,
+    minScale: 0.55,
+    maxScale: 1.85,
+    wheelScaleSpeed: 0.00075,
+    pointerScaleSpeed: 0.004
   };
 
   let activePortraitDrag = null;
   let pendingSharedPortraitSequence = null;
   let namePositionFrame = null;
+  let nameFollowUntil = 0;
   let lastPortraitDragSocketAt = 0;
   const remotePortraitDrags = new Map();
+  const portraitManualTransforms = new Map();
+  const portraitManualZIndexes = new Map();
+  let portraitManualZCounter = 200000;
 
   function scheduleNamePositionsUpdate() {
     if (namePositionFrame !== null) return;
     namePositionFrame = requestAnimationFrame(() => {
       namePositionFrame = null;
       try { updateNamePositions(); } catch (e) {}
+      const root = getDomHud();
+      const now = performance?.now?.() ?? Date.now();
+      if (
+        now < nameFollowUntil ||
+        root?.querySelector?.(".ginzzzu-portrait-name-dragging, .ginzzzu-portrait-name-returning")
+      ) {
+        scheduleNamePositionsUpdate();
+      }
     });
+  }
+
+  function followNamePositionsFor(durationMs = 0) {
+    const now = performance?.now?.() ?? Date.now();
+    nameFollowUntil = Math.max(nameFollowUntil, now + Math.max(0, Number(durationMs) || 0));
+    scheduleNamePositionsUpdate();
   }
 
   function clampNumber(value, min, max) {
@@ -603,6 +618,153 @@ const FRAME = {
     } catch (e) {
       return true;
     }
+  }
+
+  function shouldResetPortraitDragPositionOnRelease() {
+    try {
+      return game.settings.get(MODULE_ID, "portraitDragResetOnRelease") !== false;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function normalizePortraitManualTransform(transform) {
+    const x = Number(transform?.x ?? 0);
+    const y = Number(transform?.y ?? 0);
+    const tilt = Number(transform?.tilt ?? 0);
+    const scale = Number(transform?.scale ?? 1);
+    return {
+      x: Number.isFinite(x) ? Math.round(x) : 0,
+      y: Number.isFinite(y) ? Math.round(y) : 0,
+      tilt: Number.isFinite(tilt) ? Math.round(tilt * 100) / 100 : 0,
+      scale: Number.isFinite(scale)
+        ? Math.round(clampNumber(scale, PORTRAIT_DRAG.minScale, PORTRAIT_DRAG.maxScale) * 1000) / 1000
+        : 1
+    };
+  }
+
+  function isZeroPortraitManualTransform(transform) {
+    const normalized = normalizePortraitManualTransform(transform);
+    return normalized.x === 0 && normalized.y === 0 && normalized.tilt === 0 && normalized.scale === 1;
+  }
+
+  function getPortraitManualTransform(actorId) {
+    return normalizePortraitManualTransform(portraitManualTransforms.get(actorId));
+  }
+
+  function getAppliedPortraitManualTransform(wrapper, actorId = wrapper?.dataset?.actorId) {
+    const x = Number(wrapper?.dataset?.manualTransformX);
+    const y = Number(wrapper?.dataset?.manualTransformY);
+    const tilt = Number(wrapper?.dataset?.manualTransformTilt);
+    const scale = Number(wrapper?.dataset?.manualTransformScale);
+    if (Number.isFinite(x) || Number.isFinite(y) || Number.isFinite(tilt) || Number.isFinite(scale)) {
+      return {
+        x: Number.isFinite(x) ? x : 0,
+        y: Number.isFinite(y) ? y : 0,
+        tilt: Number.isFinite(tilt) ? tilt : 0,
+        scale: Number.isFinite(scale) ? scale : 1
+      };
+    }
+    return getPortraitManualTransform(actorId);
+  }
+
+  function getPortraitLayerZIndex(actorId, fallback = "") {
+    const zIndex = portraitManualZIndexes.get(actorId);
+    return Number.isFinite(zIndex) ? String(zIndex) : fallback;
+  }
+
+  function setPortraitManualZIndex(actorId, zIndex = null, { root = getDomHud() } = {}) {
+    const id = String(actorId || "").trim();
+    if (!id) return null;
+
+    let z = Number(zIndex);
+    if (!Number.isFinite(z)) z = ++portraitManualZCounter;
+    portraitManualZCounter = Math.max(portraitManualZCounter, z);
+    portraitManualZIndexes.set(id, z);
+
+    const wrapper = getWrapperByActorId(id, root);
+    if (wrapper && !wrapper.classList.contains("ginzzzu-portrait-focused")) {
+      wrapper.style.zIndex = String(z);
+    }
+    return z;
+  }
+
+  function applyPortraitManualTransform(actorId, transform, {
+    root = getDomHud(),
+    scheduleNames = true,
+    animate = false
+  } = {}) {
+    const id = String(actorId || "").trim();
+    if (!id) return;
+
+    const normalized = normalizePortraitManualTransform(transform);
+    if (isZeroPortraitManualTransform(normalized)) portraitManualTransforms.delete(id);
+    else portraitManualTransforms.set(id, normalized);
+
+    const wrapper = getWrapperByActorId(id, root);
+    if (!wrapper) return;
+
+    wrapper.dataset.manualTransformX = String(normalized.x);
+    wrapper.dataset.manualTransformY = String(normalized.y);
+    wrapper.dataset.manualTransformTilt = String(normalized.tilt);
+    wrapper.dataset.manualTransformScale = String(normalized.scale);
+
+    if (animate) {
+      wrapper.style.transition = `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`;
+      void wrapper.offsetWidth;
+    }
+
+    if (isZeroPortraitManualTransform(normalized)) {
+      wrapper.style.removeProperty("--ginzzzu-manual-x");
+      wrapper.style.removeProperty("--ginzzzu-manual-y");
+      wrapper.style.removeProperty("--ginzzzu-manual-tilt");
+      wrapper.style.removeProperty("--ginzzzu-manual-scale");
+    } else {
+      wrapper.style.setProperty("--ginzzzu-manual-x", `${normalized.x}px`);
+      wrapper.style.setProperty("--ginzzzu-manual-y", `${normalized.y}px`);
+      wrapper.style.setProperty("--ginzzzu-manual-tilt", `${normalized.tilt}deg`);
+      wrapper.style.setProperty("--ginzzzu-manual-scale", String(normalized.scale));
+    }
+
+    if (scheduleNames) {
+      if (animate) {
+        const delay = Math.max(0, Number(_ANIM.moveMs) || 0) + 80;
+        followNamePositionsFor(delay);
+        setTimeout(() => scheduleNamePositionsUpdate(), delay);
+      } else {
+        scheduleNamePositionsUpdate();
+      }
+    }
+  }
+
+  function getPortraitDragFinalManualTransform(state) {
+    const base = normalizePortraitManualTransform(state?.manualTransform);
+    return normalizePortraitManualTransform({
+      x: base.x + (Number(state?.lastDx) || 0),
+      y: base.y + (Number(state?.lastDy) || 0) + (Number(state?.lastLift) || 0),
+      tilt: base.tilt + (Number(state?.lastTilt) || 0),
+      scale: base.scale * (Number(state?.dragScale) || 1)
+    });
+  }
+
+  function getPortraitDragFinalScale(state) {
+    const base = normalizePortraitManualTransform(state?.manualTransform);
+    return clampNumber(
+      base.scale * (Number(state?.dragScale) || 1),
+      PORTRAIT_DRAG.minScale,
+      PORTRAIT_DRAG.maxScale
+    );
+  }
+
+  function setPortraitDragFinalScale(state, finalScale) {
+    if (!state) return;
+    const base = normalizePortraitManualTransform(state.manualTransform);
+    const nextFinalScale = clampNumber(
+      Number(finalScale),
+      PORTRAIT_DRAG.minScale,
+      PORTRAIT_DRAG.maxScale
+    );
+    state.dragScale = nextFinalScale / Math.max(0.001, base.scale);
   }
 
   function userOwnsPortraitActor(actor, user) {
@@ -666,11 +828,7 @@ const FRAME = {
     badge.classList.add("ginzzzu-portrait-name-dragging");
     badge.classList.remove("ginzzzu-portrait-name-returning");
     badge.classList.toggle("ginzzzu-portrait-name-remote-dragging", !!state.remote);
-    badge.style.setProperty("--ginzzzu-name-drag-duration", state.remote
-      ? "90ms"
-      : `${Math.max(0, Number(_ANIM.moveMs) || 0)}ms`);
-    badge.style.setProperty("--ginzzzu-name-drag-easing", state.remote ? "linear" : (_ANIM.easing || "ease-out"));
-    badge.style.setProperty("--ginzzzu-name-drag-x", `${Math.round(dx)}px`);
+    scheduleNamePositionsUpdate();
   }
 
   function clearPortraitNameDragVisual(state, { animateBack = false } = {}) {
@@ -681,11 +839,10 @@ const FRAME = {
       badge.classList.remove("ginzzzu-portrait-name-dragging");
       badge.classList.remove("ginzzzu-portrait-name-remote-dragging");
       badge.classList.add("ginzzzu-portrait-name-returning");
+      followNamePositionsFor(Math.max(0, Number(_ANIM.moveMs) || 0) + 80);
     } else {
       badge.classList.add("ginzzzu-portrait-name-dragging");
     }
-
-    badge.style.removeProperty("--ginzzzu-name-drag-x");
 
     if (!animateBack) {
       requestAnimationFrame(() => {
@@ -709,11 +866,20 @@ const FRAME = {
 
     const threshold = Math.max(1, detachThreshold ?? state.detachThreshold ?? PORTRAIT_DRAG.minDetachPx);
     const lift = -Math.min(12, 12 * (Math.abs(dx) / threshold));
-    const tilt = clampNumber((dx / Math.max(1, state.startRect.width)) * PORTRAIT_DRAG.maxTiltDeg, -PORTRAIT_DRAG.maxTiltDeg, PORTRAIT_DRAG.maxTiltDeg);
+    const baseTransform = normalizePortraitManualTransform(state.manualTransform);
+    const targetTilt = clampNumber(
+      (((Number(baseTransform.x) || 0) + dx) / Math.max(1, state.startRect.width)) * PORTRAIT_DRAG.maxTiltDeg,
+      -PORTRAIT_DRAG.maxTiltDeg,
+      PORTRAIT_DRAG.maxTiltDeg
+    );
+    const tilt = targetTilt - (Number(baseTransform.tilt) || 0);
 
     state.lastDx = dx;
     state.lastDy = dy;
+    state.lastLift = lift;
+    state.lastTilt = tilt;
     state.detached = !!detached;
+    state.dragScale = Number.isFinite(Number(state.dragScale)) ? Number(state.dragScale) : 1;
 
     state.wrapper.classList.toggle("ginzzzu-portrait-detached", !!detached);
     setPortraitDragTarget(state, targetWrapper);
@@ -722,6 +888,7 @@ const FRAME = {
     state.wrapper.style.setProperty("--ginzzzu-drag-y", `${Math.round(dy)}px`);
     state.wrapper.style.setProperty("--ginzzzu-drag-lift", `${lift.toFixed(2)}px`);
     state.wrapper.style.setProperty("--ginzzzu-drag-tilt", `${tilt.toFixed(2)}deg`);
+    state.wrapper.style.setProperty("--ginzzzu-drag-scale", String(state.dragScale));
 
     setPortraitNameDragVisual(state, dx, dy, lift);
   }
@@ -738,6 +905,7 @@ const FRAME = {
       sceneId: canvas?.scene?.id,
       dxRatio: (state.lastDx || 0) / width,
       dyRatio: (state.lastDy || 0) / height,
+      dragScale: Number(state.dragScale) || 1,
       detached: !!state.detached,
       targetActorId: state.targetWrapper?.dataset?.actorId || null,
       ...extra
@@ -790,6 +958,7 @@ const FRAME = {
       startY: 0,
       lastDx: 0,
       lastDy: 0,
+      dragScale: 1,
       startRect,
       startCenterX: startRect.left + (startRect.width / 2),
       detachThreshold: Math.max(
@@ -810,7 +979,8 @@ const FRAME = {
       "--ginzzzu-drag-x 90ms linear",
       "--ginzzzu-drag-y 90ms linear",
       "--ginzzzu-drag-lift 90ms linear",
-      "--ginzzzu-drag-tilt 90ms linear"
+      "--ginzzzu-drag-tilt 90ms linear",
+      "--ginzzzu-drag-scale 90ms linear"
     ].join(", ");
     setPortraitNameDragVisual(state, 0, 0, 0);
     remotePortraitDrags.set(getRemotePortraitDragKey(data), state);
@@ -844,12 +1014,34 @@ const FRAME = {
 
     if (data.phase === "end" || data.phase === "cancel") {
       remotePortraitDrags.delete(key);
-      clearPortraitDragVisual(state, { animateBack: data.phase === "cancel" || !data.swapped });
+      const keptPosition = data.phase === "end" && !!data.kept && data.manualTransform;
+      const resetPosition = data.phase === "end" && !!data.reset && data.manualTransform;
+      if (keptPosition || resetPosition) {
+        if (Number.isFinite(Number(data.zIndex))) {
+          setPortraitManualZIndex(data.actorId, Number(data.zIndex), { root: state.root });
+        }
+        const stagedTransform = keptPosition
+          ? data.manualTransform
+          : getPortraitDragFinalManualTransform(state);
+        applyPortraitManualTransform(data.actorId, stagedTransform, { root: state.root, scheduleNames: false });
+      }
+      clearPortraitDragVisual(state, {
+        animateBack: data.phase === "cancel" || (!data.swapped && !keptPosition && !resetPosition)
+      });
+      if (resetPosition) {
+        requestAnimationFrame(() => {
+          applyPortraitManualTransform(data.actorId, data.manualTransform, {
+            root: state.root,
+            animate: true
+          });
+        });
+      }
       return;
     }
 
     const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
     const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
+    state.dragScale = clampNumber(Number(data.dragScale) || 1, 0.1, 4);
     applyPortraitDragVisual(state, dx, dy, {
       targetWrapper: null,
       detached: !!data.detached,
@@ -938,6 +1130,7 @@ const FRAME = {
     wrapper.style.removeProperty("--ginzzzu-drag-y");
     wrapper.style.removeProperty("--ginzzzu-drag-lift");
     wrapper.style.removeProperty("--ginzzzu-drag-tilt");
+    wrapper.style.removeProperty("--ginzzzu-drag-scale");
     clearPortraitNameDragVisual(state, { animateBack: shouldAnimateBack });
 
     if (!shouldAnimateBack) {
@@ -950,6 +1143,7 @@ const FRAME = {
 
     if (shouldAnimateBack) {
       const delay = Math.max(0, Number(_ANIM.moveMs) || 0) + 80;
+      followNamePositionsFor(delay);
       setTimeout(() => scheduleNamePositionsUpdate(), delay);
     } else {
       scheduleNamePositionsUpdate();
@@ -966,10 +1160,24 @@ const FRAME = {
     window.removeEventListener("pointermove", _onPortraitPointerMove);
     window.removeEventListener("pointerup", _onPortraitPointerUp);
     window.removeEventListener("pointercancel", _onPortraitPointerCancel);
+    window.removeEventListener("wheel", _onPortraitWheel);
 
     try { state.wrapper.releasePointerCapture?.(state.pointerId); } catch (e) {}
 
-    const shouldSwap = !cancelled && state.dragging && state.detached && state.targetWrapper?.isConnected;
+    const shiftRelease = !!ev?.shiftKey;
+    const canSwap = !cancelled && state.dragging && state.detached && state.targetWrapper?.isConnected;
+    const shouldSwap = canSwap && !shiftRelease;
+    const resetOnRelease = shouldResetPortraitDragPositionOnRelease();
+    const shouldKeepPosition = !cancelled && state.dragging && !shouldSwap && (
+      resetOnRelease ? shiftRelease : !shiftRelease
+    );
+    const shouldResetPosition = !cancelled && state.dragging && !shouldSwap && !shouldKeepPosition;
+    const finalManualTransform = shouldKeepPosition
+      ? getPortraitDragFinalManualTransform(state)
+      : (shouldResetPosition ? normalizePortraitManualTransform(null) : null);
+    const manualZIndex = (shouldKeepPosition || shouldResetPosition)
+      ? setPortraitManualZIndex(state.actorId, null, { root: state.root })
+      : null;
     const firstRects = shouldSwap ? collectFirstRects() : null;
     const targetWrapper = state.targetWrapper;
 
@@ -981,11 +1189,40 @@ const FRAME = {
     if (state.dragging) {
       emitPortraitDragPreview(state, cancelled ? "cancel" : "end", {
         force: true,
-        swapped: shouldSwap
+        swapped: shouldSwap,
+        kept: shouldKeepPosition,
+        reset: shouldResetPosition,
+        manualTransform: finalManualTransform,
+        zIndex: manualZIndex
       });
     }
 
-    clearPortraitDragVisual(state, { animateBack: state.dragging && !shouldSwap });
+    if (shouldKeepPosition) {
+      applyPortraitManualTransform(state.actorId, finalManualTransform, {
+        root: state.root,
+        scheduleNames: false
+      });
+      clearPortraitDragVisual(state, { animateBack: false });
+      setSyncedPortraitManualTransform(state.actorId, finalManualTransform, {
+        applyLocal: false,
+        zIndex: manualZIndex
+      });
+    } else if (shouldResetPosition) {
+      applyPortraitManualTransform(state.actorId, getPortraitDragFinalManualTransform(state), {
+        root: state.root,
+        scheduleNames: false
+      });
+      clearPortraitDragVisual(state, { animateBack: false });
+      requestAnimationFrame(() => {
+        setSyncedPortraitManualTransform(state.actorId, finalManualTransform, {
+          applyLocal: true,
+          animate: true,
+          zIndex: manualZIndex
+        });
+      });
+    } else {
+      clearPortraitDragVisual(state, { animateBack: state.dragging && !shouldSwap });
+    }
 
     if (shouldSwap && swapPortraitWrappers(state.wrapper, targetWrapper)) {
       relayoutDomHud(firstRects);
@@ -1011,8 +1248,13 @@ const FRAME = {
     const state = activePortraitDrag;
     if (!state || ev.pointerId !== state.pointerId) return;
 
+    if (state.scaleDragActive && !ev.altKey) {
+      state.startY = ev.clientY - (Number(state.lastDy) || 0);
+      state.scaleDragActive = false;
+    }
+
     const dx = ev.clientX - state.startX;
-    const dy = ev.clientY - state.startY;
+    let dy = ev.clientY - state.startY;
     const distance = Math.hypot(dx, dy);
 
     if (!state.dragging && distance < PORTRAIT_DRAG.startThresholdPx) return;
@@ -1026,6 +1268,21 @@ const FRAME = {
       state.startRect.width * PORTRAIT_DRAG.detachRatio
     );
     state.detachThreshold = detachThreshold;
+
+    if (ev.altKey) {
+      if (!state.scaleDragActive) {
+        const currentDy = Number(state.lastDy);
+        state.scaleDragActive = true;
+        state.scaleStartY = ev.clientY;
+        state.scaleStartFinalScale = getPortraitDragFinalScale(state);
+        state.scaleBaseDy = Number.isFinite(currentDy) ? currentDy : dy;
+      }
+
+      const factor = Math.exp((state.scaleStartY - ev.clientY) * PORTRAIT_DRAG.pointerScaleSpeed);
+      setPortraitDragFinalScale(state, state.scaleStartFinalScale * factor);
+      dy = Number(state.scaleBaseDy) || 0;
+    }
+
     state.lastDx = dx;
     state.lastDy = dy;
     const targetWrapper = Math.abs(dx) >= detachThreshold ? findPortraitDragTarget(state) : null;
@@ -1047,8 +1304,32 @@ const FRAME = {
     finishPortraitDrag(ev, { cancelled: true });
   }
 
+  function updatePortraitDragScale(ev) {
+    const state = activePortraitDrag;
+    if (!state) return;
+
+    beginPortraitDrag(state);
+    ev.preventDefault?.();
+    ev.stopPropagation?.();
+
+    const currentFinalScale = getPortraitDragFinalScale(state);
+    const factor = Math.exp(-(Number(ev.deltaY) || 0) * PORTRAIT_DRAG.wheelScaleSpeed);
+
+    setPortraitDragFinalScale(state, currentFinalScale * factor);
+    applyPortraitDragVisual(state, state.lastDx || 0, state.lastDy || 0, {
+      targetWrapper: state.targetWrapper,
+      detached: !!state.detached,
+      detachThreshold: state.detachThreshold
+    });
+    emitPortraitDragPreview(state, "move", { force: true });
+  }
+
+  function _onPortraitWheel(ev) {
+    updatePortraitDragScale(ev);
+  }
+
   function _onPortraitPointerDown(ev) {
-    if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.button !== 0 || ev.ctrlKey || ev.metaKey) return;
     if (shouldIgnorePortraitDragTarget(ev.target)) return;
 
     const wrapper = ev.currentTarget?.closest?.(".ginzzzu-portrait-wrapper");
@@ -1079,6 +1360,7 @@ const FRAME = {
       startY: ev.clientY,
       lastDx: 0,
       lastDy: 0,
+      dragScale: 1,
       startRect,
       startCenterX: startRect.left + (startRect.width / 2),
       detachThreshold: Math.max(
@@ -1087,6 +1369,7 @@ const FRAME = {
       ),
       slots: collectPortraitDragSlots(rail, wrapper),
       originalTransition: wrapper.style.transition,
+      manualTransform: getAppliedPortraitManualTransform(wrapper, actorId),
       dragging: false,
       detached: false,
       targetWrapper: null
@@ -1100,6 +1383,7 @@ const FRAME = {
     window.addEventListener("pointermove", _onPortraitPointerMove, { passive: false });
     window.addEventListener("pointerup", _onPortraitPointerUp, { passive: false });
     window.addEventListener("pointercancel", _onPortraitPointerCancel, { passive: false });
+    window.addEventListener("wheel", _onPortraitWheel, { passive: false });
   }
 
   function insertPortraitWrapperBySharedOrder(rail, wrapper) {
@@ -1278,7 +1562,7 @@ const FRAME = {
         // Остальные — в "тень", но без изменения размера
         wrapper.classList.remove("ginzzzu-portrait-focused");
         wrapper.classList.add("ginzzzu-portrait-dimmed");
-        wrapper.style.zIndex = wrapper.dataset.baseZ || wrapper.style.zIndex;
+        wrapper.style.zIndex = getPortraitLayerZIndex(actorId, wrapper.dataset.baseZ || wrapper.style.zIndex);
 
         // Build filter string with blur if enabled
         let filterStr = `${img.dataset.baseFilter} brightness(${dimBrightness}) saturate(${dimSaturate})`;
@@ -1292,7 +1576,7 @@ const FRAME = {
         wrapper.classList.remove("ginzzzu-portrait-focused", "ginzzzu-portrait-dimmed");
 
         if (wrapper.dataset.baseZ) {
-          wrapper.style.zIndex = wrapper.dataset.baseZ;
+          wrapper.style.zIndex = getPortraitLayerZIndex(actorId, wrapper.dataset.baseZ);
         }
         if (img.dataset.baseFilter) {
           img.style.filter = img.dataset.baseFilter;
@@ -1724,7 +2008,7 @@ function _onPortraitClick(ev) {
       const img = wrapper.querySelector("img.ginzzzu-portrait");
       const picActorId = img?.dataset.actorId;
       if (!_focusedActorId || !picActorId || picActorId !== _focusedActorId) {
-        wrapper.style.zIndex = baseZ;
+        wrapper.style.zIndex = getPortraitLayerZIndex(picActorId, baseZ);
       }
     });
 
@@ -1859,6 +2143,7 @@ function _onPortraitClick(ev) {
         existing.style.opacity = "1";
         existing.style.transform = "translateY(0)";
         relayoutDomHud();
+        applyPortraitManualTransform(actorId, getPortraitManualTransform(actorId), { root });
         return;
       }
     }
@@ -2005,6 +2290,7 @@ function _onPortraitClick(ev) {
     wrapper.appendChild(el);
     insertPortraitWrapperBySharedOrder(rail, wrapper);
     map.set(actorId, el);
+    applyPortraitManualTransform(actorId, getPortraitManualTransform(actorId), { root, scheduleNames: false });
 
     // === Подключение панели эмоций к HUD-портрету ===
     if (globalThis.GinzzzuPortraitEmotions?.attachToolbarToHudWrapper) {
@@ -2422,6 +2708,22 @@ function registerPortraitSocketHandlers() {
       return;
     }
 
+    if (data.type === "portraitManualTransform") {
+      const actorId = String(data.actorId || "");
+      const userId = String(data.userId || "");
+      if (data.userId === game.user?.id) return;
+      if (data.sceneId && data.sceneId !== canvas?.scene?.id) return;
+      if (!actorId || !userId || !canUserReorderPortrait(actorId, userId)) return;
+
+      if (Number.isFinite(Number(data.zIndex))) {
+        setPortraitManualZIndex(actorId, Number(data.zIndex));
+      }
+      applyPortraitManualTransform(actorId, data.transform, {
+        animate: !!data.animate
+      });
+      return;
+    }
+
     if (!game.user?.isGM) return;
 
     if (data.type === "flipPortrait") {
@@ -2444,6 +2746,7 @@ function registerPortraitSocketHandlers() {
         skipPermissionCheck: true
       });
     }
+
   });
 }
 
@@ -2546,7 +2849,7 @@ Hooks.once("ready", () => {
        }
       } catch (e2) {
         console.error("[threeO-portraits] canvasReady flip restore error:", e2);
-      }
+    }
     try {
       applySharedPortraitSequence(getSharedPortraitSequence(), { animate: false });
     } catch (e3) {
@@ -3146,6 +3449,39 @@ function setSharedPortraitSequence(sequence, {
   scene.update({ [`flags.${MODULE_ID}.portraitSequence`]: sanitized }).catch(e => {
     console.error("[threeO-portraits] setSharedPortraitSequence error:", e);
   });
+}
+
+function setSyncedPortraitManualTransform(actorId, transform, {
+  applyLocal = false,
+  userId = game.user?.id,
+  skipPermissionCheck = false,
+  animate = false,
+  zIndex = null
+} = {}) {
+  const id = String(actorId || "").trim();
+  if (!id) return;
+  if (!skipPermissionCheck && !canUserReorderPortrait(id, userId)) return;
+
+  const normalized = normalizePortraitManualTransform(transform);
+
+  if (applyLocal) {
+    if (Number.isFinite(Number(zIndex))) setPortraitManualZIndex(id, Number(zIndex));
+    applyPortraitManualTransform(id, normalized, { animate });
+  }
+
+  try {
+    game.socket?.emit?.(`module.${MODULE_ID}`, {
+      type: "portraitManualTransform",
+      actorId: id,
+      userId: game.user?.id,
+      sceneId: canvas?.scene?.id,
+      transform: normalized,
+      animate: !!animate,
+      zIndex: Number.isFinite(Number(zIndex)) ? Number(zIndex) : null
+    });
+  } catch (e) {
+    console.error("[threeO-portraits] portrait transform socket emit failed:", e);
+  }
 }
 
 Hooks.once("ready", () => {

@@ -10,10 +10,40 @@
   initial-value: 0px;
 }
 
+@property --ginzzzu-manual-x {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 @property --ginzzzu-drag-y {
   syntax: "<length>";
   inherits: true;
   initial-value: 0px;
+}
+
+@property --ginzzzu-manual-y {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --ginzzzu-manual-tilt {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+@property --ginzzzu-manual-scale {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --ginzzzu-drag-scale {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
 }
 
 @property --ginzzzu-drag-lift {
@@ -105,7 +135,7 @@
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.ginzzzu-portrait-dragging {
-  z-index: 200000 !important;
+  z-index: 2000000 !important;
   cursor: grabbing;
   will-change: transform;
   transition:
@@ -118,6 +148,7 @@
     --ginzzzu-drag-y var(--ginzzzu-remote-drag-duration, 90ms) linear,
     --ginzzzu-drag-lift var(--ginzzzu-remote-drag-duration, 90ms) linear,
     --ginzzzu-drag-tilt var(--ginzzzu-remote-drag-duration, 90ms) linear,
+    --ginzzzu-drag-scale var(--ginzzzu-remote-drag-duration, 90ms) linear,
     --ginzzzu-flip-scale-x var(--ginzzzu-flip-duration, 450ms) var(--ginzzzu-flip-easing, ease-out) !important;
 }
 
@@ -163,12 +194,10 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 }
 
 #ginzzzu-portrait-names .ginzzzu-portrait-name {
-  --ginzzzu-name-drag-x: 0px;
-
   position: absolute;
   left: 50%;
   transform:
-    translateX(calc(-50% + var(--ginzzzu-name-drag-x, 0px)))
+    translateX(-50%)
     translateY(4px);
 
   padding: 2px 10px;
@@ -188,24 +217,18 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 
   transition:
     opacity 0.2s ease-out,
-    transform var(--ginzzzu-name-drag-duration, 220ms) var(--ginzzzu-name-drag-easing, ease-out);
+    transform 0.2s ease-out;
 }
 
 #ginzzzu-portrait-names .ginzzzu-portrait-name.ginzzzu-portrait-name-dragging {
   transition: opacity 0.2s ease-out;
 }
 
-#ginzzzu-portrait-names .ginzzzu-portrait-name.ginzzzu-portrait-name-dragging.ginzzzu-portrait-name-remote-dragging {
-  transition:
-    opacity 0.2s ease-out,
-    transform var(--ginzzzu-name-drag-duration, 90ms) var(--ginzzzu-name-drag-easing, linear);
-}
-
 /* When visible state is toggled from JS we apply the visible class */
 #ginzzzu-portrait-names .ginzzzu-portrait-name.visible {
   opacity: 1;
   transform:
-    translateX(calc(-50% + var(--ginzzzu-name-drag-x, 0px)))
+    translateX(-50%)
     translateY(0);
 }
 
@@ -219,7 +242,7 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 
 #ginzzzu-portrait-names .ginzzzu-portrait-name.flipped {
   transform:
-    translateX(calc(-50% + var(--ginzzzu-name-drag-x, 0px)))
+    translateX(-50%)
     translateY(0)
     scaleX(-1);
 }
@@ -246,7 +269,7 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
 #ginzzzu-portrait-layer.ginzzzu-show-names-always #ginzzzu-portrait-names .ginzzzu-portrait-name {
   opacity: 1;
   transform:
-    translateX(calc(-50% + var(--ginzzzu-name-drag-x, 0px)))
+    translateX(-50%)
     translateY(0);
   pointer-events: auto;
 }
@@ -256,7 +279,7 @@ div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
    so it can add the scaleX(-1) when a badge has the `flipped` class. */
 #ginzzzu-portrait-layer.ginzzzu-show-names-always #ginzzzu-portrait-names .ginzzzu-portrait-name.flipped {
   transform:
-    translateX(calc(-50% + var(--ginzzzu-name-drag-x, 0px)))
+    translateX(-50%)
     translateY(0)
     scaleX(-1);
 }
