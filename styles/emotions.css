@@ -201,6 +201,9 @@
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
   transform:
     translate3d(
       calc(var(--shakeX, 0px) + var(--ginzzzu-manual-x, 0px) + var(--ginzzzu-drag-x, 0px)),

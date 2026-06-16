@@ -134,7 +134,6 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
 
     try {
       const customEmotions = foundry.utils.getProperty(actor, FLAG_CUSTOM_EMOTIONS) || [];
-      console.log(`[${MODULE_ID}] Loading custom emotions for ${actor.name}:`, customEmotions);
 
       if (Array.isArray(customEmotions)) {
         customEmotions.forEach((custom, idx) => {
@@ -435,15 +434,15 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
     const hasCustomEmotionsChange = foundry.utils.hasProperty(diff, FLAG_CUSTOM_EMOTIONS);
     const hasShowStandardChange   = foundry.utils.hasProperty(diff, FLAG_SHOW_STANDARD_EMOTIONS);
     
-    if (hasEmotionChange) {
-      console.log(`[${MODULE_ID}] Emotion changed for ${actor.name}`);
-      applyEmotionToHudDom(actor.id);
-    }
-    
     // Refresh toolbar if changed
     if (hasCustomEmotionsChange || hasShowStandardChange) {
-      console.log(`[${MODULE_ID}] Emotions config changed for ${actor.name}, refreshing toolbars`);
-      refreshAllHudToolbars();
+      const root = document.getElementById("ginzzzu-portrait-layer");
+      const wrap = root?.querySelector?.(`.ginzzzu-portrait-wrapper[data-actor-id="${actor.id}"]`);
+      if (wrap) attachToolbarToHudWrapper(wrap, actor.id);
+    }
+
+    if (hasEmotionChange) {
+      applyEmotionToHudDom(actor.id);
     }
   });
 

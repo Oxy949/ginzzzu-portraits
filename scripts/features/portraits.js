@@ -263,13 +263,32 @@ const FRAME = {
         img.onload = img.onerror = null;
         if (err) reject(err); else resolve(src);
       };
-      img.onload = () => onDone();
+      img.onload = () => {
+        if (typeof img.decode === "function") {
+          img.decode().catch(() => {}).then(() => onDone());
+        } else {
+          onDone();
+        }
+      };
       img.onerror = (e) => onDone(new Error("Image load error"));
       // try set crossOrigin to allow CORS'd images where possible
       try { img.crossOrigin = "anonymous"; } catch {}
       img.src = src;
       const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
     });
+  }
+
+  function runWhenBrowserIdle(callback, timeout = 600) {
+    if (typeof globalThis.requestIdleCallback === "function") {
+      globalThis.requestIdleCallback(callback, { timeout });
+    } else {
+      setTimeout(callback, 0);
+    }
+  }
+
+  function scheduleAfterAnimationSettles(durationMs, callback, settleMs = 180) {
+    const delay = Math.max(0, Number(durationMs) || 0) + Math.max(0, Number(settleMs) || 0);
+    setTimeout(() => runWhenBrowserIdle(callback), delay);
   }
 
   // ---- DOM HUD внутри #interface ----
@@ -281,7 +300,6 @@ const FRAME = {
 
     let root = document.getElementById("ginzzzu-portrait-layer");
     if (root) {
-      _toneApplyToRootVars(root);
       return root;
     }
 
@@ -455,10 +473,14 @@ const FRAME = {
       if (!namesContainer) return;
 
       const wrappers = Array.from(root.querySelectorAll('.ginzzzu-portrait-wrapper'));
+      const badgesByActorId = new Map(
+        Array.from(namesContainer.querySelectorAll('.ginzzzu-portrait-name[data-actor-id]'))
+          .map(badge => [badge.dataset.actorId, badge])
+      );
       for (const wrapper of wrappers) {
         const actorId = wrapper.dataset.actorId;
         if (!actorId) continue;
-        const badge = namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`);
+        const badge = badgesByActorId.get(actorId);
         if (!badge) continue;
         // Horizontal: center above wrapper
         try {
@@ -1494,7 +1516,15 @@ const FRAME = {
   const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
   const showNames = nameMode !== "none";
 
-  const wrappers = _getAllWrappers();
+  const root = getDomHud();
+  const wrappers = root ? Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper")) : [];
+  const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
+  const badgesByActorId = new Map(
+    namesContainer
+      ? Array.from(namesContainer.querySelectorAll('.ginzzzu-portrait-name[data-actor-id]')).map(badge => [badge.dataset.actorId, badge])
+      : []
+  );
+  const alwaysShowNames = !!root?.classList?.contains('ginzzzu-show-names-always');
   for (const wrapper of wrappers) {
     const actorId = wrapper.dataset.actorId || "";
     const displayName = _getDisplayName(actorId);
@@ -1503,15 +1533,14 @@ const FRAME = {
 
     updatePortraitReorderCursor(wrapper, actorId);
     wrapper.dataset.displayName = safeName;
-    const root = getDomHud();
-    const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
-    let badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`) : null;
+    let badge = badgesByActorId.get(actorId) || null;
 
     if (!safeName || !showNames) {
       // Имя пустое или режим "не показывать" — удаляем плашку
       if (badge) {
         badge.remove();
         badge = null;
+        badgesByActorId.delete(actorId);
       }
     } else if (safeName && !badge && namesContainer) {
       // Имя появилось и показ разрешён — создаём плашку in names container
@@ -1523,6 +1552,7 @@ const FRAME = {
       inner.textContent = safeName;
       badge.appendChild(inner);
       namesContainer.appendChild(badge);
+      badgesByActorId.set(actorId, badge);
 
       // attach hover handlers from the wrapper if present
       try {
@@ -1530,8 +1560,7 @@ const FRAME = {
         if (wrapperEl) {
           wrapperEl.addEventListener('mouseenter', () => badge.classList.add('visible'), { passive: true });
           wrapperEl.addEventListener('mouseleave', () => {
-            const rootEl = getDomHud();
-            if (rootEl && rootEl.classList.contains('ginzzzu-show-names-always')) return;
+            if (getDomHud()?.classList?.contains('ginzzzu-show-names-always')) return;
             badge.classList.remove('visible');
           }, { passive: true });
         }
@@ -1549,9 +1578,9 @@ const FRAME = {
         badge.appendChild(innerEl);
       }
       innerEl.textContent = safeName;
+      badge.classList.toggle('flipped', wrapper.classList.contains("ginzzzu-portrait-flipped"));
       // Ensure visible state for always-show mode
-      const rootEl = getDomHud();
-      if (rootEl && rootEl.classList.contains('ginzzzu-show-names-always')) {
+      if (alwaysShowNames) {
         badge.classList.add('visible');
       } else {
         badge.classList.remove('visible');
@@ -1704,17 +1733,21 @@ const FRAME = {
 
     const isFlipped = img.dataset.flipped === "1";
 
-    // навешиваем/снимаем класс, сам transform перенесём в CSS
-    wrapper.classList.toggle("ginzzzu-portrait-flipped", isFlipped);
     // Mirror badge text back so it's readable (badges live in names container)
+    let badge = null;
     try {
       const root = getDomHud();
       const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
-      const badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${img.dataset.actorId}"]`) : null;
-      if (badge) {
-        badge.classList.toggle('flipped', isFlipped);
-      }
+      badge = namesContainer ? namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${img.dataset.actorId}"]`) : null;
     } catch (e) {}
+
+    const wrapperAlreadyFlipped = wrapper.classList.contains("ginzzzu-portrait-flipped") === isFlipped;
+    const badgeAlreadyFlipped = !badge || badge.classList.contains("flipped") === isFlipped;
+    if (wrapperAlreadyFlipped && badgeAlreadyFlipped) return;
+
+    // навешиваем/снимаем класс, сам transform перенесём в CSS
+    if (!wrapperAlreadyFlipped) wrapper.classList.toggle("ginzzzu-portrait-flipped", isFlipped);
+    if (badge && !badgeAlreadyFlipped) badge.classList.toggle('flipped', isFlipped);
   }
 
 
@@ -1725,7 +1758,8 @@ const FRAME = {
     const img = map.get(actorId);
     if (!img) return;
 
-    img.dataset.flipped = isFlipped ? "1" : "0";
+    const nextValue = isFlipped ? "1" : "0";
+    if (img.dataset.flipped !== nextValue) img.dataset.flipped = nextValue;
     _updateImgTransformForFlip(img);
   }
 
@@ -1970,9 +2004,6 @@ function _onPortraitClick(ev) {
       porHeight = game.settings.get(MODULE_ID, "gmPortraitHeight");
     }
 
-    // актуализируем боковые паддинги
-    syncSidePadding(root, rail);
-
     // актуализируем нижний паддинг по настройке
     const bottomOffsetPx = getBottomOffsetPx();
     rail.style.bottom = `${bottomOffsetPx}px`;
@@ -2134,14 +2165,17 @@ function _onPortraitClick(ev) {
       return { el, fromTransform, toTransform };
     }).filter(Boolean);
 
+    const previousWillChange = new Map();
+
     // Add will-change before animations
     animations.forEach(({el}) => {
+      previousWillChange.set(el, el.style.willChange || "");
       el.style.willChange = "transform";
     });
 
     // Start all animations
-    const promises = animations.map(({el, fromTransform, toTransform}) => {
-      const anim = el.animate(
+    animations.forEach(({el, fromTransform, toTransform}) => {
+      el.animate(
         [
           { transform: fromTransform },
           { transform: toTransform }
@@ -2153,13 +2187,14 @@ function _onPortraitClick(ev) {
           composite: "replace"
         }
       );
-      return anim.finished;
     });
 
-    // Remove will-change after all animations complete
-    Promise.all(promises).then(() => {
+    scheduleAfterAnimationSettles(_ANIM.moveMs, () => {
       animations.forEach(({el}) => {
-        el.style.willChange = "auto";
+        if (!el.isConnected) return;
+        const previous = previousWillChange.get(el);
+        if (previous) el.style.willChange = previous;
+        else el.style.removeProperty("will-change");
       });
     });
   }
@@ -2292,7 +2327,8 @@ function _onPortraitClick(ev) {
 
 
     // Базовые стили: рамка фикс. размера; картинка вписывается; плавное появление и «подъём»
-    if (game.settings.get(MODULE_ID, "visualNovelMode")) {
+    const visualNovelMode = game.settings.get(MODULE_ID, "visualNovelMode");
+    if (visualNovelMode) {
       Object.assign(el.style, {
         filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(180deg) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,-180deg))",
         transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
@@ -2373,7 +2409,7 @@ function _onPortraitClick(ev) {
     // Apply blur effect if enabled
     applyBlur();
 
-    if (game.settings.get(MODULE_ID, "visualNovelMode")) {
+    if (visualNovelMode) {
       // Ждем полной загрузки изображения в DOM перед анимацией
       el.onload = () => {
         requestAnimationFrame(() => {
@@ -2388,11 +2424,22 @@ function _onPortraitClick(ev) {
         requestAnimationFrame(() => {
           el.style.opacity = "1";
           // после окончательного положения фиксируем базовый transform
-          el.dataset.baseTransform = "translateY(0)";
+          el.style.transform = "translate3d(0,0,0)";
+          el.dataset.baseTransform = "translate3d(0,0,0)";
           _updateImgTransformForFlip(el);
         });
       };
     }
+
+    const revealPortrait = el.onload;
+    let revealStarted = false;
+    el.onload = () => {
+      if (revealStarted) return;
+      revealStarted = true;
+      revealPortrait?.();
+    };
+    el.onerror = el.onload;
+    if (el.complete) el.onload();
   }
 
   // Скрытие одного портрета и отключение эмоций (удаление DOM + FLIP остальных)
@@ -2702,9 +2749,23 @@ function _onPortraitClick(ev) {
   // === Автообновление имён на портретах при rename актёра ===
   Hooks.on("updateActor", (actor, changed) => {
     // console.log("[threeO-portraits] updateActor hook for name change", actor.id, changed);
-    // Нас интересует только изменение имени
-    if (!("name" in changed) && !foundry.utils.hasProperty(changed, FLAG_MODULE)) 
+    const flipFlagPath = `flags.${MODULE_ID}.portraitFlipX`;
+    const flipChanged = foundry.utils.hasProperty(changed, flipFlagPath);
+    const displayNameChanged =
+      ("name" in changed) ||
+      foundry.utils.hasProperty(changed, FLAG_DISPLAY_NAME) ||
+      foundry.utils.hasProperty(changed, FLAG_PORTRAIT_EMOTION) ||
+      foundry.utils.hasProperty(changed, FLAG_CUSTOM_EMOTIONS);
+
+    if (!displayNameChanged && !flipChanged)
       return;
+
+    if (flipChanged) {
+      const flip = !!foundry.utils.getProperty(actor, flipFlagPath);
+      _setLocalFlipByActorId(actor.id, flip);
+    }
+
+    if (!displayNameChanged) return;
 
     const root = getDomHud?.();
     if (!root) return;
@@ -2744,19 +2805,6 @@ function _onPortraitClick(ev) {
         img.dataset.rawName = rawName;
         img.alt = displayName || rawName || "Portrait";
       }
-    }
-
-    // --- Обновление флипа HUD-портрета по флагу актёра ---
-    const flipChanged = foundry.utils.hasProperty(
-      changed,
-      `flags.${MODULE_ID}.portraitFlipX`
-    );
-    if (flipChanged) {
-      const flip = !!foundry.utils.getProperty(
-        actor,
-        `flags.${MODULE_ID}.portraitFlipX`
-      );
-      _setLocalFlipByActorId(actor.id, flip);
     }
 
     globalThis.GinzzzuPortraits.refreshDisplayNames();
@@ -2875,7 +2923,6 @@ Hooks.once("ready", () => {
       if (!imgEl) return;
 
       const newImg = _getActorImage(actor);
-      console.log("[threeO-portraits] updating emotion image for actor", imgEl.src, " newImg=", newImg);
       if (typeof newImg === "string") {
         let resolvedNewImg = newImg;
         try {
@@ -2928,7 +2975,7 @@ Hooks.once("ready", () => {
   Hooks.on("updateScene", (scene, diff) => {
     if (scene.id !== canvas?.scene?.id) return;
 
-    if ("darkness" in diff || "environment" in diff || "flags" in diff) {
+    if ("darkness" in diff || "environment" in diff) {
       _toneApplyToRootVars();
     }
 

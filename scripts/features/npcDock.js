@@ -1,4 +1,4 @@
-import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_MODULE } from "../core/constants.js";
+import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/constants.js";
 import { isActorInIgnoredNPCFolder } from "../settings.js";
 import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/index.js";
 
@@ -7,11 +7,31 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   function parseCSVTypes(v) {
     return new Set(String(v ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
   }
+  let cachedNPCTypes = null;
+  let cachedPCTypes = null;
+
+  function invalidateActorTypeCaches() {
+    cachedNPCTypes = null;
+    cachedPCTypes = null;
+  }
+
   function getNPCTypes() {
-    try { return parseCSVTypes(game.settings.get(MODULE_ID, "npcActorTypes")); } catch { return parseCSVTypes("npc, adversary, creature, monster, minion"); }
+    if (cachedNPCTypes) return cachedNPCTypes;
+    try {
+      cachedNPCTypes = parseCSVTypes(game.settings.get(MODULE_ID, "npcActorTypes"));
+    } catch {
+      cachedNPCTypes = parseCSVTypes("npc, adversary, creature, monster, minion");
+    }
+    return cachedNPCTypes;
   }
   function getPCTypes() {
-    try { return parseCSVTypes(game.settings.get(MODULE_ID, "pcActorTypes")); } catch { return parseCSVTypes("character, pc, hero, player"); }
+    if (cachedPCTypes) return cachedPCTypes;
+    try {
+      cachedPCTypes = parseCSVTypes(game.settings.get(MODULE_ID, "pcActorTypes"));
+    } catch {
+      cachedPCTypes = parseCSVTypes("character, pc, hero, player");
+    }
+    return cachedPCTypes;
   }
   function isNPC(a) {
     const t = String(a?.type ?? "").toLowerCase();
@@ -430,6 +450,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       // затем по имени
       return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
     });
+    const fragment = document.createDocumentFragment();
     for (const a of pcs) {
       const btn = document.createElement("div");
       btn.className = "item";
@@ -488,8 +509,9 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
           }
       });
 
-      container.appendChild(btn);
+      fragment.appendChild(btn);
     }
+    container.appendChild(fragment);
   }
 
     // Построить карточки NPC (с учётом фильтров, БЕЗ избранных — они в отдельной колонке)
@@ -566,6 +588,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     }
 
     // рендер только обычных NPC
+    const fragment = document.createDocumentFragment();
     for (const a of rest) {
       const btn = document.createElement("div");
       btn.className = "item";
@@ -604,8 +627,9 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       btn.addEventListener("mousedown", onCardRightMouse);
       btn.addEventListener("mousedown", onCardMiddleFav);  // СКМ — пометить избранным
 
-      containerRail.appendChild(btn);
+      fragment.appendChild(btn);
     }
+    containerRail.appendChild(fragment);
   }
 
 
@@ -631,6 +655,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     containerFavs.style.display = "";
     containerFavs.innerHTML = "";
 
+    const fragment = document.createDocumentFragment();
     for (const a of favs) {
       const btn = document.createElement("div");
       btn.className = "item";
@@ -671,12 +696,22 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       btn.addEventListener("mousedown", onCardRightMouse);
       btn.addEventListener("mousedown", onCardMiddleFav); // СКМ — снять/поставить ★
 
-      containerFavs.appendChild(btn);
+      fragment.appendChild(btn);
     }
+    containerFavs.appendChild(fragment);
   }
 
 
     // Мини-док: кружочки текущих активных портретов (и NPC, и PC)
+    let miniDockTimer = null;
+    function scheduleMiniDockRebuild(delay = 30) {
+      clearTimeout(miniDockTimer);
+      miniDockTimer = setTimeout(() => {
+        miniDockTimer = null;
+        buildMiniDock();
+      }, delay);
+    }
+
     function buildMiniDock() {
       const root = ensureDock();
       const mini = root.querySelector('.active-portraits');
@@ -696,6 +731,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       active.sort((a,b) => (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity: 'base' }));
       mini.style.display = '';
 
+      const fragment = document.createDocumentFragment();
       for (const a of active) {
         const btn = document.createElement('div');
         btn.className = 'dock-icon';
@@ -733,8 +769,9 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
           if (actor) setTimeout(() => actor.sheet?.render(true), 50);
         });
 
-        mini.appendChild(btn);
+        fragment.appendChild(btn);
       }
+      mini.appendChild(fragment);
     }
 
 
@@ -744,7 +781,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     const root = ensureDock();
     applyNpcDockLayout();
     // rebuild mini-dock first so it's visible above the toolbar (only if enabled)
-    try { if (getShowActivePortraits()) buildMiniDock(); } catch(e) { /* ignore */ }
+    try { if (getShowActivePortraits()) scheduleMiniDockRebuild(0); } catch(e) { /* ignore */ }
     refreshFolderSelectOptions();
 
     const playersBox = root.querySelector(".players");
@@ -798,7 +835,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       el.title = makeTooltip(actor);
     }
     // keep mini-dock in sync (only when enabled)
-    try { if (getShowActivePortraits()) buildMiniDock(); } catch(e) { /* ignore */ }
+    try { if (getShowActivePortraits()) scheduleMiniDockRebuild(); } catch(e) { /* ignore */ }
   }
 
   // Снять показ портретов у ВСЕХ актёров (NPC + PLAYER) по одному — надёжно
@@ -836,19 +873,29 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       }
     });
 
+    Hooks.on("updateSetting", (setting) => {
+      if (setting?.key === `${MODULE_ID}.npcActorTypes` || setting?.key === `${MODULE_ID}.pcActorTypes`) {
+        invalidateActorTypeCaches();
+        scheduleRebuild(0);
+      }
+    });
+
     // актёры
     Hooks.on("createActor", (a) => { scheduleRebuild(); });
     Hooks.on("deleteActor", (a) => { scheduleRebuild(); });
     Hooks.on("updateActor", (actor, diff) => {
-      if (foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN))
+      const portraitShownChanged = foundry.utils.hasProperty(diff, FLAG_PORTRAIT_SHOWN);
+      if (portraitShownChanged)
         reflectActorFlag(actor);
 
       const flat = foundry.utils.flattenObject(diff);
       const rel = ["name", "img", "type", "prototypeToken.texture.src", "folder"];
       if (rel.some(k => k in flat))
         scheduleRebuild();
-      
-      if (foundry.utils.hasProperty(diff, FLAG_MODULE)) 
+
+      const moduleFlagKeys = Object.keys(diff.flags?.[MODULE_ID] || {});
+      const onlyPortraitShownFlag = moduleFlagKeys.length === 1 && moduleFlagKeys[0] === "portraitShown";
+      if (moduleFlagKeys.length && !onlyPortraitShownFlag)
         scheduleRebuild();
     });
 

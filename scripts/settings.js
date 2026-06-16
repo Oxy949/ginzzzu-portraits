@@ -52,11 +52,20 @@ function normalizeIgnoredFolderIds(value) {
   return [];
 }
 
+let ignoredNPCFolderIdsCache = null;
+
+export function invalidateIgnoredNPCFolderIdsCache() {
+  ignoredNPCFolderIdsCache = null;
+}
+
 export function getIgnoredNPCFolderIds() {
+  if (ignoredNPCFolderIdsCache) return ignoredNPCFolderIdsCache;
   try {
-    return new Set(normalizeIgnoredFolderIds(game.settings.get(MODULE_ID, IGNORED_NPC_FOLDER_IDS_SETTING)));
+    ignoredNPCFolderIdsCache = new Set(normalizeIgnoredFolderIds(game.settings.get(MODULE_ID, IGNORED_NPC_FOLDER_IDS_SETTING)));
+    return ignoredNPCFolderIdsCache;
   } catch {
-    return new Set();
+    ignoredNPCFolderIdsCache = new Set();
+    return ignoredNPCFolderIdsCache;
   }
 }
 
@@ -95,6 +104,7 @@ function getSelectedIgnoredNPCFolderIdsFromEntries(entries) {
 
 async function saveIgnoredNPCFolderIds(folderIds) {
   await game.settings.set(MODULE_ID, IGNORED_NPC_FOLDER_IDS_SETTING, folderIds);
+  invalidateIgnoredNPCFolderIdsCache();
   globalThis.GinzzzuNPCDock?.rebuild?.();
 }
 
@@ -1096,6 +1106,10 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("updateSetting", (setting) => {
+  if (setting?.key === `${MODULE_ID}.${IGNORED_NPC_FOLDER_IDS_SETTING}`) {
+    invalidateIgnoredNPCFolderIdsCache();
+  }
+
   if (setting?.key === `${MODULE_ID}.performanceMode`) {
     applyPerformanceModeClass();
   }
