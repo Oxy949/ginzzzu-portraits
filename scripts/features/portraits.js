@@ -530,8 +530,10 @@ const FRAME = {
     targetBufferRatio: 0.08,
     minScale: 0.55,
     maxScale: 1.85,
+    maxManualTiltDeg: 45,
     wheelScaleSpeed: 0.00075,
-    pointerScaleSpeed: 0.004
+    pointerScaleSpeed: 0.004,
+    pointerRotateSpeedDeg: 0.18
   };
 
   let activePortraitDrag = null;
@@ -570,6 +572,12 @@ const FRAME = {
     const number = Number(value);
     if (!Number.isFinite(number)) return min;
     return Math.max(min, Math.min(max, number));
+  }
+
+  function clampPortraitTilt(value) {
+    const tilt = Number(value);
+    if (!Number.isFinite(tilt)) return 0;
+    return clampNumber(tilt, -PORTRAIT_DRAG.maxManualTiltDeg, PORTRAIT_DRAG.maxManualTiltDeg);
   }
 
   function getPortraitRail(root = getDomHud()) {
@@ -636,7 +644,7 @@ const FRAME = {
     return {
       x: Number.isFinite(x) ? Math.round(x) : 0,
       y: Number.isFinite(y) ? Math.round(y) : 0,
-      tilt: Number.isFinite(tilt) ? Math.round(tilt * 100) / 100 : 0,
+      tilt: Number.isFinite(tilt) ? Math.round(clampPortraitTilt(tilt) * 100) / 100 : 0,
       scale: Number.isFinite(scale)
         ? Math.round(clampNumber(scale, PORTRAIT_DRAG.minScale, PORTRAIT_DRAG.maxScale) * 1000) / 1000
         : 1
@@ -767,6 +775,32 @@ const FRAME = {
     state.dragScale = nextFinalScale / Math.max(0.001, base.scale);
   }
 
+  function getPortraitAutoTiltForX(x, width) {
+    return clampNumber(
+      ((Number(x) || 0) / Math.max(1, Number(width) || 1)) * PORTRAIT_DRAG.maxTiltDeg,
+      -PORTRAIT_DRAG.maxTiltDeg,
+      PORTRAIT_DRAG.maxTiltDeg
+    );
+  }
+
+  function getPortraitDragTiltOffset(state) {
+    if (Number.isFinite(Number(state?.dragTiltOffset))) return Number(state.dragTiltOffset);
+
+    const base = normalizePortraitManualTransform(state?.manualTransform);
+    const width = state?.startRect?.width || 1;
+    return clampPortraitTilt(base.tilt) - getPortraitAutoTiltForX(base.x, width);
+  }
+
+  function setPortraitDragFinalTilt(state, finalTilt, dx = state?.lastDx || 0) {
+    if (!state) return;
+
+    const base = normalizePortraitManualTransform(state.manualTransform);
+    const width = state?.startRect?.width || 1;
+    const finalX = (Number(base.x) || 0) + (Number(dx) || 0);
+    const autoTilt = getPortraitAutoTiltForX(finalX, width);
+    state.dragTiltOffset = clampPortraitTilt(finalTilt) - autoTilt;
+  }
+
   function userOwnsPortraitActor(actor, user) {
     if (!actor || !user) return false;
     if (user.id === game.user?.id) return !!actor.isOwner;
@@ -867,10 +901,9 @@ const FRAME = {
     const threshold = Math.max(1, detachThreshold ?? state.detachThreshold ?? PORTRAIT_DRAG.minDetachPx);
     const lift = -Math.min(12, 12 * (Math.abs(dx) / threshold));
     const baseTransform = normalizePortraitManualTransform(state.manualTransform);
-    const targetTilt = clampNumber(
-      (((Number(baseTransform.x) || 0) + dx) / Math.max(1, state.startRect.width)) * PORTRAIT_DRAG.maxTiltDeg,
-      -PORTRAIT_DRAG.maxTiltDeg,
-      PORTRAIT_DRAG.maxTiltDeg
+    const finalX = (Number(baseTransform.x) || 0) + (Number(dx) || 0);
+    const targetTilt = clampPortraitTilt(
+      getPortraitAutoTiltForX(finalX, state.startRect.width) + getPortraitDragTiltOffset(state)
     );
     const tilt = targetTilt - (Number(baseTransform.tilt) || 0);
 
@@ -906,6 +939,7 @@ const FRAME = {
       dxRatio: (state.lastDx || 0) / width,
       dyRatio: (state.lastDy || 0) / height,
       dragScale: Number(state.dragScale) || 1,
+      dragTiltOffset: getPortraitDragTiltOffset(state),
       detached: !!state.detached,
       targetActorId: state.targetWrapper?.dataset?.actorId || null,
       ...extra
@@ -967,6 +1001,7 @@ const FRAME = {
       ),
       slots: collectPortraitDragSlots(rail, wrapper),
       originalTransition: wrapper.style.transition,
+      manualTransform: getAppliedPortraitManualTransform(wrapper, data.actorId),
       dragging: true,
       detached: false,
       targetWrapper: null,
@@ -1016,6 +1051,19 @@ const FRAME = {
       remotePortraitDrags.delete(key);
       const keptPosition = data.phase === "end" && !!data.kept && data.manualTransform;
       const resetPosition = data.phase === "end" && !!data.reset && data.manualTransform;
+      if (data.phase === "end") {
+        const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
+        const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
+        state.dragScale = clampNumber(Number(data.dragScale) || 1, 0.1, 4);
+        if (Number.isFinite(Number(data.dragTiltOffset))) {
+          state.dragTiltOffset = Number(data.dragTiltOffset);
+        }
+        applyPortraitDragVisual(state, dx, dy, {
+          targetWrapper: null,
+          detached: !!data.detached,
+          detachThreshold: state.detachThreshold
+        });
+      }
       if (keptPosition || resetPosition) {
         if (Number.isFinite(Number(data.zIndex))) {
           setPortraitManualZIndex(data.actorId, Number(data.zIndex), { root: state.root });
@@ -1042,6 +1090,9 @@ const FRAME = {
     const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
     const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
     state.dragScale = clampNumber(Number(data.dragScale) || 1, 0.1, 4);
+    if (Number.isFinite(Number(data.dragTiltOffset))) {
+      state.dragTiltOffset = Number(data.dragTiltOffset);
+    }
     applyPortraitDragVisual(state, dx, dy, {
       targetWrapper: null,
       detached: !!data.detached,
@@ -1248,12 +1299,13 @@ const FRAME = {
     const state = activePortraitDrag;
     if (!state || ev.pointerId !== state.pointerId) return;
 
-    if (state.scaleDragActive && !ev.altKey) {
+    if (state.altTransformDragActive && !ev.altKey) {
+      state.startX = ev.clientX - (Number(state.lastDx) || 0);
       state.startY = ev.clientY - (Number(state.lastDy) || 0);
-      state.scaleDragActive = false;
+      state.altTransformDragActive = false;
     }
 
-    const dx = ev.clientX - state.startX;
+    let dx = ev.clientX - state.startX;
     let dy = ev.clientY - state.startY;
     const distance = Math.hypot(dx, dy);
 
@@ -1270,23 +1322,39 @@ const FRAME = {
     state.detachThreshold = detachThreshold;
 
     if (ev.altKey) {
-      if (!state.scaleDragActive) {
+      if (!state.altTransformDragActive) {
+        const currentDx = Number(state.lastDx);
         const currentDy = Number(state.lastDy);
-        state.scaleDragActive = true;
-        state.scaleStartY = ev.clientY;
-        state.scaleStartFinalScale = getPortraitDragFinalScale(state);
-        state.scaleBaseDy = Number.isFinite(currentDy) ? currentDy : dy;
+        state.altTransformDragActive = true;
+        state.altStartX = ev.clientX;
+        state.altStartY = ev.clientY;
+        state.altStartFinalScale = getPortraitDragFinalScale(state);
+        state.altStartTiltOffset = getPortraitDragTiltOffset(state);
+        state.altBaseDx = Number.isFinite(currentDx) ? currentDx : dx;
+        state.altBaseDy = Number.isFinite(currentDy) ? currentDy : dy;
       }
 
-      const factor = Math.exp((state.scaleStartY - ev.clientY) * PORTRAIT_DRAG.pointerScaleSpeed);
-      setPortraitDragFinalScale(state, state.scaleStartFinalScale * factor);
-      dy = Number(state.scaleBaseDy) || 0;
+      dx = Number(state.altBaseDx) || 0;
+      dy = Number(state.altBaseDy) || 0;
+
+      const scaleFactor = Math.exp((state.altStartY - ev.clientY) * PORTRAIT_DRAG.pointerScaleSpeed);
+      setPortraitDragFinalScale(state, state.altStartFinalScale * scaleFactor);
+
+      const baseTransform = normalizePortraitManualTransform(state.manualTransform);
+      const finalX = (Number(baseTransform.x) || 0) + dx;
+      const autoTilt = getPortraitAutoTiltForX(finalX, state.startRect.width);
+      const nextTilt = clampPortraitTilt(
+        autoTilt +
+        (Number(state.altStartTiltOffset) || 0) +
+        ((ev.clientX - state.altStartX) * PORTRAIT_DRAG.pointerRotateSpeedDeg)
+      );
+      setPortraitDragFinalTilt(state, nextTilt, dx);
     }
 
     state.lastDx = dx;
     state.lastDy = dy;
-    const targetWrapper = Math.abs(dx) >= detachThreshold ? findPortraitDragTarget(state) : null;
-    const detached = Math.abs(dx) >= detachThreshold || !!targetWrapper;
+    const targetWrapper = !ev.altKey && Math.abs(dx) >= detachThreshold ? findPortraitDragTarget(state) : null;
+    const detached = !ev.altKey && (Math.abs(dx) >= detachThreshold || !!targetWrapper);
 
     applyPortraitDragVisual(state, dx, dy, { targetWrapper, detached, detachThreshold });
     emitPortraitDragPreview(state, "move");
