@@ -76,7 +76,7 @@
   position: absolute;
   transform: translateX(-50%) translateY(0px);
   border: none;
-  transition: filter 200ms ease-out;
+  transition: filter var(--tone-filter-transition, 200ms ease-out);
 }
 
 /* Резервные стили верхней панели (на случай, если inline-стили не применились) */
@@ -162,9 +162,9 @@
     brightness(var(--tone-brightness,1))
     contrast(var(--tone-contrast,1))
     saturate(var(--tone-saturate,1))
-    hue-rotate(180deg)
+    hue-rotate(var(--tone-blue-pre-hue,0deg))
     sepia(var(--tone-blue-tint,0))
-    hue-rotate(var(--tone-blue-post-hue,-180deg)) !important;
+    hue-rotate(var(--tone-blue-post-hue,0deg)) !important;
 }
 
 #ginzzzu-portrait-layer .ginzzzu-portrait-wrapper.ginzzzu-portrait-drag-target::after {

@@ -104,9 +104,24 @@ function _toneRound(value) {
   return Number(value.toFixed(4));
 }
 
+const TONE_NEUTRAL_DARKNESS = 0.1;
+
 function _toneCompute(darkness, strength01) {
   const d = _toneClamp01(darkness);
   const s = _toneClamp01(strength01);
+
+  if (d <= TONE_NEUTRAL_DARKNESS || s <= 0) {
+    return {
+      brightness: 1,
+      contrast: 1,
+      saturate: 1,
+      hueDeg: 0,
+      bluePreHueDeg: 0,
+      blueTint: 0,
+      bluePostHueDeg: 0,
+      skipFilterTransition: true
+    };
+  }
 
   const dusk = _toneSmoothstep(0.12, 0.70, d) * s;
   const night = _toneSmoothstep(0.55, 1.00, d) * s;
@@ -117,14 +132,19 @@ function _toneCompute(darkness, strength01) {
   const saturate = 1 - (0.04 * dusk) - (0.08 * night);
   const hueDeg = (-2 * dusk) - (10 * night);
   const blueTint = (0.03 * dusk) + (0.10 * night) + (0.04 * deepNight);
+  const roundedHueDeg = _toneRound(hueDeg);
+  const roundedBlueTint = _toneRound(blueTint);
+  const hasBlueTint = roundedBlueTint > 0;
 
   return {
     brightness: _toneRound(brightness),
     contrast: _toneRound(contrast),
     saturate: _toneRound(saturate),
-    hueDeg: _toneRound(hueDeg),
-    blueTint: _toneRound(blueTint),
-    bluePostHueDeg: _toneRound(hueDeg - 180)
+    hueDeg: roundedHueDeg,
+    bluePreHueDeg: hasBlueTint ? 180 : 0,
+    blueTint: roundedBlueTint,
+    bluePostHueDeg: hasBlueTint ? _toneRound(roundedHueDeg - 180) : roundedHueDeg,
+    skipFilterTransition: false
   };
 }
 
@@ -163,19 +183,28 @@ function _toneApplyToRootVars(root = document.getElementById("ginzzzu-portrait-l
     root.style.removeProperty("--tone-contrast");
     root.style.removeProperty("--tone-saturate");
     root.style.removeProperty("--tone-hue");
+    root.style.removeProperty("--tone-blue-pre-hue");
     root.style.removeProperty("--tone-blue-tint");
     root.style.removeProperty("--tone-blue-post-hue");
+    root.style.removeProperty("--tone-filter-transition");
+    delete root.dataset.toneNeutral;
     return;
   }
   const strength = Math.max(0, Math.min(1, Number(game.settings.get(MODULE_ID, "portraitToneStrength")) || 0));
   const d = _toneGetDarknessLevel();
-  const { brightness, contrast, saturate, hueDeg, blueTint, bluePostHueDeg } = _toneCompute(d, strength);
+  const { brightness, contrast, saturate, hueDeg, bluePreHueDeg, blueTint, bluePostHueDeg, skipFilterTransition } = _toneCompute(d, strength);
+  const wasNeutral = root.dataset.toneNeutral === "true";
+  const isNeutral = skipFilterTransition;
+  const skipThisTransition = wasNeutral || isNeutral;
   root.style.setProperty("--tone-brightness", String(brightness));
   root.style.setProperty("--tone-contrast",   String(contrast));
   root.style.setProperty("--tone-saturate",   String(saturate));
   root.style.setProperty("--tone-hue",        `${hueDeg}deg`);
+  root.style.setProperty("--tone-blue-pre-hue", `${bluePreHueDeg}deg`);
   root.style.setProperty("--tone-blue-tint",  String(blueTint));
   root.style.setProperty("--tone-blue-post-hue", `${bluePostHueDeg}deg`);
+  root.style.setProperty("--tone-filter-transition", skipThisTransition ? "0ms linear" : `${_ANIM.moveMs}ms ${_ANIM.easing}`);
+  root.dataset.toneNeutral = isNeutral ? "true" : "false";
 }
 
   // ---- Геометрия «рамки» портретов и анимации ----
@@ -2360,8 +2389,8 @@ function _onPortraitClick(ev) {
     const visualNovelMode = game.settings.get(MODULE_ID, "visualNovelMode");
     if (visualNovelMode) {
       Object.assign(el.style, {
-        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(180deg) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,-180deg))",
-        transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
+        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-blue-pre-hue,0deg)) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,0deg))",
+        transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter var(--tone-filter-transition, ${_ANIM.moveMs}ms ${_ANIM.easing})`,
         pointerEvents: "none",
         opacity: "0",
         left: "50%",
@@ -2378,8 +2407,8 @@ function _onPortraitClick(ev) {
         height: "100%",
         objectFit: "contain",
         borderRadius: "10px",
-        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(180deg) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,-180deg))",
-        transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter ${_ANIM.moveMs}ms ${_ANIM.easing}`,
+        filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.6)) brightness(var(--tone-brightness,1)) contrast(var(--tone-contrast,1)) saturate(var(--tone-saturate,1)) hue-rotate(var(--tone-blue-pre-hue,0deg)) sepia(var(--tone-blue-tint,0)) hue-rotate(var(--tone-blue-post-hue,0deg))",
+        transition: `opacity ${_ANIM.fadeMs}ms ${_ANIM.easing}, transform ${_ANIM.moveMs}ms ${_ANIM.easing}, filter var(--tone-filter-transition, ${_ANIM.moveMs}ms ${_ANIM.easing})`,
         pointerEvents: "none",
         opacity: "0",
         transform: "translate3d(0,12px,0)",
