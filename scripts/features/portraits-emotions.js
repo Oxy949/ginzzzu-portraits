@@ -344,6 +344,10 @@ import { MODULE_ID, FLAG_PORTRAIT_EMOTION, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_CUS
           const def = allEmotions[nextKey] || allEmotions.none;
           const newFlagValue = def.key === "none" ? null : def.key;
 
+          if (typeof def.imagePath === "string" && def.imagePath.trim()) {
+            globalThis.GinzzzuPortraits?.preloadPortraitImage?.(def.imagePath);
+          }
+
           _applyEmotionClasses(wrap, def.key, actor);
 
           try {

@@ -1,4 +1,4 @@
-import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE } from "../core/constants.js";
+import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_DISPLAY_NAME } from "../core/constants.js";
 import { isActorInIgnoredNPCFolder } from "../settings.js";
 import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/index.js";
 
@@ -7,6 +7,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   function parseCSVTypes(v) {
     return new Set(String(v ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
   }
+  const DOCK_REBUILD_MODULE_FLAGS = new Set(["favorite", "pcFavorite"]);
   let cachedNPCTypes = null;
   let cachedPCTypes = null;
 
@@ -32,6 +33,20 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       cachedPCTypes = parseCSVTypes("character, pc, hero, player");
     }
     return cachedPCTypes;
+  }
+  function getChangedModuleFlagKeys(diff, flat = null) {
+    const keys = new Set();
+    const nested = diff?.flags?.[MODULE_ID];
+    if (nested && typeof nested === "object") {
+      for (const key of Object.keys(nested)) keys.add(key.replace(/^-=/, ""));
+    }
+
+    const flattened = flat || foundry.utils.flattenObject(diff || {});
+    const prefix = `flags.${MODULE_ID}.`;
+    for (const key of Object.keys(flattened)) {
+      if (key.startsWith(prefix)) keys.add(key.slice(prefix.length).replace(/^-=/, ""));
+    }
+    return keys;
   }
   function isNPC(a) {
     const t = String(a?.type ?? "").toLowerCase();
@@ -143,6 +158,12 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
 
     const folderPath = getFolderPath(actor);
     return folderPath ? `${name}\n${folderPath}` : name;
+  }
+
+  function getDockDisplayName(actor) {
+    const rawDisplayName = foundry.utils.getProperty(actor, FLAG_DISPLAY_NAME) ?? "";
+    const customName = typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+    return customName || actor?.name || "";
   }
 
   function collectActorFoldersWithPC() {
@@ -600,7 +621,7 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       img.alt = a.name || "NPC";
       btn.appendChild(img);
 
-      const displayName = globalThis.GinzzzuPortraits.getActorDisplayName(a);
+      const displayName = getDockDisplayName(a);
       const label = document.createElement("div");
       label.className = "npc-label";
       label.textContent = displayName || "";
@@ -830,9 +851,12 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
   function reflectActorFlag(actor) {
     if (!actor) return;
     const shown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
+    const tooltip = makeTooltip(actor);
     for (const el of document.querySelectorAll(`#${DOCK_ID} .item[data-actor-id="${actor.id}"]`)) {
-      el.classList.toggle("is-on", shown);
-      el.title = makeTooltip(actor);
+      if (el.classList.contains("is-on") !== shown)
+        el.classList.toggle("is-on", shown);
+      if (el.title !== tooltip)
+        el.title = tooltip;
     }
     // keep mini-dock in sync (only when enabled)
     try { if (getShowActivePortraits()) scheduleMiniDockRebuild(); } catch(e) { /* ignore */ }
@@ -893,9 +917,8 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
       if (rel.some(k => k in flat))
         scheduleRebuild();
 
-      const moduleFlagKeys = Object.keys(diff.flags?.[MODULE_ID] || {});
-      const onlyPortraitShownFlag = moduleFlagKeys.length === 1 && moduleFlagKeys[0] === "portraitShown";
-      if (moduleFlagKeys.length && !onlyPortraitShownFlag)
+      const moduleFlagKeys = getChangedModuleFlagKeys(diff, flat);
+      if ([...moduleFlagKeys].some(key => DOCK_REBUILD_MODULE_FLAGS.has(key)))
         scheduleRebuild();
     });
 

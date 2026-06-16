@@ -250,32 +250,62 @@ const FRAME = {
     }
   }
 
-  // Simple image preloader with timeout
-  function _preloadImage(src, timeoutMs = 60000) {
+  // Simple image loader with timeout. Resolves with a decoded off-DOM image.
+  function _loadDecodedImageElement(src, timeoutMs = 60000) {
     return new Promise((resolve, reject) => {
       if (!src) return reject(new Error("No src"));
       const img = new Image();
+      let timer = null;
       let done = false;
-      const onDone = (err) => {
+      const onDone = (err, value = img) => {
         if (done) return;
         done = true;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         img.onload = img.onerror = null;
-        if (err) reject(err); else resolve(src);
+        if (err) reject(err); else resolve(value);
       };
       img.onload = () => {
         if (typeof img.decode === "function") {
-          img.decode().catch(() => {}).then(() => onDone());
+          img.decode().catch(() => {}).then(() => onDone(null, img));
         } else {
-          onDone();
+          onDone(null, img);
         }
       };
       img.onerror = (e) => onDone(new Error("Image load error"));
       // try set crossOrigin to allow CORS'd images where possible
       try { img.crossOrigin = "anonymous"; } catch {}
+      try { img.decoding = "async"; } catch {}
+      try { img.loading = "eager"; } catch {}
+      timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
       img.src = src;
-      const timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
+      if (img.complete) {
+        Promise.resolve().then(() => {
+          if (done) return;
+          if (img.naturalWidth || img.naturalHeight) img.onload?.();
+          else onDone(new Error("Image load error"));
+        });
+      }
     });
+  }
+
+  function _preloadImage(src, timeoutMs = 60000) {
+    return _loadDecodedImageElement(src, timeoutMs).then(() => src);
+  }
+
+  function _copyPortraitImageState(sourceImg, targetImg, nextSrc) {
+    targetImg.className = sourceImg.className || "ginzzzu-portrait";
+    targetImg.alt = sourceImg.alt || "Portrait";
+    targetImg.draggable = false;
+    try { targetImg.decoding = "async"; } catch {}
+    try { targetImg.style.cssText = sourceImg.style.cssText || ""; } catch {}
+    for (const [key, value] of Object.entries(sourceImg.dataset || {})) {
+      targetImg.dataset[key] = value;
+    }
+    targetImg.dataset.src = nextSrc;
+  }
+
+  function nextAnimationFrame() {
+    return new Promise(resolve => requestAnimationFrame(resolve));
   }
 
   function runWhenBrowserIdle(callback, timeout = 600) {
@@ -2509,29 +2539,47 @@ function _onPortraitClick(ev) {
       if (!wrapper || !imgEl || !newSrc) return;
 
       const duration = Number(game.settings.get(MODULE_ID, "emotionImageTransitionMs")) || 0;
+      const lockKey = "threeoEmotionTransitionToken";
+      const token = String(Date.now()) + ":" + Math.random();
+      wrapper.dataset[lockKey] = token;
+      const loadTimeoutMs = Math.max(8000, Math.min(20000, duration + 8000));
 
-      // If no transition requested, keep original quick behaviour (preload then swap)
-      if (!duration) {
-        try {
-          await _preloadImage(newSrc);
-        } catch (e) {
-          console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
-        }
-        imgEl.src = newSrc;
-        imgEl.dataset.src = newSrc;
+      let preparedImg = null;
+      try {
+        preparedImg = await _loadDecodedImageElement(newSrc, loadTimeoutMs);
+      } catch (e) {
+        console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
+        if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
         return;
       }
 
-      // Prevent concurrent transitions on same element
-      const lockKey = "threeoEmotionTransitionToken";
-      const token = String(Date.now()) + ":" + Math.random();
-      imgEl.dataset[lockKey] = token;
+      if (wrapper.dataset[lockKey] !== token || !imgEl.isConnected) return;
+
+      // If no transition requested, replace only after the new decoded element is ready.
+      if (!duration) {
+        _copyPortraitImageState(imgEl, preparedImg, newSrc);
+        await nextAnimationFrame();
+        if (wrapper.dataset[lockKey] !== token || !imgEl.isConnected) return;
+        let activeImg = preparedImg;
+        try {
+          imgEl.replaceWith(preparedImg);
+        } catch {
+          imgEl.src = newSrc;
+          imgEl.dataset.src = newSrc;
+          activeImg = imgEl;
+        }
+        const actorIdForMap = preparedImg.dataset.actorId || imgEl.dataset.actorId;
+        if (actorIdForMap) domStore().set(actorIdForMap, activeImg);
+        if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
+        return;
+      }
 
       const half = Math.max(1, Math.floor(duration / 2));
 
       // Preserve inline transition & transform so we can restore them later
       const prevTransition = imgEl.style.transition || "";
       const prevTransform = imgEl.style.transform || "";
+      const prevOpacity = imgEl.style.opacity || "";
       // Ensure we add opacity + transform transitions without removing other transitions
       const opacityTransition = `opacity ${half}ms ${_ANIM.easing}`;
       const transformTransition = `transform ${half}ms ${_ANIM.easing}`;
@@ -2582,23 +2630,12 @@ function _onPortraitClick(ev) {
       await awaitOpacity(half + 20);
 
       // If another transition started meanwhile, abort to avoid stomping it
-      if (imgEl.dataset[lockKey] !== token) {
+      if (wrapper.dataset[lockKey] !== token) {
         // restore transition/will-change cleanup
         imgEl.style.transition = prevTransition;
-        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
-        return;
-      }
-
-      // Preload new image (best-effort). If preload fails we'll still try to set src.
-      try {
-        await _preloadImage(newSrc);
-      } catch (e) {
-        console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
-      }
-
-      // If token changed while preloading, abort
-      if (imgEl.dataset[lockKey] !== token) {
-        imgEl.style.transition = prevTransition;
+        imgEl.style.transform = prevTransform;
+        if (prevOpacity) imgEl.style.opacity = prevOpacity;
+        else imgEl.style.removeProperty("opacity");
         try { imgEl.style.willChange = prevWillChange; } catch (e) {}
         return;
       }
@@ -2609,20 +2646,13 @@ function _onPortraitClick(ev) {
       const actorIdForMap = imgEl.dataset.actorId;
       const map = domStore();
 
-      // Create overlay image and copy important attributes/styles
-      const newImgEl = document.createElement("img");
-      newImgEl.className = imgEl.className || "ginzzzu-portrait";
-      newImgEl.alt = imgEl.alt || "Portrait";
-      try { newImgEl.style.cssText = imgEl.style.cssText || ""; } catch (e) {}
+      // Use the already decoded off-DOM image as the overlay, avoiding a second src load.
+      const newImgEl = preparedImg;
+      _copyPortraitImageState(imgEl, newImgEl, newSrc);
       // start hidden
       newImgEl.style.opacity = "0";
       newImgEl.style.pointerEvents = "none";
       newImgEl.style.willChange = "transform, opacity";
-      newImgEl.dataset.actorId = actorIdForMap;
-      newImgEl.dataset.rawName = imgEl.dataset.rawName || "";
-      newImgEl.dataset.baseTransform = imgEl.dataset.baseTransform || "";
-      newImgEl.dataset.baseFilter = imgEl.dataset.baseFilter || "";
-      newImgEl.dataset.src = newSrc;
 
       // Insert overlay right after the current image so positioning/stacking stays consistent
       try {
@@ -2654,55 +2684,40 @@ function _onPortraitClick(ev) {
         }, timeoutMs + 50);
       });
 
-      // Load the overlay image and wait for it to finish loading (timeout fallback).
-      const loadTimeoutMs = Math.max(2000, half * 3);
-      const loadedOk = await new Promise((resolve) => {
-        let done = false;
-        const onLoad = () => {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          newImgEl.removeEventListener("load", onLoad);
-          newImgEl.removeEventListener("error", onErr);
-          resolve(true);
-        };
-        const onErr = () => {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          newImgEl.removeEventListener("load", onLoad);
-          newImgEl.removeEventListener("error", onErr);
-          resolve(false);
-        };
-        newImgEl.addEventListener("load", onLoad);
-        newImgEl.addEventListener("error", onErr);
-        // Start loading
-        try { newImgEl.src = newSrc; } catch (e) { onErr(); }
-        const timer = setTimeout(() => {
-          if (done) return;
-          done = true;
-          newImgEl.removeEventListener("load", onLoad);
-          newImgEl.removeEventListener("error", onErr);
-          resolve(false);
-        }, loadTimeoutMs);
-      });
+      // Let the browser commit the hidden overlay before starting its transition.
+      await nextAnimationFrame();
+      await nextAnimationFrame();
 
-      // Force reflow so transitions will apply
-      // eslint-disable-next-line no-unused-expressions
-      newImgEl.offsetWidth;
+      if (wrapper.dataset[lockKey] !== token) {
+        try { newImgEl.remove(); } catch (e) {}
+        imgEl.style.transition = prevTransition;
+        imgEl.style.transform = prevTransform;
+        if (prevOpacity) imgEl.style.opacity = prevOpacity;
+        else imgEl.style.removeProperty("opacity");
+        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+        return;
+      }
 
       // For fade-in, use a slightly different 'settle' pose so it looks like a changed stance
       const extraIn = "translate3d(0,6px,0) scale(0.985)";
       const composedIn = baseTransform && baseTransform !== "none" ? `${baseTransform} ${extraIn}` : extraIn;
 
-      // Fade in overlay while keeping the old image faded-out. If loading failed/timed out
-      // we still perform the transition to avoid leaving the slot empty too long.
-      await new Promise((r) => requestAnimationFrame(r));
+      // Fade in overlay while keeping the old image faded-out.
       newImgEl.style.transform = composedIn;
       newImgEl.style.opacity = "1";
 
       // Wait for fade-in to complete on the overlay
       await awaitOpacityOn(newImgEl, half + 20);
+
+      if (wrapper.dataset[lockKey] !== token) {
+        try { newImgEl.remove(); } catch (e) {}
+        imgEl.style.transition = prevTransition;
+        imgEl.style.transform = prevTransform;
+        if (prevOpacity) imgEl.style.opacity = prevOpacity;
+        else imgEl.style.removeProperty("opacity");
+        try { imgEl.style.willChange = prevWillChange; } catch (e) {}
+        return;
+      }
 
       // Replace map entry and remove old element
       try {
@@ -2720,7 +2735,7 @@ function _onPortraitClick(ev) {
       }, 20);
 
       // Clear lock token
-      if (imgEl.dataset[lockKey] === token) delete imgEl.dataset[lockKey];
+      if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
     }
 
   // ---- Реакция всех клиентов на смену флага актёра ----
@@ -3279,6 +3294,10 @@ Hooks.once("ready", () => {
   configurePortrait,
   changePortraitEmotion,
   getActorDisplayName,
+  preloadPortraitImage: (src) => {
+    if (typeof src !== "string" || !src.trim()) return;
+    _preloadImage(src.trim(), 10000).catch(() => {});
+  },
   closeAllLocalPortraits,
   getActivePortraits,
   refreshDisplayNames: refreshPortraitDisplayNames
