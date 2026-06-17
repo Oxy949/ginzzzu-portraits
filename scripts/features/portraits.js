@@ -628,6 +628,7 @@ const FRAME = {
   let nameFollowUntil = 0;
   let lastPortraitDragSocketAt = 0;
   const remotePortraitDrags = new Map();
+  const pendingRemoteSwapDrags = new Map();
   const portraitManualTransforms = new Map();
   const portraitManualZIndexes = new Map();
   let portraitLayerOrder = [];
@@ -1189,7 +1190,12 @@ const FRAME = {
     const wrapper = getWrapperByActorId(data.actorId, root);
     if (!root || !rail || !wrapper) return null;
 
+    clearPendingRemoteSwapDrag(data.actorId, { animateBack: false });
     setPortraitManualZIndex(data.actorId, null, { root });
+
+    const key = getRemotePortraitDragKey(data);
+    const existing = remotePortraitDrags.get(key);
+    if (existing) clearPortraitDragVisual(existing, { animateBack: false });
 
     const startRect = wrapper.getBoundingClientRect();
     const state = {
@@ -1229,7 +1235,7 @@ const FRAME = {
       "--ginzzzu-drag-scale 90ms linear"
     ].join(", ");
     setPortraitNameDragVisual(state, 0, 0, 0);
-    remotePortraitDrags.set(getRemotePortraitDragKey(data), state);
+    remotePortraitDrags.set(key, state);
     return state;
   }
 
@@ -1250,7 +1256,6 @@ const FRAME = {
     }
 
     if (data.phase === "start") {
-      if (state) clearPortraitDragVisual(state, { animateBack: false });
       beginRemotePortraitDrag(data);
       return;
     }
@@ -1262,6 +1267,14 @@ const FRAME = {
       remotePortraitDrags.delete(key);
       const keptPosition = data.phase === "end" && !!data.kept && data.manualTransform;
       const resetPosition = data.phase === "end" && !!data.reset && data.manualTransform;
+      if (keptPosition || resetPosition) {
+        if (Number.isFinite(Number(data.zIndex))) {
+          setPortraitManualZIndex(data.actorId, Number(data.zIndex), { root: state.root });
+        }
+        commitRemotePortraitDragManualTransform(state, data.manualTransform);
+        return;
+      }
+
       if (data.phase === "end") {
         const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
         const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
@@ -1275,26 +1288,13 @@ const FRAME = {
           detachThreshold: state.detachThreshold
         });
       }
-      if (keptPosition || resetPosition) {
-        if (Number.isFinite(Number(data.zIndex))) {
-          setPortraitManualZIndex(data.actorId, Number(data.zIndex), { root: state.root });
-        }
-        const stagedTransform = keptPosition
-          ? data.manualTransform
-          : getPortraitDragFinalManualTransform(state);
-        applyPortraitManualTransform(data.actorId, stagedTransform, { root: state.root, scheduleNames: false });
+      if (data.swapped) {
+        holdRemotePortraitSwapDrag(state);
+        return;
       }
       clearPortraitDragVisual(state, {
-        animateBack: data.phase === "cancel" || (!data.swapped && !keptPosition && !resetPosition)
+        animateBack: data.phase === "cancel"
       });
-      if (resetPosition) {
-        requestAnimationFrame(() => {
-          applyPortraitManualTransform(data.actorId, data.manualTransform, {
-            root: state.root,
-            animate: true
-          });
-        });
-      }
       return;
     }
 
@@ -1366,6 +1366,158 @@ const FRAME = {
     return true;
   }
 
+  function clearPortraitDragStyleProperties(wrapper) {
+    if (!wrapper) return;
+    clearPortraitDragPositionProperties(wrapper);
+    clearPortraitDragResidualTransformProperties(wrapper);
+  }
+
+  function clearPortraitDragPositionProperties(wrapper) {
+    if (!wrapper) return;
+    wrapper.style.removeProperty("--ginzzzu-remote-drag-duration");
+    wrapper.style.removeProperty("--ginzzzu-drag-x");
+    wrapper.style.removeProperty("--ginzzzu-drag-y");
+    wrapper.style.removeProperty("--ginzzzu-drag-lift");
+  }
+
+  function clearPortraitDragResidualTransformProperties(wrapper) {
+    if (!wrapper) return;
+    wrapper.style.removeProperty("--ginzzzu-drag-tilt");
+    wrapper.style.removeProperty("--ginzzzu-drag-scale");
+  }
+
+  function holdRemotePortraitSwapDrag(state) {
+    if (!state?.wrapper || !state.actorId) return;
+
+    const actorId = String(state.actorId);
+    const previous = pendingRemoteSwapDrags.get(actorId);
+    if (previous && previous !== state) clearPendingRemoteSwapDrag(actorId, { animateBack: false });
+
+    setPortraitDragTarget(state, null);
+    state.wrapper.classList.remove(
+      "ginzzzu-portrait-drag-pending",
+      "ginzzzu-portrait-dragging",
+      "ginzzzu-portrait-remote-dragging",
+      "ginzzzu-portrait-detached"
+    );
+    const holdMs = Math.max(4000, (Number(_ANIM.moveMs) || 0) + 1200);
+    state.pendingSwapTimeout = setTimeout(() => {
+      clearPendingRemoteSwapDrag(actorId, { animateBack: false });
+    }, holdMs);
+
+    pendingRemoteSwapDrags.set(actorId, state);
+    followNamePositionsFor(holdMs);
+  }
+
+  function clearPendingRemoteSwapDrag(actorId, { animateBack = false } = {}) {
+    const id = String(actorId || "");
+    const state = pendingRemoteSwapDrags.get(id);
+    if (!state) return null;
+
+    pendingRemoteSwapDrags.delete(id);
+    if (state.pendingSwapTimeout) {
+      clearTimeout(state.pendingSwapTimeout);
+      state.pendingSwapTimeout = null;
+    }
+    clearPortraitDragVisual(state, { animateBack });
+    return state;
+  }
+
+  function preparePendingRemoteSwapDragsForSequence(wrappers) {
+    if (!pendingRemoteSwapDrags.size || !wrappers?.length) return [];
+
+    const actorIds = new Set(
+      wrappers
+        .map(wrapper => String(wrapper?.dataset?.actorId || ""))
+        .filter(Boolean)
+    );
+    const states = [];
+
+    for (const [actorId, state] of Array.from(pendingRemoteSwapDrags.entries())) {
+      if (!actorIds.has(actorId)) continue;
+
+      pendingRemoteSwapDrags.delete(actorId);
+      if (state.pendingSwapTimeout) {
+        clearTimeout(state.pendingSwapTimeout);
+        state.pendingSwapTimeout = null;
+      }
+
+      if (state.wrapper) {
+        state.wrapper.style.transition = "none";
+        void state.wrapper.offsetWidth;
+      }
+      clearPortraitDragPositionProperties(state.wrapper);
+      clearPortraitNameDragVisual(state, { animateBack: false });
+      states.push(state);
+    }
+
+    return states;
+  }
+
+  function settlePendingRemoteSwapDragTransform(state) {
+    const wrapper = state?.wrapper;
+    if (!wrapper?.isConnected) return;
+
+    const duration = Math.max(0, Number(_ANIM.moveMs) || 0);
+    wrapper.style.transition = [
+      `--ginzzzu-drag-tilt ${duration}ms ${_ANIM.easing}`,
+      `--ginzzzu-drag-scale ${duration}ms ${_ANIM.easing}`
+    ].join(", ");
+    void wrapper.offsetWidth;
+    clearPortraitDragResidualTransformProperties(wrapper);
+  }
+
+  function finishPendingRemoteSwapDragsAfterSequence(states) {
+    if (!states?.length) return;
+
+    const delay = Math.max(0, Number(_ANIM.moveMs) || 0) + 80;
+    for (const state of states) {
+      settlePendingRemoteSwapDragTransform(state);
+    }
+    followNamePositionsFor(delay);
+    setTimeout(() => {
+      for (const state of states) {
+        const wrapper = state?.wrapper;
+        if (!wrapper?.isConnected) continue;
+        wrapper.style.transition = state.originalTransition || `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`;
+      }
+      scheduleNamePositionsUpdate();
+    }, delay);
+  }
+
+  function commitRemotePortraitDragManualTransform(state, transform) {
+    if (!state?.wrapper) return;
+
+    const wrapper = state.wrapper;
+    const duration = Math.max(0, Number(_ANIM.moveMs) || 0);
+    const delay = duration + 80;
+
+    setPortraitDragTarget(state, null);
+    wrapper.classList.remove(
+      "ginzzzu-portrait-drag-pending",
+      "ginzzzu-portrait-dragging",
+      "ginzzzu-portrait-remote-dragging",
+      "ginzzzu-portrait-detached"
+    );
+    wrapper.style.transition = `transform ${duration}ms ${_ANIM.easing}`;
+    void wrapper.offsetWidth;
+
+    applyPortraitManualTransform(state.actorId, transform, {
+      root: state.root,
+      scheduleNames: false
+    });
+    clearPortraitDragStyleProperties(wrapper);
+    clearPortraitNameDragVisual(state, { animateBack: false });
+    followNamePositionsFor(delay);
+
+    setTimeout(() => {
+      if (wrapper.isConnected) {
+        wrapper.style.transition = state.originalTransition || `transform ${_ANIM.moveMs}ms ${_ANIM.easing}`;
+      }
+      scheduleNamePositionsUpdate();
+    }, delay);
+  }
+
   function clearPortraitDragVisual(state, { animateBack = false } = {}) {
     if (!state?.wrapper) return;
 
@@ -1387,12 +1539,7 @@ const FRAME = {
       wrapper.style.transition = "none";
     }
 
-    wrapper.style.removeProperty("--ginzzzu-remote-drag-duration");
-    wrapper.style.removeProperty("--ginzzzu-drag-x");
-    wrapper.style.removeProperty("--ginzzzu-drag-y");
-    wrapper.style.removeProperty("--ginzzzu-drag-lift");
-    wrapper.style.removeProperty("--ginzzzu-drag-tilt");
-    wrapper.style.removeProperty("--ginzzzu-drag-scale");
+    clearPortraitDragStyleProperties(wrapper);
     clearPortraitNameDragVisual(state, { animateBack: shouldAnimateBack });
 
     if (!shouldAnimateBack) {
@@ -1687,6 +1834,11 @@ const FRAME = {
 
     if (before) rail.insertBefore(wrapper, before);
     else rail.appendChild(wrapper);
+  }
+
+  function appendPortraitWrapperAsNewest(rail, wrapper) {
+    if (!rail || !wrapper) return;
+    rail.appendChild(wrapper);
   }
 
     // --- Фокус портрета (middle-click) ---
@@ -2420,7 +2572,7 @@ function _onPortraitClick(ev) {
   }
 
   // Показ одного портрета (создание/обновление DOM + FLIP других)
-  async function openLocalPortrait({ actorId, img, name }) {
+  async function openLocalPortrait({ actorId, img, name, appendAsNewest = false }) {
     if (!actorId || !img) return;
 
     const root = getDomHud();
@@ -2440,8 +2592,15 @@ function _onPortraitClick(ev) {
       if (wrapper && wrapper.dataset.src === img) {
         existing.style.opacity = "1";
         existing.style.transform = "translateY(0)";
+        if (appendAsNewest) appendPortraitWrapperAsNewest(rail, wrapper);
         setPortraitManualZIndex(actorId, null, { root });
         relayoutDomHud();
+        if (appendAsNewest && game.user?.isGM) {
+          setSharedPortraitSequence(getCurrentPortraitSequence(), {
+            movedActorId: actorId,
+            skipPermissionCheck: true
+          });
+        }
         applyPortraitManualTransform(actorId, getPortraitManualTransform(actorId), { root });
         return;
       }
@@ -2588,7 +2747,8 @@ function _onPortraitClick(ev) {
     wrapper.addEventListener("dragstart", ev => ev.preventDefault());
 
     wrapper.appendChild(el);
-    insertPortraitWrapperBySharedOrder(rail, wrapper);
+    if (appendAsNewest) appendPortraitWrapperAsNewest(rail, wrapper);
+    else insertPortraitWrapperBySharedOrder(rail, wrapper);
     map.set(actorId, el);
     setPortraitManualZIndex(actorId, null, { root });
     applyPortraitManualTransform(actorId, getPortraitManualTransform(actorId), { root, scheduleNames: false });
@@ -2600,6 +2760,12 @@ function _onPortraitClick(ev) {
     
     // Перераскладка с учётом нового (FLIP для остальных)
     relayoutDomHud(firstRects);
+    if (appendAsNewest && game.user?.isGM) {
+      setSharedPortraitSequence(getCurrentPortraitSequence(), {
+        movedActorId: actorId,
+        skipPermissionCheck: true
+      });
+    }
     // Ensure badges are positioned after layout
     requestAnimationFrame(() => updateNamePositions());
 
@@ -2923,7 +3089,7 @@ function _onPortraitClick(ev) {
     const name = getActorDisplayName(actor);
 
     if (shown) {
-      openLocalPortrait({ actorId, img, name });
+      openLocalPortrait({ actorId, img, name, appendAsNewest: true });
     } else {
       closeLocalPortrait(actorId);
     }
@@ -3699,12 +3865,15 @@ function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), {
 
   const changed = ordered.some((wrapper, index) => wrappers[index] !== wrapper);
   if (!changed) {
+    const pendingSwapStates = preparePendingRemoteSwapDragsForSequence(ordered);
+    finishPendingRemoteSwapDragsAfterSequence(pendingSwapStates);
     applyPortraitLayerOrder({ root, promoteActorId });
     scheduleNamePositionsUpdate();
     return false;
   }
 
   const firstRects = animate ? collectFirstRects() : null;
+  const pendingSwapStates = preparePendingRemoteSwapDragsForSequence(ordered);
   for (const wrapper of ordered) {
     rail.appendChild(wrapper);
   }
@@ -3712,6 +3881,7 @@ function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), {
   if (animate) relayoutDomHud(firstRects);
   else relayoutDomHud();
 
+  finishPendingRemoteSwapDragsAfterSequence(pendingSwapStates);
   if (promoteActorId) applyPortraitLayerOrder({ root, promoteActorId });
 
   scheduleNamePositionsUpdate();
