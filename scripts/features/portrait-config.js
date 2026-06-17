@@ -36,7 +36,6 @@ export async function configurePortrait(ev, actorSheet) {
 
   // Текущие кастомные эмоции
   const customEmotions = getCustomEmotions(actor) ?? [];
-  console.log(`[${MODULE_ID}] Loaded ${customEmotions.length} custom emotions for actor ${actor.name}:`, customEmotions);
 
   // Варианты цветкора – сначала пробуем спросить у GinzzzuPortraitEmotions,
   // при неудаче откатываемся к своим пресетам.
@@ -114,7 +113,6 @@ export async function configurePortrait(ev, actorSheet) {
           callback: async () => {
             if (isResolved) return;
             isResolved = true;
-            console.log(`[${MODULE_ID}] Clearing portrait display name for ${actor.name}`);
             await actor.unsetFlag(MODULE_ID, "displayName");
             resolve();
           }
@@ -127,8 +125,6 @@ export async function configurePortrait(ev, actorSheet) {
             isResolved = true;
 
             try {
-              console.log(`[${MODULE_ID}] Saving portrait config for ${actor.name}`);
-
               // Save display name
               const input = html.find('input[name="displayName"]').val();
               const value = String(input ?? "").trim();
@@ -177,11 +173,6 @@ export async function configurePortrait(ev, actorSheet) {
                 const colorIntensity = String($elem.find('select.emotion-color').val() ?? "none");
                 const heightMultiplier = Number($elem.find('input.emotion-height-multiplier').val() ?? 1);
 
-                console.log(
-                  `[${MODULE_ID}] Emotion ${idx}:`,
-                  { emoji, name, displayName, imagePath, animation, colorIntensity, heightMultiplier }
-                );
-
                 // Принимаем эмоцию, если заполнено хоть что-то осмысленное
                 const hasAny =
                   emoji.length > 0 ||
@@ -191,32 +182,14 @@ export async function configurePortrait(ev, actorSheet) {
 
                 if (hasAny) {
                   emotions.push({ emoji, name, displayName, imagePath, animation, colorIntensity, heightMultiplier });
-                } else {
-                  console.log(`[${MODULE_ID}] Ignoring empty emotion at index ${idx}`);
                 }
               });
 
-              console.log(
-                `[${MODULE_ID}] Saving ${emotions.length} emotions for actor ${actor.name}:`,
-                emotions
-              );
-
               if (emotions.length > 0) {
-                console.log(`[${MODULE_ID}] Calling setFlag with customEmotions`);
                 await actor.update({ [FLAG_CUSTOM_EMOTIONS]: emotions });
-                console.log(
-                  `[${MODULE_ID}] Successfully saved ${emotions.length} custom emotions`
-                );
               } else {
-                console.log(
-                  `[${MODULE_ID}] Clearing customEmotions flag (no emotions)`
-                );
                 await actor.update({ [FLAG_CUSTOM_EMOTIONS]: [] });
               }
-
-              console.log(
-                `[${MODULE_ID}] Portrait config saved successfully for ${actor.name}`
-              );
             } catch (err) {
               console.error(
                 `[${MODULE_ID}] Failed to save portrait config for ${actor.name}`,
@@ -236,7 +209,6 @@ export async function configurePortrait(ev, actorSheet) {
       close: () => {
         if (!isResolved) {
           isResolved = true;
-          console.log(`[${MODULE_ID}] Dialog closed without saving`);
           resolve();
         }
       },

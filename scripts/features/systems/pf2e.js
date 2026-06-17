@@ -1,57 +1,33 @@
-export const PREFIX = "group-";
+import {
+  GROUP_PREFIX,
+  addActorGroupOptions,
+  filterActorsByMemberIds,
+  getGroupFilterCriteria
+} from "./group-filter.js";
+
+export const PREFIX = GROUP_PREFIX;
 
 function addNpcDockOptions(sel) {
-    const groups = (game.actors.contents ?? []).filter(a => a.type === 'party')    
-    for (const g of groups) {
-      const opt = document.createElement("option");
-      opt.value = `${PREFIX}${g.id}`;
-      const groupLabel = (game?.i18n?.localize && game.i18n.localize("GINZZZUPORTRAITS.groupPrefix")) || "(Group)";
-      opt.textContent = `${groupLabel} ${g.name}`;
-      sel.appendChild(opt);
-    }
+  addActorGroupOptions(sel, "party");
 }
 
 function getFilterCriteria(folderSel) {
-    return folderSel.startsWith(PREFIX) ? folderSel.substring(PREFIX.length) : undefined;
+  return getGroupFilterCriteria(folderSel);
 }
 
-function filterNpcs(filterCriteria, npcs) {      
-      const groupActor = game.actors.get(filterCriteria);
-      if (!groupActor) {
-        console.error(`[threeO-dock] no actor found for ${filterCriteria}`)
-      } else {
-        // pf2 party actors may store members under different properties depending on system version
-        const containedActors = groupActor.system?.members || groupActor.system?.partyMembers || groupActor?.members;
-        // Normalize several possible shapes into a Set of IDs
-        if (containedActors) {
-          let idSet;
-          if (Array.isArray(containedActors)) {
-            idSet = new Set(containedActors.map(a => a?.id ?? a?._id).filter(Boolean));
-          } else if (containedActors instanceof Set) {
-            const first = containedActors.values().next().value;
-            if (typeof first === 'string') {
-              idSet = new Set(containedActors);
-            } else {
-              idSet = new Set(Array.from(containedActors).map(a => a?.id ?? a?._id).filter(Boolean));
-            }
-          } else if (containedActors instanceof Map) {
-            idSet = new Set(Array.from(containedActors.keys()).filter(Boolean));
-          } else if (typeof containedActors === 'object') {
-            idSet = new Set(Object.values(containedActors).map(a => a?.id ?? a?._id).filter(Boolean));
-          }
+function filterNpcs(filterCriteria, npcs) {
+  const groupActor = game.actors.get(filterCriteria);
+  if (!groupActor) {
+    console.error(`[threeO-dock] no actor found for ${filterCriteria}`);
+    return npcs;
+  }
 
-          if (idSet && idSet.size) {
-            npcs = npcs.filter(a => idSet.has(a.id));
-          } else{
-            npcs = [];
-          }
-        }
-      }
-      return npcs;
+  const members = groupActor.system?.members || groupActor.system?.partyMembers || groupActor.members;
+  return filterActorsByMemberIds(npcs, members);
 }
 
 export default {
-    addNpcDockOptions,
-    getFilterCriteria,
-    filterNpcs
-}
+  addNpcDockOptions,
+  getFilterCriteria,
+  filterNpcs
+};

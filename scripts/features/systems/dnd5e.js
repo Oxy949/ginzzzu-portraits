@@ -1,38 +1,32 @@
-export const PREFIX = "group-";
+import {
+  GROUP_PREFIX,
+  addActorGroupOptions,
+  filterActorsByMemberIds,
+  getGroupFilterCriteria
+} from "./group-filter.js";
+
+export const PREFIX = GROUP_PREFIX;
 
 function addNpcDockOptions(sel) {
-    const groups = (game.actors.contents ?? []).filter(a => a.type === 'group')    
-    for (const g of groups) {
-      const opt = document.createElement("option");
-      opt.value = `${PREFIX}${g.id}`;
-      const groupLabel = (game?.i18n?.localize && game.i18n.localize("GINZZZUPORTRAITS.groupPrefix")) || "(Group)";
-      opt.textContent = `${groupLabel} ${g.name}`;
-      sel.appendChild(opt);
-    }
+  addActorGroupOptions(sel, "group");
 }
 
 function getFilterCriteria(folderSel) {
-    return folderSel.startsWith(PREFIX) ? folderSel.substring(PREFIX.length) : undefined;
+  return getGroupFilterCriteria(folderSel);
 }
 
-function filterNpcs(filterCriteria, npcs) {      
-      const groupActor = game.actors.get(filterCriteria);
-      if (!groupActor) {
-        console.error("[threeO-dock] no actor found for ${filterCriteria}")
-      } else {
-        const containedActors = groupActor.system?.members?.ids;
-        // TODO, should an empty list mean NO actors, or should it filter to no actors
-        if (containedActors?.size) {
-          npcs = npcs.filter(a => containedActors.has(a.id))
-        } else{
-          npcs = [];
-        }
-      }
-      return npcs;
+function filterNpcs(filterCriteria, npcs) {
+  const groupActor = game.actors.get(filterCriteria);
+  if (!groupActor) {
+    console.error(`[threeO-dock] no actor found for ${filterCriteria}`);
+    return npcs;
+  }
+
+  return filterActorsByMemberIds(npcs, groupActor.system?.members?.ids);
 }
 
 export default {
-    addNpcDockOptions,
-    getFilterCriteria,
-    filterNpcs
-}
+  addNpcDockOptions,
+  getFilterCriteria,
+  filterNpcs
+};

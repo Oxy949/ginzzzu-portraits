@@ -1366,24 +1366,23 @@ const FRAME = {
     return true;
   }
 
-  function clearPortraitDragStyleProperties(wrapper) {
+  function clearPortraitDragProperties(wrapper, {
+    position = true,
+    residual = true
+  } = {}) {
     if (!wrapper) return;
-    clearPortraitDragPositionProperties(wrapper);
-    clearPortraitDragResidualTransformProperties(wrapper);
-  }
 
-  function clearPortraitDragPositionProperties(wrapper) {
-    if (!wrapper) return;
-    wrapper.style.removeProperty("--ginzzzu-remote-drag-duration");
-    wrapper.style.removeProperty("--ginzzzu-drag-x");
-    wrapper.style.removeProperty("--ginzzzu-drag-y");
-    wrapper.style.removeProperty("--ginzzzu-drag-lift");
-  }
+    if (position) {
+      wrapper.style.removeProperty("--ginzzzu-remote-drag-duration");
+      wrapper.style.removeProperty("--ginzzzu-drag-x");
+      wrapper.style.removeProperty("--ginzzzu-drag-y");
+      wrapper.style.removeProperty("--ginzzzu-drag-lift");
+    }
 
-  function clearPortraitDragResidualTransformProperties(wrapper) {
-    if (!wrapper) return;
-    wrapper.style.removeProperty("--ginzzzu-drag-tilt");
-    wrapper.style.removeProperty("--ginzzzu-drag-scale");
+    if (residual) {
+      wrapper.style.removeProperty("--ginzzzu-drag-tilt");
+      wrapper.style.removeProperty("--ginzzzu-drag-scale");
+    }
   }
 
   function holdRemotePortraitSwapDrag(state) {
@@ -1446,7 +1445,7 @@ const FRAME = {
         state.wrapper.style.transition = "none";
         void state.wrapper.offsetWidth;
       }
-      clearPortraitDragPositionProperties(state.wrapper);
+      clearPortraitDragProperties(state.wrapper, { residual: false });
       clearPortraitNameDragVisual(state, { animateBack: false });
       states.push(state);
     }
@@ -1464,7 +1463,7 @@ const FRAME = {
       `--ginzzzu-drag-scale ${duration}ms ${_ANIM.easing}`
     ].join(", ");
     void wrapper.offsetWidth;
-    clearPortraitDragResidualTransformProperties(wrapper);
+    clearPortraitDragProperties(wrapper, { position: false });
   }
 
   function finishPendingRemoteSwapDragsAfterSequence(states) {
@@ -1506,7 +1505,7 @@ const FRAME = {
       root: state.root,
       scheduleNames: false
     });
-    clearPortraitDragStyleProperties(wrapper);
+    clearPortraitDragProperties(wrapper);
     clearPortraitNameDragVisual(state, { animateBack: false });
     followNamePositionsFor(delay);
 
@@ -1539,7 +1538,7 @@ const FRAME = {
       wrapper.style.transition = "none";
     }
 
-    clearPortraitDragStyleProperties(wrapper);
+    clearPortraitDragProperties(wrapper);
     clearPortraitNameDragVisual(state, { animateBack: shouldAnimateBack });
 
     if (!shouldAnimateBack) {
@@ -3097,7 +3096,6 @@ function _onPortraitClick(ev) {
   
   // === Автообновление имён на портретах при rename актёра ===
   Hooks.on("updateActor", (actor, changed) => {
-    // console.log("[threeO-portraits] updateActor hook for name change", actor.id, changed);
     const flipFlagPath = `flags.${MODULE_ID}.portraitFlipX`;
     const flipChanged = foundry.utils.hasProperty(changed, flipFlagPath);
     const displayNameChanged =
@@ -3222,7 +3220,6 @@ Hooks.once("ready", () => {
   try {
     // Skip portrait setup if hidePortraits is enabled for this client
     if (game.settings.get(MODULE_ID, "hidePortraits")) {
-      console.log("[ginzzzu-portraits] Portraits are disabled for this client");
       return;
     }
 
