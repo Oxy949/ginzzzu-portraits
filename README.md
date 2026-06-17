@@ -16,6 +16,10 @@ The module provides:
 
 ✨ Stylized UI with glass panels, glowing edges, and adaptive transparency.
 
+Direct portrait controls, including synchronized drag reorder, optional manual position, scale, tilt, and permission-aware access.
+
+Performance-minded updates for smoother portrait transitions, NPC Dock rebuilds, and scene-darkness color tone.
+
 This module integrates seamlessly with other Foundry features and can be used both for roleplay storytelling and combat visualization for any gaming system.
 
 ## Installation
@@ -42,6 +46,10 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 - **Middle-click a portrait** to highlight it and dim the others (adjustable in `Settings`).
 - Move cursor over portrait to see character's name (can switch to permament visibility in settings).
 - **Right-click to flip** portrait horizontally (players can flip their characters)
+- **Drag a portrait** left or right to reorder active portraits on the screen. The shared order is synchronized through the scene and restored when the canvas loads.
+- **Hold `Shift` when releasing a dragged portrait** to keep its manual position, scale, and tilt instead of returning to the automatic layout.
+- **Use the mouse wheel while dragging** to scale the portrait.
+- **Hold `Alt` while dragging** to adjust scale and tilt without changing the reorder target.
 
 ## Emotion panel
 You can now assign expressive emotional states to any portrait. Check settings to switch on/off and allow players to use it.
@@ -64,6 +72,7 @@ How to use:
 - Filter player characters by placing them in different folders and choose certait folder in the module settings. Drag the actor into the selected folder so it will instantly appear in the dock — no reload required. 
 - Use the `(Scene)` option to show portraits only for characters with tokens on the current scene.
 - Dynamic lighting support: portraits dim with scene darkness for deeper immersion (adjustable in `Settings`).
+- In `Settings`, use **Who can drag portraits**, **Animate portrait dragging**, and **Reset position on release** to tune the new portrait dragging behavior for your table.
 - Right-click an actor in the **Actors** list (top-right panel) and select **“Show portrait”**, or use the top-right button in the character sheet to instantly display the portrait.
 - Use `Settings` to configure the module to your preferences.
 

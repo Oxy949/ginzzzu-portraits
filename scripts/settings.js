@@ -264,6 +264,10 @@ const SETTINGS_GROUPS = [
       "portraitMoveMs",
       "portraitDragAnimate",
       "portraitDragResetOnRelease",
+      "portraitDragMinScale",
+      "portraitDragMaxScale",
+      "portraitDragMinTiltDeg",
+      "portraitDragMaxTiltDeg",
       "portraitEasing"
     ]
   },
@@ -854,6 +858,50 @@ Hooks.once("init", () => {
     config: true,
     type: Boolean,
     default: true,
+    requiresReload: false
+  });
+
+  reg("portraitDragMinScale", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMinScale.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMinScale.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0.55,
+    range: { min: 0.1, max: 4, step: 0.05 },
+    requiresReload: false
+  });
+
+  reg("portraitDragMaxScale", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMaxScale.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMaxScale.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 1.85,
+    range: { min: 0.1, max: 4, step: 0.05 },
+    requiresReload: false
+  });
+
+  reg("portraitDragMinTiltDeg", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMinTiltDeg.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMinTiltDeg.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: -45,
+    range: { min: -180, max: 0, step: 1 },
+    requiresReload: false
+  });
+
+  reg("portraitDragMaxTiltDeg", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMaxTiltDeg.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitDragMaxTiltDeg.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 45,
+    range: { min: 0, max: 180, step: 1 },
     requiresReload: false
   });
 

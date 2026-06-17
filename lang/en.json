@@ -164,6 +164,22 @@
         "name": "Reset position on release",
         "hint": "When enabled, portraits return to their automatic position unless Shift is held on release. When disabled, portraits keep the dragged position and tilt until the next refresh unless Shift is held on release."
       },
+      "portraitDragMinScale": {
+        "name": "Portrait drag: minimum scale",
+        "hint": "Lowest portrait scale allowed while scaling during drag."
+      },
+      "portraitDragMaxScale": {
+        "name": "Portrait drag: maximum scale",
+        "hint": "Highest portrait scale allowed while scaling during drag."
+      },
+      "portraitDragMinTiltDeg": {
+        "name": "Portrait drag: left rotation limit",
+        "hint": "Minimum rotation in degrees while rotating during drag. Negative values tilt left."
+      },
+      "portraitDragMaxTiltDeg": {
+        "name": "Portrait drag: right rotation limit",
+        "hint": "Maximum rotation in degrees while rotating during drag. Positive values tilt right."
+      },
         "emotionPanelVisibility": {
         "name": "Emotion Panel Visibility",
         "hint": "Controls who can see the emotion panel when hovering over a portrait.",

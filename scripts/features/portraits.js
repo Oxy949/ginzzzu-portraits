@@ -609,9 +609,10 @@ const FRAME = {
     minDetachPx: 44,
     maxTiltDeg: 9,
     targetBufferRatio: 0.08,
-    minScale: 0.55,
-    maxScale: 1.85,
-    maxManualTiltDeg: 45,
+    defaultMinScale: 0.55,
+    defaultMaxScale: 1.85,
+    defaultMinTiltDeg: -45,
+    defaultMaxTiltDeg: 45,
     wheelScaleSpeed: 0.00075,
     pointerScaleSpeed: 0.004,
     pointerRotateSpeedDeg: 0.18
@@ -655,10 +656,57 @@ const FRAME = {
     return Math.max(min, Math.min(max, number));
   }
 
+  function getNumericSetting(key, fallback) {
+    try {
+      const value = Number(game.settings.get(MODULE_ID, key));
+      return Number.isFinite(value) ? value : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function normalizeRange(min, max, fallbackMin, fallbackMax, hardMin, hardMax) {
+    let normalizedMin = clampNumber(min, hardMin, hardMax);
+    let normalizedMax = clampNumber(max, hardMin, hardMax);
+
+    if (!Number.isFinite(normalizedMin)) normalizedMin = fallbackMin;
+    if (!Number.isFinite(normalizedMax)) normalizedMax = fallbackMax;
+    if (normalizedMin > normalizedMax) [normalizedMin, normalizedMax] = [normalizedMax, normalizedMin];
+
+    return { min: normalizedMin, max: normalizedMax };
+  }
+
+  function getPortraitDragScaleRange() {
+    return normalizeRange(
+      getNumericSetting("portraitDragMinScale", PORTRAIT_DRAG.defaultMinScale),
+      getNumericSetting("portraitDragMaxScale", PORTRAIT_DRAG.defaultMaxScale),
+      PORTRAIT_DRAG.defaultMinScale,
+      PORTRAIT_DRAG.defaultMaxScale,
+      0.1,
+      4
+    );
+  }
+
+  function getPortraitDragTiltRange() {
+    return normalizeRange(
+      getNumericSetting("portraitDragMinTiltDeg", PORTRAIT_DRAG.defaultMinTiltDeg),
+      getNumericSetting("portraitDragMaxTiltDeg", PORTRAIT_DRAG.defaultMaxTiltDeg),
+      PORTRAIT_DRAG.defaultMinTiltDeg,
+      PORTRAIT_DRAG.defaultMaxTiltDeg,
+      -180,
+      180
+    );
+  }
+
+  function clampPortraitScale(value) {
+    const { min, max } = getPortraitDragScaleRange();
+    return clampNumber(value, min, max);
+  }
+
   function clampPortraitTilt(value) {
+    const { min, max } = getPortraitDragTiltRange();
     const tilt = Number(value);
-    if (!Number.isFinite(tilt)) return 0;
-    return clampNumber(tilt, -PORTRAIT_DRAG.maxManualTiltDeg, PORTRAIT_DRAG.maxManualTiltDeg);
+    return clampNumber(Number.isFinite(tilt) ? tilt : 0, min, max);
   }
 
   function getPortraitRail(root = getDomHud()) {
@@ -718,16 +766,18 @@ const FRAME = {
   }
 
   function normalizePortraitManualTransform(transform) {
+    const hasTilt = transform && Object.prototype.hasOwnProperty.call(transform, "tilt");
+    const hasScale = transform && Object.prototype.hasOwnProperty.call(transform, "scale");
     const x = Number(transform?.x ?? 0);
     const y = Number(transform?.y ?? 0);
-    const tilt = Number(transform?.tilt ?? 0);
-    const scale = Number(transform?.scale ?? 1);
+    const tilt = Number(transform?.tilt);
+    const scale = Number(transform?.scale);
     return {
       x: Number.isFinite(x) ? Math.round(x) : 0,
       y: Number.isFinite(y) ? Math.round(y) : 0,
-      tilt: Number.isFinite(tilt) ? Math.round(clampPortraitTilt(tilt) * 100) / 100 : 0,
-      scale: Number.isFinite(scale)
-        ? Math.round(clampNumber(scale, PORTRAIT_DRAG.minScale, PORTRAIT_DRAG.maxScale) * 1000) / 1000
+      tilt: hasTilt && Number.isFinite(tilt) ? Math.round(clampPortraitTilt(tilt) * 100) / 100 : 0,
+      scale: hasScale && Number.isFinite(scale)
+        ? Math.round(clampPortraitScale(scale) * 1000) / 1000
         : 1
     };
   }
@@ -838,22 +888,34 @@ const FRAME = {
 
   function getPortraitDragFinalScale(state) {
     const base = normalizePortraitManualTransform(state?.manualTransform);
+    const { min, max } = getPortraitDragScaleRange();
     return clampNumber(
       base.scale * (Number(state?.dragScale) || 1),
-      PORTRAIT_DRAG.minScale,
-      PORTRAIT_DRAG.maxScale
+      min,
+      max
     );
   }
 
   function setPortraitDragFinalScale(state, finalScale) {
     if (!state) return;
     const base = normalizePortraitManualTransform(state.manualTransform);
-    const nextFinalScale = clampNumber(
-      Number(finalScale),
-      PORTRAIT_DRAG.minScale,
-      PORTRAIT_DRAG.maxScale
-    );
+    const nextFinalScale = clampPortraitScale(Number(finalScale));
     state.dragScale = nextFinalScale / Math.max(0.001, base.scale);
+  }
+
+  function setPortraitDragScaleMultiplier(state, dragScale) {
+    if (!state) return;
+    const base = normalizePortraitManualTransform(state.manualTransform);
+    const multiplier = Number(dragScale);
+    state.dragScale = Number.isFinite(multiplier) ? multiplier : 1;
+
+    if (state.dragScale === 1) return;
+
+    const finalScale = base.scale * state.dragScale;
+    const { min, max } = getPortraitDragScaleRange();
+    if (finalScale < min || finalScale > max) {
+      setPortraitDragFinalScale(state, finalScale);
+    }
   }
 
   function getPortraitAutoTiltForX(x, width) {
@@ -1135,7 +1197,7 @@ const FRAME = {
       if (data.phase === "end") {
         const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
         const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
-        state.dragScale = clampNumber(Number(data.dragScale) || 1, 0.1, 4);
+        setPortraitDragScaleMultiplier(state, data.dragScale);
         if (Number.isFinite(Number(data.dragTiltOffset))) {
           state.dragTiltOffset = Number(data.dragTiltOffset);
         }
@@ -1170,7 +1232,7 @@ const FRAME = {
 
     const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
     const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
-    state.dragScale = clampNumber(Number(data.dragScale) || 1, 0.1, 4);
+    setPortraitDragScaleMultiplier(state, data.dragScale);
     if (Number.isFinite(Number(data.dragTiltOffset))) {
       state.dragTiltOffset = Number(data.dragTiltOffset);
     }
