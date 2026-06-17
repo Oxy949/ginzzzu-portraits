@@ -630,7 +630,7 @@ const FRAME = {
   const remotePortraitDrags = new Map();
   const portraitManualTransforms = new Map();
   const portraitManualZIndexes = new Map();
-  let portraitManualZCounter = 200000;
+  let portraitLayerOrder = [];
 
   function scheduleNamePositionsUpdate() {
     if (namePositionFrame !== null) return;
@@ -816,20 +816,82 @@ const FRAME = {
     return Number.isFinite(zIndex) ? String(zIndex) : fallback;
   }
 
+  function getPortraitLayerWrappers(root = getDomHud()) {
+    if (!root) return [];
+    const rail = getPortraitRail(root);
+    const scope = rail || root;
+    return Array.from(scope.querySelectorAll(".ginzzzu-portrait-wrapper"))
+      .filter(wrapper => String(wrapper?.dataset?.actorId || "").trim());
+  }
+
+  function applyPortraitLayerOrder({
+    root = getDomHud(),
+    promoteActorId = null
+  } = {}) {
+    const wrappers = getPortraitLayerWrappers(root);
+    if (!wrappers.length) {
+      portraitLayerOrder = [];
+      portraitManualZIndexes.clear();
+      return null;
+    }
+
+    const currentIds = wrappers
+      .map(wrapper => String(wrapper.dataset.actorId || "").trim())
+      .filter(Boolean);
+    const currentSet = new Set(currentIds);
+
+    portraitLayerOrder = normalizePortraitSequence(portraitLayerOrder)
+      .filter(actorId => currentSet.has(actorId));
+
+    for (const actorId of currentIds) {
+      if (!portraitLayerOrder.includes(actorId)) portraitLayerOrder.push(actorId);
+    }
+
+    const promotedId = String(promoteActorId || "").trim();
+    if (promotedId && currentSet.has(promotedId)) {
+      portraitLayerOrder = portraitLayerOrder.filter(actorId => actorId !== promotedId);
+      portraitLayerOrder.push(promotedId);
+    }
+
+    const zByActorId = new Map();
+    portraitLayerOrder.forEach((actorId, index) => zByActorId.set(actorId, index + 1));
+
+    for (const actorId of Array.from(portraitManualZIndexes.keys())) {
+      if (!currentSet.has(actorId)) portraitManualZIndexes.delete(actorId);
+    }
+
+    for (const wrapper of wrappers) {
+      const actorId = String(wrapper.dataset.actorId || "").trim();
+      if (!actorId) continue;
+      const zIndex = zByActorId.get(actorId) || 1;
+      portraitManualZIndexes.set(actorId, zIndex);
+      wrapper.dataset.baseZ = String(zIndex);
+      if (!wrapper.classList.contains("ginzzzu-portrait-focused")) {
+        wrapper.style.zIndex = String(zIndex);
+      }
+    }
+
+    return promotedId ? (zByActorId.get(promotedId) ?? null) : null;
+  }
+
+  function removePortraitLayer(actorId) {
+    const id = String(actorId || "").trim();
+    if (!id) return;
+    portraitLayerOrder = portraitLayerOrder.filter(existingId => existingId !== id);
+    portraitManualZIndexes.delete(id);
+    applyPortraitLayerOrder();
+  }
+
   function setPortraitManualZIndex(actorId, zIndex = null, { root = getDomHud() } = {}) {
     const id = String(actorId || "").trim();
     if (!id) return null;
 
-    let z = Number(zIndex);
-    if (!Number.isFinite(z)) z = ++portraitManualZCounter;
-    portraitManualZCounter = Math.max(portraitManualZCounter, z);
-    portraitManualZIndexes.set(id, z);
+    const promotedZ = applyPortraitLayerOrder({ root, promoteActorId: id });
+    if (Number.isFinite(promotedZ)) return promotedZ;
 
-    const wrapper = getWrapperByActorId(id, root);
-    if (wrapper && !wrapper.classList.contains("ginzzzu-portrait-focused")) {
-      wrapper.style.zIndex = String(z);
-    }
-    return z;
+    const z = Number(zIndex);
+    if (Number.isFinite(z)) portraitManualZIndexes.set(id, z);
+    return Number.isFinite(z) ? z : null;
   }
 
   function applyPortraitManualTransform(actorId, transform, {
@@ -1126,6 +1188,8 @@ const FRAME = {
     const rail = getPortraitRail(root);
     const wrapper = getWrapperByActorId(data.actorId, root);
     if (!root || !rail || !wrapper) return null;
+
+    setPortraitManualZIndex(data.actorId, null, { root });
 
     const startRect = wrapper.getBoundingClientRect();
     const state = {
@@ -1435,6 +1499,7 @@ const FRAME = {
   function beginPortraitDrag(state) {
     if (!state || state.dragging) return;
     state.dragging = true;
+    setPortraitManualZIndex(state.actorId, null, { root: state.root });
     state.wrapper.classList.remove("ginzzzu-portrait-drag-pending");
     state.wrapper.classList.add("ginzzzu-portrait-dragging");
     state.wrapper.style.transition = "none";
@@ -1976,6 +2041,7 @@ function _onPortraitClick(ev) {
 
   function setPortraitFocusByActorId(actorIdOrNull) {
     _focusedActorId = actorIdOrNull || null;
+    applyPortraitLayerOrder();
     _applyPortraitFocus();
   }
 
@@ -2226,7 +2292,7 @@ function _onPortraitClick(ev) {
       wrapper.style.setProperty("--threeo-portrait-name-font-size", `${nameFontSize}px`);
 
 
-      const baseZ = String(100 + i);
+      const baseZ = String(i + 1);
       wrapper.dataset.baseZ = baseZ;
 
       // если портрет сейчас не в фокусе — применяем базовый zIndex;
@@ -2237,6 +2303,8 @@ function _onPortraitClick(ev) {
         wrapper.style.zIndex = getPortraitLayerZIndex(picActorId, baseZ);
       }
     });
+
+    applyPortraitLayerOrder({ root });
 
     // после перераскладки обновим "тени"/подсветку (на случай изменения порядка)
     _applyPortraitFocus();
@@ -2372,6 +2440,7 @@ function _onPortraitClick(ev) {
       if (wrapper && wrapper.dataset.src === img) {
         existing.style.opacity = "1";
         existing.style.transform = "translateY(0)";
+        setPortraitManualZIndex(actorId, null, { root });
         relayoutDomHud();
         applyPortraitManualTransform(actorId, getPortraitManualTransform(actorId), { root });
         return;
@@ -2521,6 +2590,7 @@ function _onPortraitClick(ev) {
     wrapper.appendChild(el);
     insertPortraitWrapperBySharedOrder(rail, wrapper);
     map.set(actorId, el);
+    setPortraitManualZIndex(actorId, null, { root });
     applyPortraitManualTransform(actorId, getPortraitManualTransform(actorId), { root, scheduleNames: false });
 
     // === Подключение панели эмоций к HUD-портрету ===
@@ -2626,6 +2696,7 @@ function _onPortraitClick(ev) {
         }
       } catch (e) {}
       map.delete(actorId);
+      removePortraitLayer(actorId);
       relayoutDomHud(firstRects);
       // Remove blur effect if no more portraits are active
       removeBlur();
@@ -3596,7 +3667,10 @@ function sanitizeSharedPortraitSequence(sequence) {
   return sanitized;
 }
 
-function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), { animate = true } = {}) {
+function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), {
+  animate = true,
+  promoteActorId = null
+} = {}) {
   const normalized = normalizePortraitSequence(sequence);
 
   const root = getDomHud();
@@ -3625,6 +3699,7 @@ function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), { a
 
   const changed = ordered.some((wrapper, index) => wrappers[index] !== wrapper);
   if (!changed) {
+    applyPortraitLayerOrder({ root, promoteActorId });
     scheduleNamePositionsUpdate();
     return false;
   }
@@ -3636,6 +3711,8 @@ function applySharedPortraitSequence(sequence = getSharedPortraitSequence(), { a
 
   if (animate) relayoutDomHud(firstRects);
   else relayoutDomHud();
+
+  if (promoteActorId) applyPortraitLayerOrder({ root, promoteActorId });
 
   scheduleNamePositionsUpdate();
   return true;
@@ -3653,7 +3730,7 @@ function setSharedPortraitSequence(sequence, {
   const serialized = JSON.stringify(sanitized);
 
   if (applyLocal) {
-    applySharedPortraitSequence(sanitized, { animate: true });
+    applySharedPortraitSequence(sanitized, { animate: true, promoteActorId: movedActorId });
   }
 
   if (!game.user?.isGM) {
