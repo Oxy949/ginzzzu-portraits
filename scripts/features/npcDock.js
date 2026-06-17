@@ -1,5 +1,9 @@
 import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_DISPLAY_NAME } from "../core/constants.js";
 import { isActorInIgnoredNPCFolder } from "../settings.js";
+import {
+  PORTRAIT_KEYBINDINGS,
+  isPortraitControlKeyActive
+} from "../keybindings.js";
 import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/index.js";
 
 (()=>{
@@ -376,6 +380,13 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
     if (btn?.dataset?.dragging) return;
     const actor = game.actors.get(btn.dataset.actorId);
     if (!actor) return;
+
+    if (isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.PANEL_OPEN_SHEET_MODIFIER, ev)) {
+      ev.stopPropagation();
+      actor.sheet?.render(true);
+      return;
+    }
+
     const isShown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
     try { await actor.update({ [FLAG_PORTRAIT_SHOWN]: !isShown }); }
     catch (e) { console.error("[threeO-dock] toggle error:", e); }
@@ -778,6 +789,13 @@ import { addNpcDockOptions, filterNpcs, getFilterCriteria } from "./systems/inde
           ev.preventDefault();
           const actor = game.actors.get(btn.dataset.actorId);
           if (!actor) return;
+
+          if (isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.PANEL_OPEN_SHEET_MODIFIER, ev)) {
+            ev.stopPropagation();
+            actor.sheet?.render(true);
+            return;
+          }
+
           const shown = !!foundry.utils.getProperty(actor, FLAG_PORTRAIT_SHOWN);
           try { await actor.update({ [FLAG_PORTRAIT_SHOWN]: !shown }); } catch(e) { console.error('[threeO-dock] mini toggle error', e); }
         });

@@ -8,7 +8,7 @@ It displays character and NPC portraits directly on screen — much like a visua
 
 The module provides:
 
-🎭 Dynamic portraits for PCs and NPCs with smooth animation transitions.
+🎭 Dynamic portraits for PCs and NPCs with smooth animation transitions and emotions.
 
 💬 NPC Dock, a visual panel bar for managing and displaying characters on screen that remembers sorting between worlds, supports folder-based sorting etc.
 
@@ -16,9 +16,7 @@ The module provides:
 
 ✨ Stylized UI with glass panels, glowing edges, and adaptive transparency.
 
-Direct portrait controls, including synchronized drag reorder, optional manual position, scale, tilt, and permission-aware access.
-
-Performance-minded updates for smoother portrait transitions, NPC Dock rebuilds, and scene-darkness color tone.
+💖 Direct portrait controls, including synchronized drag reorder, optional manual position, scale, tilt, and permission-aware access.
 
 This module integrates seamlessly with other Foundry features and can be used both for roleplay storytelling and combat visualization for any gaming system.
 
@@ -33,6 +31,7 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 
 ## Panel controls
 - **Left-click** — add or remove portraits on the screen.
+- **Hold the configured panel modifier and left-click** — open the character sheet. Default: `Ctrl` / `Cmd`.
 - **Right-click** — open the character sheet for any PC or NPC.
 - **Middle-click** — add PCs or NPCs to **Favorites** to keep important characters at the front.
 - **Drag** actor cards from the dock onto the canvas to create tokens.
@@ -46,10 +45,12 @@ After installing, you’ll find a PC/NPC control panel at the bottom of your scr
 - **Middle-click a portrait** to highlight it and dim the others (adjustable in `Settings`).
 - Move cursor over portrait to see character's name (can switch to permament visibility in settings).
 - **Right-click to flip** portrait horizontally (players can flip their characters)
+- **Hold the configured action modifier and left-click a portrait** to hide it. Default: `Ctrl` / `Cmd`.
+- **Hold the configured action modifier and right-click a portrait** to open its actor sheet. Default: `Ctrl` / `Cmd`.
 - **Drag a portrait** left or right to reorder active portraits on the screen. The shared order is synchronized through the scene and restored when the canvas loads.
-- **Hold `Shift` when releasing a dragged portrait** to keep its manual position, scale, and tilt instead of returning to the automatic layout.
+- **Hold the configured keep-position key** when releasing a dragged portrait to keep its manual position, scale, and tilt instead of returning to the automatic layout. Default: `Shift`.
 - **Use the mouse wheel while dragging** to scale the portrait.
-- **Hold `Alt` while dragging** to adjust scale and tilt without changing the reorder target.
+- **Hold the configured transform key** while dragging to adjust scale and tilt without changing the reorder target. Default: `Alt`.
 
 ## Emotion panel
 You can now assign expressive emotional states to any portrait. Check settings to switch on/off and allow players to use it.
@@ -73,6 +74,7 @@ How to use:
 - Use the `(Scene)` option to show portraits only for characters with tokens on the current scene.
 - Dynamic lighting support: portraits dim with scene darkness for deeper immersion (adjustable in `Settings`).
 - In `Settings`, use **Who can drag portraits**, **Animate portrait dragging**, and **Reset position on release** to tune the new portrait dragging behavior for your table.
+- Use Foundry's **Configure Controls** menu to remap panel and portrait modifiers separately.
 - Right-click an actor in the **Actors** list (top-right panel) and select **“Show portrait”**, or use the top-right button in the character sheet to instantly display the portrait.
 - Use `Settings` to configure the module to your preferences.
 

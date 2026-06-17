@@ -1,5 +1,9 @@
 import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, EMOTIONS } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
+import {
+  PORTRAIT_KEYBINDINGS,
+  isPortraitControlKeyActive
+} from "../keybindings.js";
 
 
 var __defProp = Object.defineProperty;
@@ -1358,12 +1362,12 @@ const FRAME = {
 
     try { state.wrapper.releasePointerCapture?.(state.pointerId); } catch (e) {}
 
-    const shiftRelease = !!ev?.shiftKey;
+    const keepPositionKeyActive = isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.KEEP_DRAG_POSITION, ev);
     const canSwap = !cancelled && state.dragging && state.detached && state.targetWrapper?.isConnected;
-    const shouldSwap = canSwap && !shiftRelease;
+    const shouldSwap = canSwap && !keepPositionKeyActive;
     const resetOnRelease = shouldResetPortraitDragPositionOnRelease();
     const shouldKeepPosition = !cancelled && state.dragging && !shouldSwap && (
-      resetOnRelease ? shiftRelease : !shiftRelease
+      resetOnRelease ? keepPositionKeyActive : !keepPositionKeyActive
     );
     const shouldResetPosition = !cancelled && state.dragging && !shouldSwap && !shouldKeepPosition;
     const finalManualTransform = shouldKeepPosition
@@ -1442,7 +1446,9 @@ const FRAME = {
     const state = activePortraitDrag;
     if (!state || ev.pointerId !== state.pointerId) return;
 
-    if (state.altTransformDragActive && !ev.altKey) {
+    const transformKeyActive = isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.TRANSFORM_DRAG, ev);
+
+    if (state.altTransformDragActive && !transformKeyActive) {
       state.startX = ev.clientX - (Number(state.lastDx) || 0);
       state.startY = ev.clientY - (Number(state.lastDy) || 0);
       state.altTransformDragActive = false;
@@ -1464,7 +1470,7 @@ const FRAME = {
     );
     state.detachThreshold = detachThreshold;
 
-    if (ev.altKey) {
+    if (transformKeyActive) {
       if (!state.altTransformDragActive) {
         const currentDx = Number(state.lastDx);
         const currentDy = Number(state.lastDy);
@@ -1496,8 +1502,8 @@ const FRAME = {
 
     state.lastDx = dx;
     state.lastDy = dy;
-    const targetWrapper = !ev.altKey && Math.abs(dx) >= detachThreshold ? findPortraitDragTarget(state) : null;
-    const detached = !ev.altKey && (Math.abs(dx) >= detachThreshold || !!targetWrapper);
+    const targetWrapper = !transformKeyActive && Math.abs(dx) >= detachThreshold ? findPortraitDragTarget(state) : null;
+    const detached = !transformKeyActive && (Math.abs(dx) >= detachThreshold || !!targetWrapper);
 
     applyPortraitDragVisual(state, dx, dy, { targetWrapper, detached, detachThreshold });
     emitPortraitDragPreview(state, "move");
@@ -1540,7 +1546,7 @@ const FRAME = {
   }
 
   function _onPortraitPointerDown(ev) {
-    if (ev.button !== 0 || ev.ctrlKey || ev.metaKey) return;
+    if (ev.button !== 0 || isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.ACTION_MODIFIER, ev)) return;
     if (shouldIgnorePortraitDragTarget(ev.target)) return;
 
     const wrapper = ev.currentTarget?.closest?.(".ginzzzu-portrait-wrapper");
@@ -1919,8 +1925,8 @@ function _onPortraitClick(ev) {
   const actor = game.actors?.get(actorId);
   if (!actor) return;
 
-  // Ctrl+RMB — открыть лист актёра
-  if (ev.ctrlKey || ev.metaKey) {
+  // Configured action modifier + RMB opens the actor sheet.
+  if (isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.ACTION_MODIFIER, ev)) {
     try {
       actor.sheet?.render(true);
     } catch (e) {
@@ -2017,11 +2023,11 @@ function _onPortraitClick(ev) {
     }
   }
 
-  function _onPortraitCtrlClick(ev) {
-    // React only to left-click with Ctrl (or Meta for mac users)
+  function _onPortraitActionModifierClick(ev) {
+    // Configured action modifier + LMB hides the portrait.
     if (ev.type !== "click") return;
     if (ev.button !== 0) return;
-    if (!(ev.ctrlKey || ev.metaKey)) return;
+    if (!isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.ACTION_MODIFIER, ev)) return;
 
     ev.preventDefault();
     ev.stopPropagation();
@@ -2046,7 +2052,7 @@ function _onPortraitClick(ev) {
     try {
       actor.update({ [FLAG_PORTRAIT_SHOWN]: false });
     } catch (e) {
-      console.error("[ginzzzu-portraits] ctrl-click hide portrait failed:", e);
+      console.error("[ginzzzu-portraits] modifier-click hide portrait failed:", e);
     }
   }
 
@@ -2508,7 +2514,7 @@ function _onPortraitClick(ev) {
 
     wrapper.addEventListener("auxclick", _onPortraitAuxClick);
     wrapper.addEventListener("contextmenu", _onPortraitClick);
-    wrapper.addEventListener("click", _onPortraitCtrlClick);
+    wrapper.addEventListener("click", _onPortraitActionModifierClick);
     wrapper.addEventListener("pointerdown", _onPortraitPointerDown);
     wrapper.addEventListener("dragstart", ev => ev.preventDefault());
 

@@ -74,6 +74,25 @@
       "expandEmotion": "Expand"
     },
 
+    "Keybindings": {
+      "keepDragPosition": {
+        "name": "Portrait drag: keep manual position",
+        "hint": "Hold while releasing a dragged portrait to keep its manual position, scale, and tilt. Default: Shift."
+      },
+      "transformDrag": {
+        "name": "Portrait drag: scale and rotate",
+        "hint": "Hold while dragging to scale with vertical movement and rotate with horizontal movement. Default: Alt."
+      },
+      "portraitActionModifier": {
+        "name": "Portrait: action modifier",
+        "hint": "Hold while left-clicking a portrait to hide it, or while right-clicking to open its actor sheet. Default: Ctrl / Cmd."
+      },
+      "panelOpenSheetModifier": {
+        "name": "Panel: open actor sheet modifier",
+        "hint": "Hold while left-clicking an actor card in the panel to open its actor sheet instead of showing or hiding the portrait. Default: Ctrl / Cmd."
+      }
+    },
+
     "Settings": {
       "hidePortraits": {
         "name": "Do not display portraits",
@@ -162,7 +181,7 @@
       },
       "portraitDragResetOnRelease": {
         "name": "Reset position on release",
-        "hint": "When enabled, portraits return to their automatic position unless Shift is held on release. When disabled, portraits keep the dragged position and tilt until the next refresh unless Shift is held on release."
+        "hint": "When enabled, portraits return to their automatic position unless the configured keep-position key is held on release. When disabled, portraits keep the dragged position and tilt until the next refresh unless that key is held on release."
       },
       "portraitDragMinScale": {
         "name": "Portrait drag: minimum scale",
