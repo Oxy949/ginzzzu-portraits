@@ -284,7 +284,7 @@ const FRAME = {
   }
 
   // Simple image loader with timeout. Resolves with a decoded off-DOM image.
-  function _loadDecodedImageElement(src, timeoutMs = 60000) {
+  function _loadDecodedImageElement(src, timeoutMs = 60000, { useCors = true } = {}) {
     return new Promise((resolve, reject) => {
       if (!src) return reject(new Error("No src"));
       const img = new Image();
@@ -306,7 +306,7 @@ const FRAME = {
       };
       img.onerror = (e) => onDone(new Error("Image load error"));
       // try set crossOrigin to allow CORS'd images where possible
-      try { img.crossOrigin = "anonymous"; } catch {}
+      if (useCors) { try { img.crossOrigin = "anonymous"; } catch {} }
       try { img.decoding = "async"; } catch {}
       try { img.loading = "eager"; } catch {}
       timer = setTimeout(() => onDone(new Error("Image preload timeout")), timeoutMs);
@@ -322,7 +322,9 @@ const FRAME = {
   }
 
   function _preloadImage(src, timeoutMs = 60000) {
-    return _loadDecodedImageElement(src, timeoutMs).then(() => src);
+    return _loadDecodedImageElement(src, timeoutMs, { useCors: true })
+      .catch(() => _loadDecodedImageElement(src, timeoutMs, { useCors: false }))
+      .then(() => src);
   }
 
   function _copyPortraitImageState(sourceImg, targetImg, nextSrc) {
