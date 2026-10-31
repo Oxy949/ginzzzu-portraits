@@ -1,3 +1,10 @@
+// Only the aspect ratio affects row fitting, not the image's pixel resolution.
+export function portraitImageChangesRowFit(previous, next) {
+  const oldRatio = previous?.naturalHeight > 0 ? previous.naturalWidth / previous.naturalHeight : 0;
+  const newRatio = next?.naturalHeight > 0 ? next.naturalWidth / next.naturalHeight : 0;
+  return newRatio > 0 && Math.abs(newRatio - oldRatio) > 0.000001;
+}
+
 // Fit actual artwork into separate, equally wide frames. One shared scale
 // preserves relative character heights; height alone never triggers shrinking.
 export function resolvePortraitRowFit({ heightsPx = [], aspectRatios = [], availableWidth,

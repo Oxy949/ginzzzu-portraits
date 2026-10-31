@@ -3,7 +3,7 @@ import { configurePortrait } from "./portrait-config.js";
 import { layoutPortraitNames } from "../core/portraitNameLayout.js";
 import { resolvePortraitOffsets } from "../core/portraitOffsets.js";
 import { getPortraitHeightMultiplier, resolvePortraitHeights } from "../core/portraitHeights.js";
-import { resolvePortraitRowFit } from "../core/portraitRowFit.js";
+import { portraitImageChangesRowFit, resolvePortraitRowFit } from "../core/portraitRowFit.js";
 import {
   PORTRAIT_KEYBINDINGS,
   isPortraitControlKeyActive
@@ -2636,6 +2636,9 @@ function _onPortraitClick(ev) {
 
       const dx = first.left - last.left;
       const dy = first.top - last.top;
+      // A layout pass must not promote every stationary portrait to a new
+      // compositing layer, especially at the end of an emotion transition.
+      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return null;
       
       // Get base transform
       const base = getComputedStyle(el).transform;
@@ -2691,6 +2694,7 @@ function _onPortraitClick(ev) {
       runningAnimations.push(animation);
     });
 
+    if (!runningAnimations.length) return;
     scheduleAfterAnimationSettles(_ANIM.moveMs, () => {
       runningAnimations.forEach(animation => {
         try { animation.cancel(); } catch (e) {}
@@ -3051,11 +3055,15 @@ function _onPortraitClick(ev) {
       } catch (e) {
         console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
         if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
-        relayoutDomHud();
         return;
       }
 
       if (wrapper.dataset[lockKey] !== token || !imgEl.isConnected) return;
+
+      // Height changes already update the row in the Actor hook. Swapping art
+      // only needs another layout if autofit sees a different aspect ratio.
+      const needsRowFit = !!game.settings.get(MODULE_ID, "resizeToFit")
+        && portraitImageChangesRowFit(imgEl, preparedImg);
 
       // If no transition requested, replace only after the new decoded element is ready.
       if (!duration) {
@@ -3072,7 +3080,9 @@ function _onPortraitClick(ev) {
         }
         const actorIdForMap = preparedImg.dataset.actorId || imgEl.dataset.actorId;
         if (actorIdForMap) domStore().set(actorIdForMap, activeImg);
+        wrapper.dataset.src = newSrc;
         if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
+        if (needsRowFit) relayoutDomHud();
         return;
       }
 
@@ -3232,6 +3242,7 @@ function _onPortraitClick(ev) {
         imgEl.remove();
       } catch (e) {}
       if (actorIdForMap) map.set(actorIdForMap, newImgEl);
+      wrapper.dataset.src = newSrc;
 
       // Restore transition/will-change on the new element
       newImgEl.style.transition = prevTransition;
@@ -3244,7 +3255,7 @@ function _onPortraitClick(ev) {
 
       // Clear lock token
       if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
-      relayoutDomHud();
+      if (needsRowFit) relayoutDomHud();
     }
 
   // ---- Реакция всех клиентов на смену флага актёра ----

@@ -97,6 +97,8 @@ In **Visual novel mode**, portraits stand on one shared floor. Outside novel mod
 
 The NPC rail, player panel, and favorites render only visible cards with a small scroll buffer. Filtering and sorting still use the complete actor list; offscreen actors create no card or image elements. Preview images load lazily and decode asynchronously. Name labels are measured before styles are written, and drag frames measure only moving portraits. These paths avoid repeated layout work as the number of characters grows.
 
+Changing emotion art keeps the existing row layout when the image proportions are unchanged or row fitting is disabled. Different image proportions refit the row once after the new image is installed, including when image animation is disabled. Layout animations run only for portraits that actually move; stationary portraits do not create extra animations or cleanup timers.
+
 Run `node --experimental-vm-modules --test "tests/*.test.mjs"` to check token art synchronization and name layout with Node.js 24 or newer.
 
 For a browser layout check, serve the project directory locally and open `tests/fixtures/dock-grid.html`. It uses the module's real dock CSS and virtual grid with 5000 actors, row-count controls, scrolling, filtering, and panel visibility controls.
