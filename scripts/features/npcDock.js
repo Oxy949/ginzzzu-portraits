@@ -1,5 +1,6 @@
 import { MODULE_ID, DOCK_ID, FLAG_PORTRAIT_SHOWN, FLAG_FAVORITE, FLAG_DISPLAY_NAME } from "../core/constants.js";
 import { isActorInIgnoredNPCFolder } from "../settings.js";
+import { createVirtualDockGrid } from "../core/virtualDockGrid.js";
 import {
   PORTRAIT_KEYBINDINGS,
   isPortraitControlKeyActive
@@ -33,6 +34,19 @@ import {
   let cachedPCTypes = null;
   let updateDockPreviewsEnabledCache = null;
   const dockPreviewCache = new Map();
+  const npcGrids = new WeakMap();
+  let textCollator = null;
+  let collatorLanguage = null;
+  let folderPathCache = new WeakMap();
+
+  function compareDockText(a, b) {
+    const language = game.i18n.lang || undefined;
+    if (!textCollator || language !== collatorLanguage) {
+      textCollator = new Intl.Collator(language, { sensitivity: "base" });
+      collatorLanguage = language;
+    }
+    return textCollator.compare(a || "", b || "");
+  }
 
   function invalidateActorTypeCaches() {
     cachedNPCTypes = null;
@@ -200,10 +214,15 @@ import {
 
   // ── FOLDERS / TOOLTIP / PATH ────────────────────────────────────────────────
   function getFolderPath(actor) {
+    const folder = actor?.folder;
+    if (!folder) return "";
+    if (folderPathCache.has(folder)) return folderPathCache.get(folder);
     const names = [];
-    let f = actor?.folder ?? null;
+    let f = folder;
     while (f) { names.unshift(f.name || ""); f = f.folder ?? null; }
-    return names.join(" / ");
+    const path = names.join(" / ");
+    folderPathCache.set(folder, path);
+    return path;
   }
 
   function makeTooltip(actor, previewName = actor?.name || "") {
@@ -450,7 +469,7 @@ import {
     sortEl.value   = getSortMode();
     folderEl.value = getFolderSel();
 
-    searchEl.addEventListener("input", (e) => { setSearchText(e.target.value || ""); scheduleRebuild(0); });
+    searchEl.addEventListener("input", (e) => { setSearchText(e.target.value || ""); scheduleRebuild(80); });
     sortEl.addEventListener("change", (e) => { setSortMode(e.target.value); scheduleRebuild(0); });
     folderEl.addEventListener("change", (e) => { setFolderSel(e.target.value || "all"); scheduleRebuild(0); });
 
@@ -583,7 +602,6 @@ import {
 
   // Построить карточки players (type "player") с учетом фильтра по папке
   function buildPlayers(container) {
-    container.innerHTML = "";
     let pcs = (game.actors?.contents ?? []).filter(a => isPC(a));
 
     // Фильтр по выбранной папке игроков
@@ -609,10 +627,25 @@ import {
       const bFav = !!foundry.utils.getProperty(b, `flags.${MODULE_ID}.pcFavorite`);
       if (aFav !== bFav) return bFav ? 1 : -1;
       // затем по имени
-      return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+      return compareDockText(a.name, b.name);
     });
-    const fragment = document.createDocumentFragment();
-    for (const a of pcs) {
+    let grid = npcGrids.get(container);
+    if (!grid) {
+      grid = createVirtualDockGrid(container, {
+        createCard: createPlayerCard, getRows: count => {
+          const rows = getNpcDockRows();
+          if (rows >= 3) return 1;
+          if (rows === 2) return count < 2 ? 1 : 2;
+          return count < 3 ? 1 : count < 5 ? 2 : 3;
+        },
+        vertical: true, size: PLAYER_DOCK_CARD_SIZE, gap: PLAYER_DOCK_GAP
+      });
+      npcGrids.set(container, grid);
+    }
+    grid.setItems(pcs);
+  }
+
+  function createPlayerCard(a) {
       const preview = getDockPreview(a);
       const btn = document.createElement("div");
       btn.className = "item";
@@ -622,6 +655,8 @@ import {
       const FLAG_FAV_PC = `flags.${MODULE_ID}.pcFavorite`;
 
       const img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
       img.src = preview.image;
       img.alt = preview.accessibleName || "Player";
       btn.appendChild(img);
@@ -671,16 +706,21 @@ import {
           }
       });
 
-      fragment.appendChild(btn);
-    }
-    container.appendChild(fragment);
+      return btn;
   }
 
     // Построить карточки NPC (с учётом фильтров, БЕЗ избранных — они в отдельной колонке)
   function buildNPCs(containerRail) {
     if (!containerRail) return;
     containerRail.classList.remove("is-empty");
-    containerRail.innerHTML = "";
+    let grid = npcGrids.get(containerRail);
+    if (!grid) {
+      grid = createVirtualDockGrid(containerRail, {
+        createCard: createNPCCard, getRows: getNpcDockRows,
+        size: NPC_DOCK_CARD_SIZE, gap: NPC_DOCK_GAP
+      });
+      npcGrids.set(containerRail, grid);
+    }
 
     let npcs = (game.actors?.contents ?? []).filter(a => isNPC(a) && !isActorInIgnoredNPCFolder(a));
 
@@ -716,6 +756,7 @@ import {
     }
 
     if (!npcs.length) {
+      grid.setItems([]);
       containerRail.classList.add("is-empty");
       containerRail.innerHTML = `<div class="empty">${game.i18n.localize("GINZZZUPORTRAITS.noNPCFound")}</div>`;
       return;
@@ -729,6 +770,7 @@ import {
 
     // если все совпадающие оказались избранными — основная лента пустая
     if (!rest.length) {
+      grid.setItems([]);
       containerRail.classList.add("is-empty");
       containerRail.innerHTML = `<div class="empty">${game.i18n.localize("GINZZZUPORTRAITS.allInFavorites") || "Все подходящие NPC отмечены ★ и показаны в колонке избранных"}</div>`;
       return;
@@ -739,9 +781,9 @@ import {
     if (mode === "folder-asc") {
       rest.sort((a, b) => {
         const pa = getFolderPath(a), pb = getFolderPath(b);
-        const byFolder = (pa || "").localeCompare(pb || "", game.i18n.lang || undefined, { sensitivity:"base" });
+        const byFolder = compareDockText(pa, pb);
         if (byFolder !== 0) return byFolder;
-        return (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" });
+        return compareDockText(a.name, b.name);
       });
     } else if (mode === FOUNDRY_FOLDER_SORT_MODE) {
       const actorFolders = game.folders?.filter?.(folder => folder?.type === "Actor") ?? [];
@@ -749,14 +791,13 @@ import {
         locale: game.i18n.lang || undefined
       }));
     } else {
-      rest.sort((a, b) =>
-        (a.name||"").localeCompare(b.name||"", game.i18n.lang || undefined, { sensitivity:"base" })
-      );
+      rest.sort((a, b) => compareDockText(a.name, b.name));
     }
 
-    // рендер только обычных NPC
-    const fragment = document.createDocumentFragment();
-    for (const a of rest) {
+    grid.setItems(rest);
+  }
+
+  function createNPCCard(a) {
       const preview = getDockPreview(a);
       const btn = document.createElement("div");
       btn.className = "item";
@@ -764,6 +805,8 @@ import {
       btn.title = makeTooltip(a, preview.tooltipName);
 
       const img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
       img.src = preview.image;
       img.alt = preview.accessibleName || "NPC";
       btn.appendChild(img);
@@ -794,36 +837,37 @@ import {
       btn.addEventListener("mousedown", onCardRightMouse);
       btn.addEventListener("mousedown", onCardMiddleFav);  // СКМ — пометить избранным
 
-      fragment.appendChild(btn);
-    }
-    containerRail.appendChild(fragment);
+      return btn;
   }
 
 
     // Отдельная колонка избранных NPC — маленькие портреты, вертикальный скролл
   function buildNPCFavs(containerFavs) {
     if (!containerFavs) return;
+    let grid = npcGrids.get(containerFavs);
+    if (!grid) {
+      grid = createVirtualDockGrid(containerFavs, {
+        createCard: createNPCFavoriteCard, getRows: count => count < 3 ? 1 : count < 5 ? 2 : 3,
+        vertical: true, size: PLAYER_DOCK_CARD_SIZE, gap: PLAYER_DOCK_GAP
+      });
+      npcGrids.set(containerFavs, grid);
+    }
 
     // собираем ТОЛЬКО избранных NPC (независимо от фильтров)
     let favs = (game.actors?.contents ?? [])
       .filter(a => isNPC(a) && !isActorInIgnoredNPCFolder(a) && !!foundry.utils.getProperty(a, FLAG_FAVORITE));
 
     if (!favs.length) {
-      containerFavs.style.display = "none";
-      containerFavs.innerHTML = "";
+      grid.setItems([]);
       return;
     }
 
     // сортируем по имени
-    favs.sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "", game.i18n.lang || undefined, { sensitivity: "base" })
-    );
+    favs.sort((a, b) => compareDockText(a.name, b.name));
+    grid.setItems(favs);
+  }
 
-    containerFavs.style.display = "";
-    containerFavs.innerHTML = "";
-
-    const fragment = document.createDocumentFragment();
-    for (const a of favs) {
+  function createNPCFavoriteCard(a) {
       const preview = getDockPreview(a);
       const btn = document.createElement("div");
       btn.className = "item";
@@ -831,6 +875,8 @@ import {
       btn.title = makeTooltip(a, preview.tooltipName);
 
       const img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
       img.src = preview.image;
       img.alt = preview.accessibleName || "NPC";
       btn.appendChild(img);
@@ -864,9 +910,7 @@ import {
       btn.addEventListener("mousedown", onCardRightMouse);
       btn.addEventListener("mousedown", onCardMiddleFav); // СКМ — снять/поставить ★
 
-      fragment.appendChild(btn);
-    }
-    containerFavs.appendChild(fragment);
+      return btn;
   }
 
 
@@ -908,6 +952,8 @@ import {
         btn.title = makeTooltip(a, preview.tooltipName) || preview.accessibleName;
 
         const img = document.createElement('img');
+        img.loading = "lazy";
+        img.decoding = "async";
         img.src = preview.image;
         img.alt = preview.accessibleName || '';
         img.draggable = false;
@@ -967,6 +1013,7 @@ import {
     if (playersBox && game.settings.get(MODULE_ID, "playerCharactersPanelEnabled")) {
       buildPlayers(playersBox);
     } else if (playersBox) {
+      npcGrids.get(playersBox)?.setItems([]);
       playersBox.innerHTML = "";
     }
 
@@ -1103,9 +1150,14 @@ import {
 
 
     // папки
-    Hooks.on("createFolder", (f) => { if (f?.type === "Actor") scheduleRebuild(); });
-    Hooks.on("updateFolder", (f) => { if (f?.type === "Actor") scheduleRebuild(); });
-    Hooks.on("deleteFolder", (f) => { if (f?.type === "Actor") scheduleRebuild(); });
+    const handleFolderChange = folder => {
+      if (folder?.type !== "Actor") return;
+      folderPathCache = new WeakMap();
+      scheduleRebuild();
+    };
+    Hooks.on("createFolder", handleFolderChange);
+    Hooks.on("updateFolder", handleFolderChange);
+    Hooks.on("deleteFolder", handleFolderChange);
 
     // сцена
     Hooks.on("canvasReady", () => scheduleRebuild());

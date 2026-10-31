@@ -46,7 +46,7 @@
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
       "portraitHeightMultiplier": "Portrait Height Multiplier",
-      "portraitHeightMultiplierHint": "Relative height multiplier for this portrait (0 = 0%, 1 = 100%, 2 = 200%, etc.). Default: 1",
+      "portraitHeightMultiplierHint": "Configured relative height (0 = 0%, 1 = 100%, 2 = 200%). In novel mode, grows upward from the floor; tall characters can extend above the screen. Shrink-to-fit may scale the entire row uniformly. Default: 1",
       "portraitBreathingMultiplier": "Breathing animation speed multiplier",
       "portraitBreathingMultiplierHint": "Per-character speed multiplier for the breathing animation. 1 = normal speed, 2 = twice as fast, 0 = no breathing for this portrait.",
       "portraitCustomImage": "Custom Portrait Image",
@@ -118,8 +118,20 @@
         "hint": "Personal portrait height for this client. 0 = bottom strip, 1 = full height. Ignored when the GM forces a world height."
       },
       "portraitBottomOffset": {
-       "name": "Bottom Offset (px)",
-       "hint": "How many pixels to lift the portraits above the bottom of the screen. Portrait height is recalculated based on the remaining screen height."
+       "name": "Additional bottom offset (px)",
+       "hint": "Added to the percentage bottom offset. Moves the shared floor without changing portrait heights. Applies to portraits only."
+      },
+      "portraitLeftOffsetPercent": {
+        "name": "Portraits: left offset (%)",
+        "hint": "Offset from the left edge as a percentage of window width. Positive values move the portrait area inward; negative values extend it past the edge. 0 keeps the default position. Tokens are unaffected."
+      },
+      "portraitRightOffsetPercent": {
+        "name": "Portraits: right offset (%)",
+        "hint": "Offset from the right edge as a percentage of window width. Positive values move the portrait area inward; negative values extend it past the edge. 0 keeps the default position. Tokens are unaffected."
+      },
+      "portraitBottomOffsetPercent": {
+        "name": "Portraits: bottom offset (%)",
+        "hint": "Offset as a percentage of window height. Positive values move portraits up; negative values move them down, without changing their height. 0 keeps the default position. Tokens are unaffected."
       },
       "portraitNameVertical": {
         "name": "Portrait: name badge vertical position",
@@ -138,11 +150,11 @@
       },
       "visualNovelMode": {
         "name": "Visual novel mode",
-        "hint": "If enabled, portrait will fit the screen from bottom to top."
+        "hint": "Anchors portraits to a shared floor. When disabled, portraits are centered vertically. Tall portraits may extend above the screen."
       },
       "resizeToFit": {
-        "name": "Portraits: resize to fit all portraits",
-        "hint": "If enabled, portraits will be resized to fit within their containers."
+        "name": "Portraits: shrink to fit the row",
+        "hint": "In either mode, uniformly reduces portrait size when artwork no longer fits into separate frames. Preserves relative character heights. Disable to keep fixed heights and allow overlap. Applies without a reload."
       },
       "adjustForSidebar": {
         "name": "Portraits: account for sidebar width",
@@ -258,7 +270,11 @@
       },
       "emotionImageTransitionMs": {
         "name": "Portrait image transition speed",
-        "hint": "Duration of the image transition animation for emotions (in milliseconds). 0 means no animation."
+        "hint": "Duration of the image transition for emotions and synchronized token art (in milliseconds). 0 means no animation."
+      },
+      "syncTokenArt": {
+        "name": "Sync linked token art with portraits",
+        "hint": "Use the current portrait image, including custom emotions, for linked tokens on all scenes. Applies immediately and to new linked tokens. Unlinked tokens and prototype tokens are unchanged. Disabling leaves the last image in place. Disabled by default."
       },
       "displayNameSeparators": {
         "name": "Name: public-part separators",

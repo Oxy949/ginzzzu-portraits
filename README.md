@@ -67,8 +67,23 @@ How to use:
 - Click the same icon again to remove it
 - All connected users see the emotion and animation immediately
 
+### Linked token art
+Enable **Sync linked token art with portraits** in the module's **Emotions** settings to use the current portrait image for tokens with **Link Actor Data** enabled. This world setting is **off by default** and takes effect without a reload.
+
+Custom emotion images, the custom portrait, and the base portrait use the same priority as the portrait display. Clearing an emotion returns tokens to the current custom or base portrait. Existing linked tokens on all scenes and newly placed linked tokens are synchronized, including dynamic token ring subjects. Unlinked tokens, actor images, and prototype tokens are left unchanged. Disabling synchronization keeps the last token image.
+
+Token images use Foundry's native fade transition, with the duration from **Portrait image transition speed** (0 disables animation). With **Perspective Levels**, the portrait and emotion height multipliers scale the token art together while keeping its ground footprint and shadow unchanged. This requires the updated integration in Perspective Levels.
+
+Only the active GM sends updates; without a connected GM, the owner changing the portrait updates tokens they can modify. Rapid changes are combined within 50 ms and token updates are batched per scene, skipping unchanged images. There is no polling or scene-wide search on emotion changes.
+
 ## Character settings
 - Change displayed name in Player/NPC Sheet > Settings (3 dots in top right) > Configure Character Portrait.
+
+In the module's portrait layout settings, **Left offset (%)**, **Right offset (%)**, and **Bottom offset (%)** accept values from **-100 to +100**, with 0 preserving the default layout. Side offsets use window width: positive values inset the portrait area, negative values extend it past the screen edges. The bottom offset uses window height: positive values lift portraits, negative values lower them without changing their art height. Changes apply without a reload and scale when the window is resized. The existing pixel bottom offset remains additive. These layout offsets do not affect token art, token dimensions, or Perspective Levels scaling.
+
+In **Visual novel mode**, portraits stand on one shared floor. Outside novel mode, they are anchored at the vertical center as before. Configured height comes from the window-height setting, the actor's multiplier, and the emotion multiplier. Tall characters may extend above the screen; negative bottom offsets can place feet below the screen. Idle breathing scales from the feet in novel mode; deliberate dragging and emotion movement can still move a character away from its anchor.
+
+**Shrink to fit the row** works in both modes and applies without a reload. When enabled, it fits actual image dimensions into separate, equally wide frames, reducing width and height by one common scale so characters keep their relative heights. Changing emotion art recalculates the fit using the new image dimensions. To keep heights fixed regardless of character count, disable this option: portraits then retain their configured size and may overlap. Vertical offsets affect placement only; side offsets and the sidebar determine the available width for fitting. This screen-only fitting never resizes scene tokens.
 
 ## Useful tips
 - Folder colors match each portrait’s background or outline for quick visual grouping.
@@ -79,6 +94,12 @@ How to use:
 - Use Foundry's **Configure Controls** menu to remap panel and portrait modifiers separately.
 - Right-click an actor in the **Actors** list (top-right panel) and select **“Show portrait”**, or use the top-right button in the character sheet to instantly display the portrait.
 - Use `Settings` to configure the module to your preferences.
+
+The NPC rail, player panel, and favorites render only visible cards with a small scroll buffer. Filtering and sorting still use the complete actor list; offscreen actors create no card or image elements. Preview images load lazily and decode asynchronously. Name labels are measured before styles are written, and drag frames measure only moving portraits. These paths avoid repeated layout work as the number of characters grows.
+
+Run `node --experimental-vm-modules --test "tests/*.test.mjs"` to check token art synchronization and name layout with Node.js 24 or newer.
+
+For a browser layout check, serve the project directory locally and open `tests/fixtures/dock-grid.html`. It uses the module's real dock CSS and virtual grid with 5000 actors, row-count controls, scrolling, filtering, and panel visibility controls.
 
 ## Credits
 - [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design

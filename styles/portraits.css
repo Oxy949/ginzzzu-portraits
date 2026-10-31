@@ -96,9 +96,14 @@
   width: auto;
   max-width: none;
   object-fit: contain;
-  object-position: center;
+  object-position: center bottom;
   position: absolute;
-  transform: translateX(-50%) translateY(0px);
+  left: 50%;
+  top: auto;
+  bottom: 0;
+  translate: -50% 0;
+  transform: translateY(0px);
+  transform-origin: center center;
   border: none;
   image-rendering: auto;
   transition: filter var(--tone-filter-transition, 200ms ease-out);
@@ -134,7 +139,7 @@
   opacity: 0.95;
 }
 
-/* Центрируем точку, вокруг которой зеркалим wrapper
+/* Keep the floor fixed while mirroring or scaling the wrapper
    и вводим переменные для флипа и "просадки" затемнённых портретов */
 .ginzzzu-portrait-wrapper {
   transform-origin: center center;
@@ -145,6 +150,11 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+#ginzzzu-portrait-layer.ginzzzu-portrait-novel-mode .ginzzzu-portrait-wrapper,
+#ginzzzu-portrait-layer.ginzzzu-portrait-novel-mode .ginzzzu-portrait-wrapper > img {
+  transform-origin: center bottom;
 }
 
 #ginzzzu-portrait-layer.ginzzzu-portrait-drag-active {
@@ -203,9 +213,9 @@
   opacity: 0.95;
 }
 
-/* Портреты "в тени" — чуть ниже */
+/* Focus dimming must not move a character's feet below the shared floor. */
 div.ginzzzu-portrait-wrapper.ginzzzu-portrait-dimmed {
-  --ginzzzu-dim-offset-y: 5px;
+  --ginzzzu-dim-offset-y: 0px;
 }
 
 /* Плашка имени портрета, всплывающая при наведении */

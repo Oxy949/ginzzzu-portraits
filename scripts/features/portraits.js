@@ -1,5 +1,9 @@
 import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_BREATHING_MULTIPLIER, EMOTIONS } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
+import { layoutPortraitNames } from "../core/portraitNameLayout.js";
+import { resolvePortraitOffsets } from "../core/portraitOffsets.js";
+import { getPortraitHeightMultiplier, resolvePortraitHeights } from "../core/portraitHeights.js";
+import { resolvePortraitRowFit } from "../core/portraitRowFit.js";
 import {
   PORTRAIT_KEYBINDINGS,
   isPortraitControlKeyActive
@@ -281,10 +285,13 @@ const FRAME = {
     });
   }
 
-  function _preloadImage(src, timeoutMs = 60000) {
+  function _loadPortraitImageElement(src, timeoutMs = 60000) {
     return _loadDecodedImageElement(src, timeoutMs, { useCors: true })
-      .catch(() => _loadDecodedImageElement(src, timeoutMs, { useCors: false }))
-      .then(() => src);
+      .catch(() => _loadDecodedImageElement(src, timeoutMs, { useCors: false }));
+  }
+
+  function _preloadImage(src, timeoutMs = 60000) {
+    return _loadPortraitImageElement(src, timeoutMs).then(() => src);
   }
 
   function _copyPortraitImageState(sourceImg, targetImg, nextSrc) {
@@ -431,14 +438,12 @@ const FRAME = {
     const spread = total > 1 ? settings.delaySpreadMs : 0;
     const delayMs = spread > 0 ? -Math.round(seed * spread) : 0;
     const durationMs = Math.max(600, Math.round(settings.durationMs / speedMultiplier));
-    const liftPx = 0.5 + (settings.strength * 3);
     const scale = 1 + (settings.strength * 0.036);
     const signature = [
       settings.strength.toFixed(3),
       durationMs,
       Math.round(delayMs),
       speedMultiplier.toFixed(3),
-      liftPx.toFixed(3),
       scale.toFixed(5),
       index,
       total
@@ -456,9 +461,9 @@ const FRAME = {
     try {
       wrapper[PORTRAIT_BREATHING_ANIMATION_KEY] = wrapper.animate(
         [
-          { translate: "0 0", scale: "1" },
-          { translate: `0 ${liftPx.toFixed(3)}px`, scale: scale.toFixed(5) },
-          { translate: "0 0", scale: "1" }
+          { scale: "1" },
+          { scale: scale.toFixed(5) },
+          { scale: "1" }
         ],
         {
           duration: durationMs,
@@ -507,6 +512,7 @@ const FRAME = {
 
     root = document.createElement("div");
     root.id = "ginzzzu-portrait-layer";
+    root.classList.toggle("ginzzzu-portrait-novel-mode", !!game.settings.get(MODULE_ID, "visualNovelMode"));
 
     const nameMode = game.settings.get(MODULE_ID, "portraitNamesAlwaysVisible") || "hover";
 
@@ -525,8 +531,9 @@ const FRAME = {
       flexDirection: "row",
       alignItems: "flex-end",
       justifyContent: "center",
+      overflow: "hidden",
       gap: "24px",
-      paddingBottom: `${getBottomOffsetPx()}px`,  // ← берём из настройки
+      paddingBottom: `${getLegacyBottomOffsetPx()}px`,
       // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
     });
 
@@ -541,12 +548,12 @@ const FRAME = {
         bottom: `${getBottomOffsetPx()}px`,
         display: "flex",
         flexDirection: "row",
-        alignItems: "end",
+        alignItems: "flex-end",
         justifyContent: "center",        // центрируем ряд; отступы делаем через margin
         gap: "inherit",
         pointerEvents: "none",
-        overflowX: "hidden",              // не скроллить — будем сжимать/перекрывать
-        overflowY: "hidden",
+        overflowX: "visible",             // only the full-screen root clips portraits
+        overflowY: "visible",
         WebkitOverflowScrolling: "auto",
         // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
       });
@@ -563,8 +570,8 @@ const FRAME = {
         justifyContent: "center",        // центрируем ряд; отступы делаем через margin
         gap: "inherit",
         pointerEvents: "none",
-        overflowX: "hidden",              // не скроллить — будем сжимать/перекрывать
-        overflowY: "hidden",
+        overflowX: "visible",
+        overflowY: "visible",
         WebkitOverflowScrolling: "auto",
         // paddingLeft/Right будут синхронизироваться ниже с учётом #sidebar
       });
@@ -656,38 +663,8 @@ const FRAME = {
   }
 
     // Position all name badges to match their wrappers; called after layout changes
-    function updateNamePositions() {
-      const root = getDomHud();
-      if (!root) return;
-      const namesContainer = root.querySelector('#ginzzzu-portrait-names');
-      if (!namesContainer) return;
-
-      const wrappers = Array.from(root.querySelectorAll('.ginzzzu-portrait-wrapper'));
-      const badgesByActorId = new Map(
-        Array.from(namesContainer.querySelectorAll('.ginzzzu-portrait-name[data-actor-id]'))
-          .map(badge => [badge.dataset.actorId, badge])
-      );
-      for (const wrapper of wrappers) {
-        const actorId = wrapper.dataset.actorId;
-        if (!actorId) continue;
-        const badge = badgesByActorId.get(actorId);
-        if (!badge) continue;
-        // Horizontal: center above wrapper
-        try {
-          const rect = wrapper.getBoundingClientRect();
-          const centerX = rect.left + (rect.width / 2);
-          badge.style.left = `${centerX}px`;
-        } catch (e) {}
-
-        // Vertical placement: try to reuse wrapper variable if present
-        const nameTopVar = wrapper.style.getPropertyValue('--threeo-portrait-name-top') || '50vh';
-        // badge bottom should equal calc(100vh - nameTopVar)
-        badge.style.bottom = `calc(100vh - ${nameTopVar})`;
-
-        // font-size propagation
-        const fontSize = wrapper.style.getPropertyValue('--threeo-portrait-name-font-size');
-        if (fontSize) badge.style.fontSize = fontSize;
-      }
+    function updateNamePositions(options) {
+      layoutPortraitNames(getDomHud(), options);
     }
 
   // Получить ширину правой панели (если есть)
@@ -703,10 +680,9 @@ const FRAME = {
   }
 
   // Синхронизировать правый отступ root/rail с текущей шириной sideBar
-  function syncSidePadding(root, rail) {
-    const sidebarW = getSidebarWidth();
-    const leftPad = FRAME.sidePadPx;
-    const rightPad = FRAME.sidePadPx + sidebarW;
+  function syncSidePadding(root, rail, offsets = getPortraitOffsets()) {
+    const leftPad = offsets.leftPadding;
+    const rightPad = offsets.rightPadding;
     if (root) {
       root.style.paddingLeft = `${leftPad}px`;
       root.style.paddingRight = `${rightPad}px`;
@@ -714,10 +690,17 @@ const FRAME = {
     if (rail) {
       rail.style.paddingLeft = `${leftPad}px`;
       rail.style.paddingRight = `${rightPad}px`;
+      // Signed insets allow outward movement; CSS padding cannot be negative.
+      rail.style.left = `${offsets.left}px`;
+      rail.style.right = "auto";
+      rail.style.boxSizing = "border-box";
+      rail.style.width = `${offsets.railWidth}px`;
+      rail.style.top = `${offsets.top}px`;
+      rail.style.bottom = `${offsets.bottom}px`;
     }
   }
 
-  function getBottomOffsetPx() {
+  function getLegacyBottomOffsetPx() {
     try {
       let v = Number(game.settings.get(MODULE_ID, "portraitBottomOffset") ?? 0);
       if (!Number.isFinite(v)) v = 0;
@@ -726,6 +709,28 @@ const FRAME = {
       // fallback на значение из FRAME, если что-то пошло не так
       return FRAME.bottomPx ?? 0;
     }
+  }
+
+  function getPortraitOffsets(width = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)) {
+    const read = key => {
+      try { return game.settings.get(MODULE_ID, key); }
+      catch (_) { return 0; }
+    };
+    return resolvePortraitOffsets({
+      width,
+      height: Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0),
+      leftPercent: read("portraitLeftOffsetPercent"),
+      rightPercent: read("portraitRightOffsetPercent"),
+      bottomPercent: read("portraitBottomOffsetPercent"),
+      legacyBottomPx: getLegacyBottomOffsetPx(),
+      sidebarWidth: getSidebarWidth(),
+      sidePaddingPx: FRAME.sidePadPx,
+      targetBand: FRAME.targetBand
+    });
+  }
+
+  function getBottomOffsetPx() {
+    return getPortraitOffsets().bottom;
   }
 
   // Кэш DOM-элементов: actorId -> <img>
@@ -752,6 +757,7 @@ const FRAME = {
   let activePortraitDrag = null;
   let pendingSharedPortraitSequence = null;
   let namePositionFrame = null;
+  let namePositionsFullUpdateRequested = false;
   let nameFollowUntil = 0;
   let lastPortraitDragSocketAt = 0;
   const remotePortraitDrags = new Map();
@@ -760,18 +766,22 @@ const FRAME = {
   const portraitManualZIndexes = new Map();
   let portraitLayerOrder = [];
 
-  function scheduleNamePositionsUpdate() {
+  function scheduleNamePositionsUpdate(movingOnly = false) {
+    if (movingOnly !== true) namePositionsFullUpdateRequested = true;
     if (namePositionFrame !== null) return;
     namePositionFrame = requestAnimationFrame(() => {
       namePositionFrame = null;
-      try { updateNamePositions(); } catch (e) {}
+      const movingOnly = !namePositionsFullUpdateRequested;
+      namePositionsFullUpdateRequested = false;
+      try { updateNamePositions({ movingOnly }); } catch (e) {}
       const root = getDomHud();
       const now = performance?.now?.() ?? Date.now();
+      const followAll = now < nameFollowUntil;
       if (
-        now < nameFollowUntil ||
+        followAll ||
         root?.querySelector?.(".ginzzzu-portrait-name-dragging, .ginzzzu-portrait-name-returning")
       ) {
-        scheduleNamePositionsUpdate();
+        scheduleNamePositionsUpdate(!followAll);
       }
     });
   }
@@ -1199,7 +1209,7 @@ const FRAME = {
     badge.classList.add("ginzzzu-portrait-name-dragging");
     badge.classList.remove("ginzzzu-portrait-name-returning");
     badge.classList.toggle("ginzzzu-portrait-name-remote-dragging", !!state.remote);
-    scheduleNamePositionsUpdate();
+    scheduleNamePositionsUpdate(true);
   }
 
   function clearPortraitNameDragVisual(state, { animateBack = false } = {}) {
@@ -2442,11 +2452,17 @@ function _onPortraitClick(ev) {
 
 
   // FIRST: текущие позиции всех портретов (для FLIP)
+  function getPortraitLayoutImages(rail) {
+    // A fading portrait may have two images. It still occupies only one frame.
+    return Array.from(rail.querySelectorAll(".ginzzzu-portrait-wrapper"),
+      wrapper => wrapper.querySelector("img.ginzzzu-portrait")).filter(Boolean);
+  }
+
   function collectFirstRects() {
     const root = getDomHud();
     if (!root) return new Map();
     const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
-    const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
+    const imgs = getPortraitLayoutImages(rail);
     const m = new Map();
     imgs.forEach(el => m.set(el, el.getBoundingClientRect()));
     return m;
@@ -2457,10 +2473,8 @@ function _onPortraitClick(ev) {
     // вычисляем базовую ширину рамки из процента и ограничений
     const wantWpx = Math.min(FRAME.maxWidthPx, Math.max(FRAME.minWidthPx, Math.floor((FRAME.widthVw / 100) * vw)));
     // учёт левого и правого паддинга (правый включает текущую ширину #sidebar)
-    const sidebarW = getSidebarWidth();
-    const leftPad = FRAME.sidePadPx;
-    const rightPad = FRAME.sidePadPx + sidebarW;
-    const bandW = Math.floor(vw * FRAME.targetBand) - leftPad - rightPad;
+    const offsets = getPortraitOffsets(vw);
+    const bandW = offsets.bandWidth;
 
     const n = imgs.length || 0;
     let widthPx = wantWpx;
@@ -2469,12 +2483,6 @@ function _onPortraitClick(ev) {
     if (n <= 1) {
       gapPx = 0;
     } else {
-      // если разрешено менять width, заранее ограничим его, чтобы не было слишком явного переползания
-      if (game.settings.get(MODULE_ID, "visualNovelMode") === false && game.settings.get(MODULE_ID, "resizeToFit")) {
-        const possibleAtMinGap = Math.floor((bandW - (n - 1) * FRAME.gapMin) / n);
-        widthPx = Math.max(FRAME.minWidthPx, Math.min(wantWpx, possibleAtMinGap));
-      }
-
       // Попытка вместить ряд, регулируя gap. idealGap может быть отрицательным (перекрытие).
       const idealGap = Math.floor((bandW - n * widthPx) / (n - 1));
       // Максимальное допустимое перекрытие (процент ширины)
@@ -2504,9 +2512,10 @@ function _onPortraitClick(ev) {
     const root = getDomHud();
     const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
     // Обновим padding с учётом возможной динамической ширины sidebar (на случай изменения)
-    syncSidePadding(root, rail);
-    root.style.gap = `${Math.max(0, gapPx)}px`;
-    rail.style.gap = `${Math.max(0, gapPx)}px`;
+    syncSidePadding(root, rail, offsets);
+    const visualNovelMode = !!game.settings.get(MODULE_ID, "visualNovelMode");
+    root.classList.toggle("ginzzzu-portrait-novel-mode", visualNovelMode);
+    rail.style.alignItems = visualNovelMode ? "flex-end" : "center";
 
     let porHeight = game.settings.get(MODULE_ID, "portraitHeight");
 
@@ -2515,7 +2524,7 @@ function _onPortraitClick(ev) {
     }
 
     // актуализируем нижний паддинг по настройке
-    const bottomOffsetPx = getBottomOffsetPx();
+    const bottomOffsetPx = offsets.bottom;
     rail.style.bottom = `${bottomOffsetPx}px`;
 
     // Коэффициент «доступной высоты» (0..1) относительно всего окна
@@ -2524,14 +2533,28 @@ function _onPortraitClick(ev) {
       window.innerHeight || 0
     ) || 1;
 
-    const usableFraction = Math.max(
-      0,
-      Math.min(1, (viewportH - bottomOffsetPx) / viewportH)
-    );
-
-    // Итоговая высота портрета = (настройка) * (доступная доля экрана)
-    const effectivePorHeight = porHeight * usableFraction;
-    const baseHeightPx = snapToDevicePixel(effectivePorHeight * viewportH);
+    const heightLayout = resolvePortraitHeights({
+      viewportHeight: viewportH,
+      portraitHeight: porHeight,
+      multipliers: imgs.map(image => getPortraitHeightMultiplier(game.actors?.get(image.dataset.actorId))),
+      devicePixelRatio: globalThis.devicePixelRatio
+    });
+    const fitted = resolvePortraitRowFit({
+      enabled: !!game.settings.get(MODULE_ID, "resizeToFit"),
+      heightsPx: heightLayout.heightsPx,
+      aspectRatios: imgs.map(image => image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 1),
+      availableWidth: bandW,
+      preferredSlotWidth: wantWpx,
+      gap: FRAME.gapBase,
+      devicePixelRatio: globalThis.devicePixelRatio
+    });
+    if (fitted) {
+      widthPx = fitted.slotWidthPx;
+      gapPx = fitted.gapPx;
+    }
+    const baseHeightPx = heightLayout.baseHeightPx * (fitted?.scale ?? 1);
+    root.style.gap = `${Math.max(0, gapPx)}px`;
+    rail.style.gap = `${Math.max(0, gapPx)}px`;
 
 
     // Настройки плашки имени
@@ -2556,55 +2579,28 @@ function _onPortraitClick(ev) {
       const wrapper = el.parentElement;
       if (!wrapper) return;
       
-      // Получаем множитель высоты из актёра
-      const actorId = el?.dataset?.actorId;
-      let heightMultiplier = 1;
-      if (actorId) {
-        try {
-          const actor = game.actors?.get(actorId);
-          if (actor) {
-            // Сначала получаем базовый множитель портрета
-            const portraitMultiplier = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
-            let baseMultiplier = 1;
-            if (typeof portraitMultiplier === "number" && Number.isFinite(portraitMultiplier)) {
-              baseMultiplier = Math.max(0, portraitMultiplier);
-            }
-            
-            // Затем проверяем множитель эмоции
-            const emotionHeightMultiplier = foundry.utils.getProperty(actor, FLAG_EMOTION_HEIGHT_MULTIPLIER);
-            if (typeof emotionHeightMultiplier === "number" && Number.isFinite(emotionHeightMultiplier)) {
-              // Если эмоция активна, множим оба множителя
-              heightMultiplier = Math.max(0, baseMultiplier * emotionHeightMultiplier);
-            } else {
-              // Если эмоции нет, используем только базовый множитель портрета
-              heightMultiplier = baseMultiplier;
-            }
-          }
-        } catch (e) {
-          // ignore and use default
-        }
-      }
-
-      const finalHeightPx = snapToDevicePixel(baseHeightPx * heightMultiplier);
+      const finalHeightPx = (fitted ?? heightLayout).heightsPx[i];
       
       // Вычисляем offset для компенсации изменения высоты портрета
       // Базовая и актуальная высоты выровнены по физическим пикселям экрана.
       // Компенсирующий offset: только положительный (если портрет больше — панель сдвигается вниз)
       const heightOffsetPx = snapToDevicePixel(Math.max(0, (finalHeightPx - baseHeightPx) / 2));
-      const snappedWidthPx = snapToDevicePixel(widthPx);
+      const snappedWidthPx = fitted ? widthPx : snapToDevicePixel(widthPx);
       
       wrapper.style.height    = `${finalHeightPx}px`;
       wrapper.style.maxHeight = `${finalHeightPx}px`;
       wrapper.style.width     = `${snappedWidthPx}px`;
       wrapper.style.maxWidth  = `${snappedWidthPx}px`;
       wrapper.style.flex      = "0 0 auto";
-      wrapper.style.marginLeft = (i === 0) ? "0px" : `${gapPx}px`;
+      wrapper.style.marginLeft = (i === 0 || gapPx >= 0) ? "0px" : `${gapPx}px`;
 
       // Передаём offset в CSS-переменную для компенсации высоты
       wrapper.style.setProperty("--portrait-height-offset-y", `${heightOffsetPx}px`);
       
       // Передаём настройки имени в CSS-переменные
-      wrapper.style.setProperty("--threeo-portrait-name-top", `${nameV}vh`);
+      const nameTop = offsets.top === 0 ? `${nameV}vh`
+        : `calc(${nameV}vh ${offsets.top < 0 ? "-" : "+"} ${Math.abs(offsets.top)}px)`;
+      wrapper.style.setProperty("--threeo-portrait-name-top", nameTop);
       wrapper.style.setProperty("--threeo-portrait-name-font-size", `${nameFontSize}px`);
 
 
@@ -2708,7 +2704,7 @@ function _onPortraitClick(ev) {
     if (!root) return;
     const rail = root.querySelector("#ginzzzu-portrait-rail") || root;
 
-    const imgs = Array.from(rail.querySelectorAll("img.ginzzzu-portrait"));
+    const imgs = getPortraitLayoutImages(rail);
     const n = imgs.length;
     if (!n) return;
 
@@ -2770,19 +2766,20 @@ function _onPortraitClick(ev) {
 
     // Preload image before inserting into DOM to avoid flashing broken images
     let finalSrc = img;
+    let preparedImage = null;
     try {
-      await _preloadImage(img);
+      preparedImage = await _loadPortraitImageElement(img);
     } catch (e) {
       console.warn("[threeO-portraits] image preload failed for", img, " — using placeholder");
       finalSrc = "icons/svg/mystery-man.svg";
       // attempt to preload placeholder (best-effort)
-      try { await _preloadImage(finalSrc); } catch {}
+      try { preparedImage = await _loadPortraitImageElement(finalSrc); } catch {}
     }
 
-        const el = document.createElement("img");
+        const el = preparedImage ?? document.createElement("img");
         el.className = "ginzzzu-portrait";
         el.alt = safeName || "Portrait";
-        el.src = finalSrc;
+        if (!preparedImage) el.src = finalSrc;
         el.draggable = false;
         el.dataset.actorId = actorId;
         el.dataset.src = img;
@@ -2852,7 +2849,7 @@ function _onPortraitClick(ev) {
     } else {
       Object.assign(el.style, {
         position: "absolute",
-        width: "100%",
+        width: "auto",
         height: "100%",
         objectFit: "contain",
         borderRadius: "10px",
@@ -3054,6 +3051,7 @@ function _onPortraitClick(ev) {
       } catch (e) {
         console.warn("[threeO-portraits] preload failed for emotion image", newSrc, e);
         if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
+        relayoutDomHud();
         return;
       }
 
@@ -3246,6 +3244,7 @@ function _onPortraitClick(ev) {
 
       // Clear lock token
       if (wrapper.dataset[lockKey] === token) delete wrapper.dataset[lockKey];
+      relayoutDomHud();
     }
 
   // ---- Реакция всех клиентов на смену флага актёра ----
@@ -3556,6 +3555,17 @@ Hooks.once("ready", () => {
     }, 120);
   }
   window.addEventListener("resize", _onWindowResizeDebounced, { passive: true });
+  const offsetSettingKeys = new Set([
+    "portraitLeftOffsetPercent", "portraitRightOffsetPercent", "portraitBottomOffsetPercent", "portraitBottomOffset", "resizeToFit"
+  ].map(key => `${MODULE_ID}.${key}`));
+  let offsetLayoutFrame = null;
+  Hooks.on("updateSetting", setting => {
+    if (!offsetSettingKeys.has(setting?.key) || offsetLayoutFrame !== null) return;
+    offsetLayoutFrame = requestAnimationFrame(() => {
+      offsetLayoutFrame = null;
+      relayoutDomHud();
+    });
+  });
   Hooks.on("canvasReady", () => relayoutDomHud());
   Hooks.on("collapseSidebar", function(a, collapsed) {
     setTimeout(() => relayoutDomHud(), 500);

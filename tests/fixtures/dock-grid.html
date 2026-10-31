@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<title>Dock grid regression fixture</title>
+<link rel="stylesheet" href="../../styles/npc-dock.css">
+<style>
+  body { background:#211b2c; color:white; font:16px system-ui; }
+  #ginzzzu-npc-dock { position:relative; left:0; bottom:auto; transform:none; width:640px; margin:20px; }
+  #ginzzzu-npc-dock .content { display:block; }
+  button, select, input { margin:6px; font:inherit; }
+  #ginzzzu-npc-dock .item { display:grid; place-content:center; color:white; }
+</style>
+<p>5000 actors; actual module CSS and virtual grid renderer.</p>
+<label>Rows <select id="rows"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<button id="end">Scroll to end</button><button id="start">Scroll to start</button>
+<button id="hide">Toggle panel</button><button id="filter">Filter to 3 actors</button><button id="all">All actors</button>
+<p id="stats"></p>
+<div id="ginzzzu-npc-dock"><div class="content"><div class="npcs"><div class="rail" aria-label="Actors"></div></div></div></div>
+<script type="module">
+import { createVirtualDockGrid } from '../../scripts/core/virtualDockGrid.js';
+const dock = document.querySelector('#ginzzzu-npc-dock');
+const rail = dock.querySelector('.rail');
+const actors = Array.from({length:5000}, (_,i)=>({id:String(i)}));
+let rows = 1;
+const grid = createVirtualDockGrid(rail, {
+  getRows:()=>rows,
+  createCard(actor) {
+    const card = document.createElement('div');
+    card.className = 'item'; card.dataset.actorId = actor.id;
+    card.textContent = `Actor ${actor.id}`; card.draggable = true;
+    card.addEventListener('click',()=>card.classList.toggle('is-on'));
+    card.addEventListener('dragstart',()=>{card.dataset.dragging='1';});
+    card.addEventListener('dragend',()=>{delete card.dataset.dragging;});
+    return card;
+  }
+});
+grid.setItems(actors);
+document.querySelector('#rows').onchange = event => {
+  rows = Number(event.target.value);
+  dock.style.setProperty('--ginzzzu-npc-dock-height', `${rows*108-8}px`);
+  dock.style.setProperty('--ginzzzu-npc-dock-grid-rows', `repeat(${rows},100px)`);
+  grid.setItems(actors);
+};
+document.querySelector('#end').onclick=()=>{rail.scrollLeft=rail.scrollWidth;};
+document.querySelector('#start').onclick=()=>{rail.scrollLeft=0;};
+document.querySelector('#hide').onclick=()=>{dock.hidden=!dock.hidden;};
+document.querySelector('#filter').onclick=()=>grid.setItems(actors.slice(0,3));
+document.querySelector('#all').onclick=()=>grid.setItems(actors);
+const updateStats = ()=>{
+  document.querySelector('#stats').textContent=`Mounted: ${rail.querySelectorAll('.item').length}; scroll width: ${rail.scrollWidth}px`;
+};
+new MutationObserver(updateStats).observe(rail,{childList:true});
+updateStats();
+</script>
+</html>

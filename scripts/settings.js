@@ -246,6 +246,9 @@ const SETTINGS_GROUPS = [
       "gmForcePortraitHeight",
       "gmPortraitHeight",
       "portraitHeight",
+      "portraitLeftOffsetPercent",
+      "portraitRightOffsetPercent",
+      "portraitBottomOffsetPercent",
       "portraitBottomOffset",
       "portraitNamesAlwaysVisible",
       "portraitNameVertical",
@@ -297,6 +300,7 @@ const SETTINGS_GROUPS = [
       "emotionPanelPosition",
       "emotionColorIntensity",
       "emotionImageTransitionMs",
+      "syncTokenArt",
       "resetEmotionOnHide"
     ]
   },
@@ -507,6 +511,19 @@ Hooks.once("init", () => {
     default: []
   });
 
+  for (const key of ["portraitLeftOffsetPercent", "portraitRightOffsetPercent", "portraitBottomOffsetPercent"]) {
+    reg(key, {
+      name: game.i18n.localize(`GINZZZUPORTRAITS.Settings.${key}.name`),
+      hint: game.i18n.localize(`GINZZZUPORTRAITS.Settings.${key}.hint`),
+      scope: "world",
+      config: true,
+      type: Number,
+      default: 0,
+      range: { min: -100, max: 100, step: 0.1 },
+      requiresReload: false
+    });
+  }
+
   reg("portraitBottomOffset", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitBottomOffset.hint"),
@@ -515,7 +532,7 @@ Hooks.once("init", () => {
     type: Number,
     default: 0,                    // отступ снизу в пикселях
     range: { min: 0, max: 800, step: 1 },
-    requiresReload: true
+    requiresReload: false
   });
 
   reg("portraitNameVertical", {
@@ -574,7 +591,7 @@ Hooks.once("init", () => {
     config: true,
     type: Boolean,
     default: true,
-    requiresReload: true
+    requiresReload: false
   });
 
   reg("adjustForSidebar", {
@@ -821,6 +838,16 @@ Hooks.once("init", () => {
     requiresReload: false
   });
 
+
+  reg("syncTokenArt", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.syncTokenArt.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.syncTokenArt.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: false
+  });
 
   // === Источник изображения актёра (CSV путей) ===
   reg("actorImagePaths", {
