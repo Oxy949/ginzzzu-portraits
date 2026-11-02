@@ -101,6 +101,8 @@ Scrolling keeps overlapping cards and their images mounted, inserts only incomin
 
 Changing emotion art keeps the existing row layout when the image proportions are unchanged or row fitting is disabled. Different image proportions refit the row once after the new image is installed, including when image animation is disabled. Layout animations run only for portraits that actually move; stationary portraits do not create extra animations or cleanup timers.
 
+Height changes keep portraits anchored at the bottom center in visual novel mode and at the center in normal mode. Changing an emotion's height no longer makes the resized artwork fly back from its old top-left position; row movement still animates when a character's anchor actually moves.
+
 Breathing animations survive row reordering and are cancelled when their portrait is removed. Repeated show requests share pending image loading; hiding a portrait cancels its pending mount. Cached images decode once, and emotion clicks leave image loading to the transition instead of starting a second preload. Saving portrait configuration sends all flags in one actor update. Remote reorder timeouts track only the dragged name badge rather than measuring the whole row every frame.
 
 Hide commands also invalidate queued first-frame reveals and emotion transitions. A delayed image or placeholder cannot bring a hidden portrait back, and cleanup from an earlier close preserves a newer portrait and its name badge.

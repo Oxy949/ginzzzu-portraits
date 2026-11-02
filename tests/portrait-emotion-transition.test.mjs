@@ -14,6 +14,10 @@ function productionFunction(name, endMarker, globals) {
   return vm.runInNewContext(`${source.slice(start, end)}; ${name}`, globals);
 }
 
+function rect(left, top, width = 100, height = 200) {
+  return { left, top, width, height, right: left + width, bottom: top + height };
+}
+
 function setup({ duration = 320, autofit = true, ratio = 0.5, load, onFrame, onTransition } = {}) {
   const timers = new Map(); let sequence = 0, layouts = 0, loads = 0;
   const style = () => ({ removeProperty(key) { delete this[key]; } });
@@ -145,8 +149,8 @@ test("a stationary 200-portrait row does no transform reads, animations or defer
     scheduleAfterAnimationSettles: () => cleanup++
   });
   const images = Array.from({ length: 200 }, () => ({ animate() { animations++; } }));
-  const first = new Map(images.map((image, i) => [image, { left: i * 100, top: 20 }]));
-  const last = new Map(images.map((image, i) => [image, { left: i * 100 + 0.0001, top: 20 }]));
+  const first = new Map(images.map((image, i) => [image, rect(i * 100, 20)]));
+  const last = new Map(images.map((image, i) => [image, rect(i * 100 + 0.0001, 20)]));
   animate(images, first, last);
   assert.equal(reads, 0); assert.equal(animations, 0); assert.equal(cleanup, 0);
 });
@@ -161,9 +165,54 @@ test("row reflow animates only moved portraits and keeps mirrored direction and 
     getComputedStyle: element => { reads++; return { transform: element === flipped ? flipped.transform : "none" }; },
     scheduleAfterAnimationSettles: (_, callback) => { cleanup = callback; }
   });
-  animate([stationary, moving], new Map([[stationary, { left: 0, top: 0 }], [moving, { left: 200, top: 0 }]]),
-    new Map([[stationary, { left: 0, top: 0 }], [moving, { left: 150, top: 10 }]]));
+  animate([stationary, moving], new Map([[stationary, rect(0, 0)], [moving, rect(200, 0)]]),
+    new Map([[stationary, rect(0, 0)], [moving, rect(150, 10)]]));
   assert.equal(reads, 2); assert.equal(calls.length, 1);
   assert.equal(calls[0][0].transform, "translate(-50px, -10px)");
   cleanup(); assert.equal(calls.at(-1), "cancel");
+});
+
+test("emotion height changes keep the floor in novel mode and the center in normal mode", () => {
+  const animate = productionFunction("animateFlip", "  // Перераскладка ряда с FLIP", {
+    getComputedStyle() { throw Error("A height-only change should not create a movement animation"); }
+  });
+  const image = { animate() { throw Error("Resizing made a stationary portrait fly to its anchor"); } };
+  for (const anchorBottom of [false, true]) {
+    // Large -> small and small -> large, including art wider than the viewport.
+    for (const [before, after] of [[1600, 300], [300, 1600]]) {
+      const box = height => rect(700 - height / 4, 900 - height * (anchorBottom ? 1 : 0.5), height / 2, height);
+      animate([image], new Map([[image, box(before)]]), new Map([[image, box(after)]]), { anchorBottom });
+    }
+  }
+});
+
+test("resizing during row reflow animates only the real anchor displacement and respects mirroring", () => {
+  let keyframes;
+  const image = { closest: () => ({}), animate(frames) { keyframes = frames; return { cancel() {} }; } };
+  const animate = productionFunction("animateFlip", "  // Перераскладка ряда с FLIP", {
+    _ANIM: { moveMs: 1200, easing: "ease-out" },
+    getComputedStyle: element => ({ transform: element === image ? "none" : "matrix(-1,0,0,1,0,0)" }),
+    scheduleAfterAnimationSettles() {}
+  });
+  // The bottom center moves from (500, 900) to (400, 880), while the art shrinks.
+  animate([image], new Map([[image, rect(300, 100, 400, 800)]]),
+    new Map([[image, rect(350, 680, 100, 200)]]), { anchorBottom: true });
+  assert.equal(keyframes[0].transform, "translate(-100px, 20px)");
+  assert.equal(keyframes[1].transform, "none");
+});
+
+test("row layout chooses the anchor from the final novel-mode geometry", () => {
+  for (const anchorBottom of [false, true]) {
+    let applied = false, animationOptions;
+    const image = { getBoundingClientRect: () => rect(0, 0) };
+    const root = { querySelector: () => ({}), classList: { contains: () => { assert.equal(applied, true); return anchorBottom; } } };
+    const layout = productionFunction("relayoutDomHud", "  function revealPortraitImage(", {
+      getDomHud: () => root, getPortraitLayoutImages: () => [image], collectFirstRects: () => new Map(),
+      document: { documentElement: { clientWidth: 1200 } }, window: { innerWidth: 1200 },
+      applyGeometry: () => { applied = true; },
+      animateFlip: (images, first, last, options) => { animationOptions = options; }
+    });
+    layout();
+    assert.equal(animationOptions.anchorBottom, anchorBottom);
+  }
 });

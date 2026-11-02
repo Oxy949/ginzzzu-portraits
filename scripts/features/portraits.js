@@ -2632,15 +2632,19 @@ function _onPortraitClick(ev) {
 
 
   // FLIP-анимация сдвига через Web Animations API
-  function animateFlip(imgs, firstRects, lastRects) {
+  function animateFlip(imgs, firstRects, lastRects, { anchorBottom = false } = {}) {
     // Pre-calculate all transforms before starting animations
     const animations = imgs.map(el => {
       const first = firstRects.get(el);
       const last = lastRects.get(el);
       if (!first || !last) return null;
 
-      const dx = first.left - last.left;
-      const dy = first.top - last.top;
+      // Resizing moves the top-left corner even when the character has not
+      // moved. Animate its anchor instead, keeping cropped art on the floor
+      // in novel mode and centered in the normal portrait layout.
+      const dx = (first.left + first.width / 2) - (last.left + last.width / 2);
+      const anchorY = anchorBottom ? 1 : 0.5;
+      const dy = (first.top + first.height * anchorY) - (last.top + last.height * anchorY);
       // A layout pass must not promote every stationary portrait to a new
       // compositing layer, especially at the end of an emotion transition.
       if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return null;
@@ -2729,7 +2733,9 @@ function _onPortraitClick(ev) {
     imgs.forEach(el => lastRects.set(el, el.getBoundingClientRect()));
 
     // 3) анимируем сдвиг
-    animateFlip(imgs, firstRects, lastRects);
+    animateFlip(imgs, firstRects, lastRects, {
+      anchorBottom: root.classList.contains("ginzzzu-portrait-novel-mode")
+    });
   }
 
   function revealPortraitImage(wrapper, image, visualNovelMode) {
