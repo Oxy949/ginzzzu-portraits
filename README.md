@@ -97,11 +97,17 @@ In **Visual novel mode**, portraits stand on one shared floor. Outside novel mod
 
 The NPC rail, player panel, and favorites render only visible cards with a small scroll buffer. Filtering and sorting still use the complete actor list; offscreen actors create no card or image elements. Preview images load lazily and decode asynchronously. Name labels are measured before styles are written, and drag frames measure only moving portraits. These paths avoid repeated layout work as the number of characters grows.
 
+Scrolling keeps overlapping cards and their images mounted, inserts only incoming cards, and avoids forced layout after DOM updates. Each wheel event is handled once; player and favorite panels apply wheel deltas immediately without restarting smooth-scroll animations.
+
 Changing emotion art keeps the existing row layout when the image proportions are unchanged or row fitting is disabled. Different image proportions refit the row once after the new image is installed, including when image animation is disabled. Layout animations run only for portraits that actually move; stationary portraits do not create extra animations or cleanup timers.
 
-Run `node --experimental-vm-modules --test "tests/*.test.mjs"` to check token art synchronization and name layout with Node.js 24 or newer.
+Breathing animations survive row reordering and are cancelled when their portrait is removed. Repeated show requests share pending image loading; hiding a portrait cancels its pending mount. Cached images decode once, and emotion clicks leave image loading to the transition instead of starting a second preload. Saving portrait configuration sends all flags in one actor update. Remote reorder timeouts track only the dragged name badge rather than measuring the whole row every frame.
 
-For a browser layout check, serve the project directory locally and open `tests/fixtures/dock-grid.html`. It uses the module's real dock CSS and virtual grid with 5000 actors, row-count controls, scrolling, filtering, and panel visibility controls.
+Hide commands also invalidate queued first-frame reveals and emotion transitions. A delayed image or placeholder cannot bring a hidden portrait back, and cleanup from an earlier close preserves a newer portrait and its name badge.
+
+Run `node --experimental-vm-modules --test "tests/*.test.mjs"` to check token art synchronization, portrait lifecycle, configuration saves, scrolling and name layout with Node.js 24 or newer.
+
+For a browser layout check, serve the project directory locally and open `tests/fixtures/dock-grid.html`. It uses the module's real dock CSS, wheel handler and virtual grids with 5000 NPCs, players, favorites, preview images, row-count controls, scrolling, filtering, and panel visibility controls.
 
 ## Credits
 - [Ginzzzu](https://boosty.to/Ginzzzu) - Original idea, core code and design

@@ -15,6 +15,7 @@ export function createVirtualDockGrid(container, { createCard, getRows, size = 1
   let cards = new Map();
   let frame = null;
   let signature = "";
+  let reset = true;
   const spacer = document.createElement("div");
   spacer.setAttribute("aria-hidden", "true");
   Object.assign(spacer.style, { gridRow: "1 / -1", height: "1px", pointerEvents: "none", visibility: "hidden" });
@@ -23,13 +24,16 @@ export function createVirtualDockGrid(container, { createCard, getRows, size = 1
     frame = null;
     if (!items.length || container.querySelector("[data-dragging='1']")) return;
     const rows = getRows(items.length);
-    if (vertical) container.style.gridTemplateColumns = `repeat(${rows}, ${size}px)`;
     const offsetProperty = vertical ? "scrollTop" : "scrollLeft";
+    // Read geometry before changing styles or children. Reading scrollLeft after
+    // mounting cards forces the browser to lay out the grid during every scroll.
+    const offset = container[offsetProperty];
     const window = getDockGridWindow(items.length, rows,
-      vertical ? container.clientHeight : container.clientWidth, container[offsetProperty], size, gap);
+      vertical ? container.clientHeight : container.clientWidth, offset, size, gap);
     const nextSignature = `${window.start}:${window.end}:${rows}:${items.length}`;
     if (signature === nextSignature) return;
     signature = nextSignature;
+    if (vertical) container.style.gridTemplateColumns = `repeat(${rows}, ${size}px)`;
     spacer.style.gridColumn = vertical ? "1 / -1" : `1 / span ${window.columns}`;
     spacer.style.gridRow = vertical ? `1 / span ${window.columns}` : "1 / -1";
     const mounted = [];
@@ -37,16 +41,32 @@ export function createVirtualDockGrid(container, { createCard, getRows, size = 1
     for (let index = window.start; index < window.end; index++) {
       const actor = items[index];
       const card = cards.get(actor.id) ?? createCard(actor);
-      card.style.gridColumn = String((vertical ? index % rows : Math.floor(index / rows)) + 1);
-      card.style.gridRow = String((vertical ? Math.floor(index / rows) : index % rows) + 1);
+      const column = String((vertical ? index % rows : Math.floor(index / rows)) + 1);
+      const row = String((vertical ? Math.floor(index / rows) : index % rows) + 1);
+      if (card.style.gridColumn !== column) card.style.gridColumn = column;
+      if (card.style.gridRow !== row) card.style.gridRow = row;
       mounted.push(card);
       nextCards.set(actor.id, card);
     }
-    cards = nextCards;
     // Keep cards first: the existing dock CSS uses :has(.item:nth-child(...))
     // to decide whether player/favorite panels are empty and how many columns fit.
-    container.replaceChildren(...mounted, spacer);
-    if (container[offsetProperty] !== window.offset) container[offsetProperty] = window.offset;
+    if (reset) {
+      container.replaceChildren(...mounted, spacer);
+      reset = false;
+    } else {
+      for (const [id, card] of cards) {
+        if (!nextCards.has(id)) card.remove();
+      }
+      // Leave overlapping cards (and their decoded images, hover and focus)
+      // connected. Only insert cards entering the visible window.
+      let cursor = container.firstChild;
+      for (const card of mounted) {
+        if (card !== cursor) container.insertBefore(card, cursor);
+        cursor = card.nextSibling;
+      }
+    }
+    cards = nextCards;
+    if (offset !== window.offset) container[offsetProperty] = window.offset;
   }
 
   function schedule() {
@@ -64,6 +84,7 @@ export function createVirtualDockGrid(container, { createCard, getRows, size = 1
       items = actors;
       cards.clear();
       signature = "";
+      reset = true;
       if (vertical) container.style.display = items.length ? "grid" : "none";
       if (items.length) render();
       else container.replaceChildren();

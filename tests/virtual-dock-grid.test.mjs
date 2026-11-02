@@ -27,7 +27,23 @@ function setup({ vertical = false } = {}) {
   let nextId = 0;
   let onResize;
   let disconnected = false;
-  globalThis.document = { createElement: () => ({ style: {}, setAttribute() {} }) };
+  let added = [], removed = [], geometryAfterWrite = 0, dirty = false;
+  const element = () => ({
+    style: new Proxy({}, { set(object, key, value) { dirty = true; object[key] = value; return true; } }),
+    parentNode: null, setAttribute() {},
+    get nextSibling() {
+      const children = this.parentNode?.children ?? [];
+      return children[children.indexOf(this) + 1] ?? null;
+    },
+    remove() {
+      if (!this.parentNode) return;
+      removed.push(this); dirty = true;
+      const children = this.parentNode.children;
+      children.splice(children.indexOf(this), 1);
+      this.parentNode = null;
+    }
+  });
+  globalThis.document = { createElement: element };
   globalThis.requestAnimationFrame = callback => { callbacks.set(++nextId, callback); return nextId; };
   globalThis.cancelAnimationFrame = id => callbacks.delete(id);
   globalThis.ResizeObserver = class {
@@ -38,25 +54,47 @@ function setup({ vertical = false } = {}) {
   const handlers = new Map();
   const container = {
     clientWidth: 432, clientHeight: 112, scrollLeft: 0, scrollTop: 0, children: [], dragging: false, style: {},
+    get firstChild() { return this.children[0] ?? null; },
     querySelector() { return this.dragging ? {} : null; },
-    replaceChildren(...children) { this.children = children; },
+    insertBefore(child, reference) {
+      child.remove();
+      const index = reference ? this.children.indexOf(reference) : this.children.length;
+      assert.ok(index >= 0);
+      this.children.splice(index, 0, child); child.parentNode = this;
+      added.push(child); dirty = true;
+    },
+    replaceChildren(...children) {
+      for (const child of [...this.children]) child.remove();
+      for (const child of children) this.insertBefore(child, null);
+    },
     addEventListener: (name, callback) => handlers.set(name, callback),
     removeEventListener: name => handlers.delete(name)
   };
+  for (const key of ["clientWidth", "clientHeight", "scrollLeft", "scrollTop"]) {
+    let value = container[key];
+    Object.defineProperty(container, key, {
+      get() { if (dirty) geometryAfterWrite++; return value; },
+      set(next) { value = next; }
+    });
+  }
   let created = 0;
   let rows = 2;
   const grid = createVirtualDockGrid(container, {
     vertical, size: vertical ? 50 : 100, gap: vertical ? 6 : 8,
     getRows: () => rows,
-    createCard: actor => { created++; return { style: {}, id: actor.id }; }
+    createCard: actor => { created++; return Object.assign(element(), { id: actor.id }); }
   });
   const actors = Array.from({ length: 5000 }, (_, i) => ({ id: String(i) }));
   const frame = () => {
+    dirty = false;
     const pending = Array.from(callbacks.values());
     callbacks.clear();
     pending.forEach(callback => callback());
   };
   return { grid, container, actors, handlers, callbacks, frame, resize: () => onResize(),
+    resetMeasurements() { added = []; removed = []; geometryAfterWrite = 0; dirty = false; },
+    get added() { return added; }, get removed() { return removed; },
+    get geometryAfterWrite() { return geometryAfterWrite; },
     setRows: value => { rows = value; }, created: () => created, disconnected: () => disconnected };
 }
 
@@ -78,6 +116,28 @@ test("scrolling reuses overlapping cards, coalesces events, and unmounts distant
   h.grid.setItems(h.actors.slice(0, 3));
   assert.equal(h.container.scrollLeft, 0);
   assert.equal(h.container.children.length, 4);
+});
+
+test("adjacent scroll windows keep overlapping cards connected and do no layout reads after writes", () => {
+  for (const vertical of [false, true]) {
+    const h = setup({ vertical });
+    h.grid.setItems(h.actors);
+    const property = vertical ? "scrollTop" : "scrollLeft";
+    const stride = vertical ? 56 : 108;
+    for (const position of [3 * stride, 4 * stride, 3 * stride]) {
+      const before = h.container.children.slice(0, -1);
+      h.resetMeasurements();
+      h.container[property] = position;
+      h.handlers.get("scroll")(); h.frame();
+      const after = h.container.children.slice(0, -1);
+      const overlap = before.filter(card => after.includes(card));
+      assert.ok(overlap.length > 0);
+      assert.ok(overlap.every(card => !h.removed.includes(card) && !h.added.includes(card)),
+        "A visible card was detached and reinserted");
+      assert.equal(h.geometryAfterWrite, 0, "Scrolling forced layout after mutating the grid");
+      assert.deepEqual(after.map(card => Number(card.id)), after.map(card => Number(card.id)).sort((a, b) => a - b));
+    }
+  }
 });
 
 test("hidden panels create no cards and render the correct rows after expanding", () => {

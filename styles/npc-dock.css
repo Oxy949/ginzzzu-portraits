@@ -236,7 +236,7 @@ body.ginzzzu-sidebar-expanded:not(.ginzzzu-sidebar-content-active).ginzzzu-quick
   background: rgba(20, 15, 25, 0);
   box-shadow: 0 0 10px rgba(255,215,106,0), /* existing glow (currently transparent) */
               0 0 0 1px rgba(255,215,106,0); /* outer stroke (acts like border outside) */
-  scroll-behavior: smooth;
+  scroll-behavior: auto; /* Wheel deltas must not restart a smooth scroll. */
   scrollbar-width: thin;
   scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
   -webkit-overflow-scrolling: touch;
@@ -447,7 +447,7 @@ body.ginzzzu-sidebar-expanded:not(.ginzzzu-sidebar-content-active).ginzzzu-quick
   user-select: none;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scrollbar-color: rgba(200,200,255,0.4) rgba(0,0,0,0.2);
   border-radius: 8px;
   /*

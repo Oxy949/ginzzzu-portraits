@@ -14,7 +14,7 @@ function productionFunction(name, endMarker, globals) {
   return vm.runInNewContext(`${source.slice(start, end)}; ${name}`, globals);
 }
 
-function setup({ duration = 320, autofit = true, ratio = 0.5, load } = {}) {
+function setup({ duration = 320, autofit = true, ratio = 0.5, load, onFrame, onTransition } = {}) {
   const timers = new Map(); let sequence = 0, layouts = 0, loads = 0;
   const style = () => ({ removeProperty(key) { delete this[key]; } });
   const image = (width, height) => ({
@@ -22,7 +22,10 @@ function setup({ duration = 320, autofit = true, ratio = 0.5, load } = {}) {
     className: "ginzzzu-portrait", alt: "Actor", listeners: new Map(),
     addEventListener(name, callback) {
       this.listeners.set(name, callback);
-      queueMicrotask(() => this.listeners.get(name)?.({ propertyName: "opacity", target: this }));
+      queueMicrotask(() => {
+        onTransition?.(this);
+        this.listeners.get(name)?.({ propertyName: "opacity", target: this });
+      });
     },
     removeEventListener(name) { this.listeners.delete(name); },
     remove() { this.isConnected = false; this.parentElement.children = this.parentElement.children.filter(el => el !== this); },
@@ -47,8 +50,8 @@ function setup({ duration = 320, autofit = true, ratio = 0.5, load } = {}) {
     _ANIM: { easing: "ease-out" },
     _loadDecodedImageElement: async () => { loads++; return load ? load(prepared) : prepared; },
     _copyPortraitImageState(from, to, src) { to.dataset = { ...from.dataset, src }; },
-    nextAnimationFrame: () => Promise.resolve(),
-    requestAnimationFrame: callback => queueMicrotask(callback),
+    nextAnimationFrame: async () => { onFrame?.(); },
+    requestAnimationFrame: callback => queueMicrotask(() => { onFrame?.(); callback(); }),
     setTimeout(callback, delay) { timers.set(++sequence, { callback, delay }); return sequence; },
     clearTimeout: id => timers.delete(id),
     getComputedStyle: () => ({ transform: "none" }),
@@ -72,6 +75,42 @@ test("emotion swaps with matching proportions never relayout the row after fadin
     assert.equal(h.wrapper.dataset.threeoEmotionTransitionToken, undefined);
     for (const { callback } of h.timers.values()) callback();
     assert.equal(h.layouts, 0, "A delayed callback relaid out the unchanged row");
+  }
+});
+
+test("a delayed emotion decode cannot restore a portrait after its hide command", async () => {
+  for (const duration of [0, 320]) {
+    let finish;
+    const h = setup({ duration, load: prepared => new Promise(resolve => { finish = () => resolve(prepared); }) });
+    const pending = h.swap();
+    h.wrapper.dataset.threeoPortraitClosing = "1";
+    h.wrapper.dataset.threeoEmotionTransitionToken = "closing";
+    h.old.style.opacity = "0";
+    h.old.remove(); h.map.delete("a");
+    finish(); await pending;
+    assert.equal(h.parent.children.length, 0);
+    assert.equal(h.map.has("a"), false);
+    assert.equal(h.old.style.opacity, "0");
+  }
+});
+
+test("hiding during either emotion fade cannot reveal an overlay or revive the actor map", async () => {
+  for (const phase of ["out", "in"]) {
+    let hidden = false;
+    const h = setup({ onTransition(image) {
+      if (hidden || (phase === "out" ? image !== h.old : image !== h.prepared)) return;
+      hidden = true;
+      h.wrapper.dataset.threeoPortraitClosing = "1";
+      h.wrapper.dataset.threeoEmotionTransitionToken = "closing";
+      for (const child of h.parent.children) child.style.opacity = "0";
+    } });
+    await h.swap();
+    assert.equal(hidden, true);
+    assert.equal(h.parent.children.length, 1);
+    assert.equal(h.parent.children[0], h.old);
+    assert.equal(h.old.style.opacity, "0");
+    assert.equal(h.map.get("a"), h.old);
+    assert.equal(h.prepared.isConnected, false);
   }
 });
 

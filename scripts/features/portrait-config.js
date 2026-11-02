@@ -131,47 +131,41 @@ export async function configurePortrait(ev, actorSheet) {
             isResolved = true;
 
             try {
+              // Save all flags together: one network write and one actor-hook
+              // pass, with no intermediate height, image or toolbar states.
+              const updates = {};
               // Save display name
               const input = html.find('input[name="displayName"]').val();
               const value = String(input ?? "").trim();
 
-              if (!value) {
-                await actor.unsetFlag(MODULE_ID, "displayName");
-              } else {
-                await actor.setFlag(MODULE_ID, "displayName", value);
-              }
+              updates[FLAG_DISPLAY_NAME] = value || null;
 
               // Save portrait height multiplier
               const heightInput = html.find('input[name="portraitHeightMultiplier"]').val();
               const heightValue = Number(heightInput ?? 1);
               if (Number.isFinite(heightValue) && heightValue >= 0) {
-                await actor.setFlag(MODULE_ID, "portraitHeightMultiplier", heightValue);
+                updates[FLAG_PORTRAIT_HEIGHT_MULTIPLIER] = heightValue;
               } else {
-                await actor.unsetFlag(MODULE_ID, "portraitHeightMultiplier");
+                updates[FLAG_PORTRAIT_HEIGHT_MULTIPLIER] = null;
               }
 
               const breathingInput = html.find('input[name="portraitBreathingMultiplier"]').val();
               const breathingValue = Number(breathingInput ?? 1);
               if (Number.isFinite(breathingValue) && breathingValue >= 0) {
-                await actor.setFlag(MODULE_ID, "portraitBreathingMultiplier", breathingValue);
+                updates[FLAG_PORTRAIT_BREATHING_MULTIPLIER] = breathingValue;
               } else {
-                await actor.unsetFlag(MODULE_ID, "portraitBreathingMultiplier");
+                updates[FLAG_PORTRAIT_BREATHING_MULTIPLIER] = null;
               }
 
               // Save custom portrait image
               const customImageInput = html.find('input[name="portraitCustomImage"]').val();
               const customImageValue = String(customImageInput ?? "").trim();
               
-              if (!customImageValue) {
-                // Use update with null to ensure the flag change is detected
-                await actor.update({ [FLAG_PORTRAIT_CUSTOM_IMAGE]: null });
-              } else {
-                await actor.setFlag(MODULE_ID, "portraitCustomImage", customImageValue);
-              }
+              updates[FLAG_PORTRAIT_CUSTOM_IMAGE] = customImageValue || null;
 
               // Save "show standard emotions" toggle (default true)
               const showStd = html.find('input[name="showStandardEmotions"]').is(':checked');
-              await actor.setFlag(MODULE_ID, "showStandardEmotions", !!showStd);
+              updates[FLAG_SHOW_STANDARD_EMOTIONS] = !!showStd;
 
               // Save custom emotions
               const emotionItems = html.find('.ginzzzu-emotion-item');
@@ -199,11 +193,8 @@ export async function configurePortrait(ev, actorSheet) {
                 }
               });
 
-              if (emotions.length > 0) {
-                await actor.update({ [FLAG_CUSTOM_EMOTIONS]: emotions });
-              } else {
-                await actor.update({ [FLAG_CUSTOM_EMOTIONS]: [] });
-              }
+              updates[FLAG_CUSTOM_EMOTIONS] = emotions;
+              await actor.update(updates);
             } catch (err) {
               console.error(
                 `[${MODULE_ID}] Failed to save portrait config for ${actor.name}`,

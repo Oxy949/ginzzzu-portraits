@@ -254,6 +254,7 @@ const FRAME = {
       const img = new Image();
       let timer = null;
       let done = false;
+      let decoding = false;
       const onDone = (err, value = img) => {
         if (done) return;
         done = true;
@@ -262,6 +263,10 @@ const FRAME = {
         if (err) reject(err); else resolve(value);
       };
       img.onload = () => {
+        // Cached images can signal readiness via both complete and load before
+        // decode resolves. Share that work instead of decoding twice.
+        if (done || decoding) return;
+        decoding = true;
         if (typeof img.decode === "function") {
           img.decode().catch(() => {}).then(() => onDone(null, img));
         } else {
@@ -422,7 +427,7 @@ const FRAME = {
     wrapper.style.removeProperty("--ginzzzu-breathe-scale");
   }
 
-  function applyPortraitBreathingToWrapper(wrapper, settings, index, total, { reroll = false } = {}) {
+  function applyPortraitBreathingToWrapper(wrapper, settings, total, { reroll = false } = {}) {
     if (!wrapper) return;
     const speedMultiplier = getPortraitBreathingMultiplier(wrapper.dataset.actorId);
     if (!settings?.enabled || speedMultiplier <= 0) {
@@ -444,9 +449,7 @@ const FRAME = {
       durationMs,
       Math.round(delayMs),
       speedMultiplier.toFixed(3),
-      scale.toFixed(5),
-      index,
-      total
+      scale.toFixed(5)
     ].join("|");
 
     if (wrapper.dataset.breathSignature === signature && wrapper[PORTRAIT_BREATHING_ANIMATION_KEY]) {
@@ -487,8 +490,8 @@ const FRAME = {
 
     const wrappers = Array.from(root.querySelectorAll(".ginzzzu-portrait-wrapper"));
     const settings = getPortraitBreathingSettings();
-    wrappers.forEach((wrapper, index) => {
-      applyPortraitBreathingToWrapper(wrapper, settings, index, wrappers.length, options);
+    wrappers.forEach(wrapper => {
+      applyPortraitBreathingToWrapper(wrapper, settings, wrappers.length, options);
     });
   }
 
@@ -1542,7 +1545,9 @@ const FRAME = {
     }, holdMs);
 
     pendingRemoteSwapDrags.set(actorId, state);
-    followNamePositionsFor(holdMs);
+    // The network timeout is not an animation. Follow only the dragged badge;
+    // tracking the whole row here would force layout every frame for 4 seconds.
+    scheduleNamePositionsUpdate(true);
   }
 
   function clearPendingRemoteSwapDrag(actorId, { animateBack = false } = {}) {
@@ -2727,6 +2732,30 @@ function _onPortraitClick(ev) {
     animateFlip(imgs, firstRects, lastRects);
   }
 
+  function revealPortraitImage(wrapper, image, visualNovelMode) {
+    let started = false;
+    const reveal = () => {
+      if (started) return;
+      started = true;
+      image.onload = image.onerror = null;
+      requestAnimationFrame(() => {
+        // A hide can arrive between mounting the image and this first frame.
+        // Never let a queued reveal make a closing portrait visible again.
+        if (!image.isConnected || wrapper.dataset.threeoPortraitClosing === "1") return;
+        image.style.opacity = "1";
+        if (!visualNovelMode) {
+          image.style.transform = "none";
+          image.dataset.baseTransform = "none";
+        }
+        _updateImgTransformForFlip(image);
+      });
+    };
+    image.onload = image.onerror = reveal;
+    if (image.complete) reveal();
+  }
+
+  const pendingPortraitOpens = new Map();
+
   // Показ одного портрета (создание/обновление DOM + FLIP других)
   async function openLocalPortrait({ actorId, img, name, appendAsNewest = false }) {
     if (!actorId || !img) return;
@@ -2746,7 +2775,8 @@ function _onPortraitClick(ev) {
     // Уже есть с тем же src — ничего не делаем
     if (existing) {
       const wrapper = existing.closest(".ginzzzu-portrait-wrapper");
-      if (wrapper && wrapper.dataset.src === img) {
+      if (wrapper && wrapper.dataset.src === img && wrapper.dataset.threeoPortraitClosing !== "1") {
+        pendingPortraitOpens.delete(actorId);
         existing.style.opacity = "1";
         existing.style.transform = "translateY(0)";
         if (appendAsNewest) appendPortraitWrapperAsNewest(rail, wrapper);
@@ -2763,10 +2793,13 @@ function _onPortraitClick(ev) {
       }
     }
 
-    // FIRST до изменения DOM (для плавного сдвига остальных)
-    const firstRects = collectFirstRects();
-
-    if (existing) { try { existing.remove(); } catch {} ; map.delete(actorId); }
+    const pending = pendingPortraitOpens.get(actorId);
+    if (pending?.img === img) {
+      pending.appendAsNewest ||= appendAsNewest;
+      return;
+    }
+    const request = { img, appendAsNewest };
+    pendingPortraitOpens.set(actorId, request);
 
     // Preload image before inserting into DOM to avoid flashing broken images
     let finalSrc = img;
@@ -2774,10 +2807,32 @@ function _onPortraitClick(ev) {
     try {
       preparedImage = await _loadPortraitImageElement(img);
     } catch (e) {
+      if (pendingPortraitOpens.get(actorId) !== request) return;
       console.warn("[threeO-portraits] image preload failed for", img, " — using placeholder");
       finalSrc = "icons/svg/mystery-man.svg";
       // attempt to preload placeholder (best-effort)
       try { preparedImage = await _loadPortraitImageElement(finalSrc); } catch {}
+    }
+
+    // A hide or a newer show request may arrive while the image is decoding.
+    if (pendingPortraitOpens.get(actorId) !== request) return;
+    pendingPortraitOpens.delete(actorId);
+    if (!root.isConnected) return;
+    appendAsNewest = request.appendAsNewest;
+
+    // Measure the current row only once the image is ready, before changing DOM.
+    const firstRects = collectFirstRects();
+    const previous = map.get(actorId);
+    if (previous) {
+      const oldWrapper = previous.closest(".ginzzzu-portrait-wrapper");
+      if (oldWrapper) {
+        oldWrapper.dataset.threeoPortraitClosing = "1";
+        oldWrapper.dataset.threeoEmotionTransitionToken = "replaced";
+        stopPortraitBreathing(oldWrapper);
+        oldWrapper.remove();
+      } else previous.remove();
+      root.querySelector(`#ginzzzu-portrait-names .ginzzzu-portrait-name[data-actor-id="${actorId}"]`)?.remove();
+      map.delete(actorId);
     }
 
         const el = preparedImage ?? document.createElement("img");
@@ -2924,41 +2979,12 @@ function _onPortraitClick(ev) {
     // Apply blur effect if enabled
     applyBlur();
 
-    if (visualNovelMode) {
-      // Ждем полной загрузки изображения в DOM перед анимацией
-      el.onload = () => {
-        requestAnimationFrame(() => {
-          el.style.opacity = "1";
-          // VN-режим: transform обычно пустой, но всё равно прогоняем через флип
-          _updateImgTransformForFlip(el);
-        });
-      };
-    } else {
-      // Ждем полной загрузки изображения в DOM перед анимацией
-      el.onload = () => {
-        requestAnimationFrame(() => {
-          el.style.opacity = "1";
-          // после окончательного положения фиксируем базовый transform
-          el.style.transform = "none";
-          el.dataset.baseTransform = "none";
-          _updateImgTransformForFlip(el);
-        });
-      };
-    }
-
-    const revealPortrait = el.onload;
-    let revealStarted = false;
-    el.onload = () => {
-      if (revealStarted) return;
-      revealStarted = true;
-      revealPortrait?.();
-    };
-    el.onerror = el.onload;
-    if (el.complete) el.onload();
+    revealPortraitImage(wrapper, el, visualNovelMode);
   }
 
   // Скрытие одного портрета и отключение эмоций (удаление DOM + FLIP остальных)
   function closeLocalPortrait(actorId) {
+    pendingPortraitOpens.delete(actorId);
     const map = domStore();
     const el = map.get(actorId);
     if (!el) return;
@@ -2967,6 +2993,7 @@ function _onPortraitClick(ev) {
     // replace `el` before the hide timeout fires, leaving the replacement in
     // the DOM if we try to find the wrapper through the old image later.
     const wrapper = el.closest(".ginzzzu-portrait-wrapper");
+    if (wrapper?.dataset.threeoPortraitClosing === "1") return;
     if (wrapper) {
       wrapper.dataset.threeoPortraitClosing = "1";
       // Invalidate a transition which may already be waiting on image decode.
@@ -2978,6 +3005,10 @@ function _onPortraitClick(ev) {
     }
 
     const firstRects = collectFirstRects();
+
+    const closingBadge = getDomHud()?.querySelector(
+      `#ginzzzu-portrait-names .ginzzzu-portrait-name[data-actor-id="${actorId}"]`
+    );
 
     // --- Optionally reset emotion when hiding portrait (guarded by setting) ---
     try {
@@ -3014,20 +3045,14 @@ function _onPortraitClick(ev) {
     setTimeout(() => {
       try {
         if (wrapper && wrapper.classList.contains("ginzzzu-portrait-wrapper")) {
+          stopPortraitBreathing(wrapper);
           wrapper.remove();
         } else {
           el.remove();
         }
       } catch {}
-      // Also remove name badge if present
-      try {
-        const root = getDomHud();
-        const namesContainer = root ? root.querySelector('#ginzzzu-portrait-names') : null;
-        if (namesContainer) {
-          const b = namesContainer.querySelector(`.ginzzzu-portrait-name[data-actor-id="${actorId}"]`);
-          if (b) b.remove();
-        }
-      } catch (e) {}
+      // A reopened portrait may already have a new badge; remove only this one.
+      closingBadge?.remove();
       const currentEl = map.get(actorId);
       const removedCurrentPortrait = !currentEl || currentEl === el || !!wrapper?.contains(currentEl);
       if (removedCurrentPortrait) {
@@ -3636,6 +3661,7 @@ Hooks.once("ready", () => {
 
 
   function closeAllLocalPortraits() {
+    pendingPortraitOpens.clear();
     const ids = Array.from(domStore().keys());
     ids.forEach(id => closeLocalPortrait(id));
   }

@@ -4,41 +4,59 @@
 <title>Dock grid regression fixture</title>
 <link rel="stylesheet" href="../../styles/npc-dock.css">
 <style>
+  *, ::before, ::after { box-sizing:border-box; }
   body { background:#211b2c; color:white; font:16px system-ui; }
   #ginzzzu-npc-dock { position:relative; left:0; bottom:auto; transform:none; width:640px; margin:20px; }
-  #ginzzzu-npc-dock .content { display:block; }
   button, select, input { margin:6px; font:inherit; }
-  #ginzzzu-npc-dock .item { display:grid; place-content:center; color:white; }
 </style>
-<p>5000 actors; actual module CSS and virtual grid renderer.</p>
+<p>5000 NPCs, 18 players, 40 favorites; actual module CSS, wheel handler and virtual grids.</p>
 <label>Rows <select id="rows"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
 <button id="end">Scroll to end</button><button id="start">Scroll to start</button>
 <button id="hide">Toggle panel</button><button id="filter">Filter to 3 actors</button><button id="all">All actors</button>
 <p id="stats"></p>
-<div id="ginzzzu-npc-dock"><div class="content"><div class="npcs"><div class="rail" aria-label="Actors"></div></div></div></div>
+<div id="ginzzzu-npc-dock"><div class="content"><div class="players" aria-label="Players"></div><div class="npc-favs" aria-label="Favorites"></div><div class="npcs"><div class="rail" aria-label="Actors"></div></div></div></div>
 <script type="module">
 import { createVirtualDockGrid } from '../../scripts/core/virtualDockGrid.js';
+import { attachDockWheelScrolling } from '../../scripts/core/dockWheel.js';
 const dock = document.querySelector('#ginzzzu-npc-dock');
 const rail = dock.querySelector('.rail');
 const actors = Array.from({length:5000}, (_,i)=>({id:String(i)}));
 let rows = 1;
-const grid = createVirtualDockGrid(rail, {
-  getRows:()=>rows,
-  createCard(actor) {
+function createCard(actor) {
     const card = document.createElement('div');
     card.className = 'item'; card.dataset.actorId = actor.id;
-    card.textContent = `Actor ${actor.id}`; card.draggable = true;
+    const image = document.createElement('img');
+    image.src = '../../preview.webp'; image.loading = 'lazy'; image.decoding = 'async';
+    image.alt = `Actor ${actor.id}`; card.appendChild(image);
+    const label = document.createElement('span');
+    label.className = 'npc-label'; label.textContent = `Actor ${actor.id}`; card.appendChild(label);
+    card.draggable = true;
     card.addEventListener('click',()=>card.classList.toggle('is-on'));
     card.addEventListener('dragstart',()=>{card.dataset.dragging='1';});
     card.addEventListener('dragend',()=>{delete card.dataset.dragging;});
     return card;
-  }
+}
+const grid = createVirtualDockGrid(rail, { getRows:()=>rows, createCard });
+const players = createVirtualDockGrid(dock.querySelector('.players'), {
+  getRows:()=> rows >= 3 ? 1 : rows === 2 ? 2 : 3,
+  createCard, vertical:true, size:50, gap:6
 });
+const favorites = createVirtualDockGrid(dock.querySelector('.npc-favs'), {
+  getRows:()=>3, createCard, vertical:true, size:50, gap:6
+});
+attachDockWheelScrolling(dock);
+players.setItems(actors.slice(0,18));
+favorites.setItems(actors.slice(0,40));
 grid.setItems(actors);
 document.querySelector('#rows').onchange = event => {
   rows = Number(event.target.value);
   dock.style.setProperty('--ginzzzu-npc-dock-height', `${rows*108-8}px`);
   dock.style.setProperty('--ginzzzu-npc-dock-grid-rows', `repeat(${rows},100px)`);
+  dock.style.setProperty('--ginzzzu-player-panel-height', `${rows*112-6}px`);
+  dock.classList.toggle('npc-rows-2', rows === 2);
+  dock.classList.toggle('npc-rows-3plus', rows >= 3);
+  players.setItems(actors.slice(0,18));
+  favorites.setItems(actors.slice(0,40));
   grid.setItems(actors);
 };
 document.querySelector('#end').onclick=()=>{rail.scrollLeft=rail.scrollWidth;};
@@ -47,9 +65,9 @@ document.querySelector('#hide').onclick=()=>{dock.hidden=!dock.hidden;};
 document.querySelector('#filter').onclick=()=>grid.setItems(actors.slice(0,3));
 document.querySelector('#all').onclick=()=>grid.setItems(actors);
 const updateStats = ()=>{
-  document.querySelector('#stats').textContent=`Mounted: ${rail.querySelectorAll('.item').length}; scroll width: ${rail.scrollWidth}px`;
+  document.querySelector('#stats').textContent=`Mounted NPCs: ${rail.querySelectorAll('.item').length}; players: ${dock.querySelectorAll('.players .item').length}; favorites: ${dock.querySelectorAll('.npc-favs .item').length}; scroll width: ${rail.scrollWidth}px`;
 };
-new MutationObserver(updateStats).observe(rail,{childList:true});
+new MutationObserver(updateStats).observe(dock.querySelector('.content'),{childList:true,subtree:true});
 updateStats();
 </script>
 </html>
