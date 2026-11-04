@@ -198,21 +198,24 @@
 
 /* Portrait height multiplier slider styles */
 .portrait-height-multiplier-section .form-fields,
-.portrait-breathing-multiplier-section .form-fields {
+.portrait-breathing-multiplier-section .form-fields,
+.vertical-offset-section .form-fields {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
 .portrait-height-multiplier-section input[type="range"],
-.portrait-breathing-multiplier-section input[type="range"] {
+.portrait-breathing-multiplier-section input[type="range"],
+.vertical-offset-section input[type="range"] {
   flex: 1;
   min-width: 150px;
   height: 6px;
 }
 
 .portrait-height-multiplier-section .multiplier-value-display,
-.portrait-breathing-multiplier-section .breathing-multiplier-value-display {
+.portrait-breathing-multiplier-section .breathing-multiplier-value-display,
+.vertical-offset-section .vertical-offset-value-display {
   width: 60px;
   max-width: 60px;
   text-align: center;

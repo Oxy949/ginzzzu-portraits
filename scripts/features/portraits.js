@@ -1,9 +1,10 @@
-import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_BREATHING_MULTIPLIER, EMOTIONS } from "../core/constants.js";
+import { MODULE_ID, FLAG_MODULE, FLAG_PORTRAIT_SHOWN, FLAG_CUSTOM_EMOTIONS, FLAG_DISPLAY_NAME, FLAG_PORTRAIT_EMOTION, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_VERTICAL_OFFSET_PERCENT, FLAG_EMOTION_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_BREATHING_MULTIPLIER, EMOTIONS } from "../core/constants.js";
 import { configurePortrait } from "./portrait-config.js";
 import { layoutPortraitNames } from "../core/portraitNameLayout.js";
-import { resolvePortraitOffsets } from "../core/portraitOffsets.js";
+import { getPortraitVerticalOffsetPx, resolvePortraitOffsets } from "../core/portraitOffsets.js";
 import { getPortraitHeightMultiplier, resolvePortraitHeights } from "../core/portraitHeights.js";
 import { portraitImageChangesRowFit, resolvePortraitRowFit } from "../core/portraitRowFit.js";
+import { getPortraitTransformAnchor, getPortraitTransformPivotOffset } from "../core/portraitTransformPivot.js";
 import {
   PORTRAIT_KEYBINDINGS,
   isPortraitControlKeyActive
@@ -918,8 +919,8 @@ const FRAME = {
     const tilt = Number(transform?.tilt);
     const scale = Number(transform?.scale);
     return {
-      x: Number.isFinite(x) ? Math.round(x) : 0,
-      y: Number.isFinite(y) ? Math.round(y) : 0,
+      x: Number.isFinite(x) ? Math.round(x * 100) / 100 : 0,
+      y: Number.isFinite(y) ? Math.round(y * 100) / 100 : 0,
       tilt: hasTilt && Number.isFinite(tilt) ? Math.round(clampPortraitTilt(tilt) * 100) / 100 : 0,
       scale: hasScale && Number.isFinite(scale)
         ? Math.round(clampPortraitScale(scale) * 1000) / 1000
@@ -1086,8 +1087,8 @@ const FRAME = {
   function getPortraitDragFinalManualTransform(state) {
     const base = normalizePortraitManualTransform(state?.manualTransform);
     return normalizePortraitManualTransform({
-      x: base.x + (Number(state?.lastDx) || 0),
-      y: base.y + (Number(state?.lastDy) || 0) + (Number(state?.lastLift) || 0),
+      x: base.x + (Number(state?.lastDx) || 0) + (Number(state?.lastPivotX) || 0),
+      y: base.y + (Number(state?.lastDy) || 0) + (Number(state?.lastLift) || 0) + (Number(state?.lastPivotY) || 0),
       tilt: base.tilt + (Number(state?.lastTilt) || 0),
       scale: base.scale * (Number(state?.dragScale) || 1)
     });
@@ -1263,12 +1264,17 @@ const FRAME = {
     state.lastTilt = tilt;
     state.detached = !!detached;
     state.dragScale = Number.isFinite(Number(state.dragScale)) ? Number(state.dragScale) : 1;
+    const pivotOffset = state.remote
+      ? (state.pivotOffset || { x: 0, y: 0 })
+      : getPortraitTransformPivotOffset(state.transformAnchor, state.dragScale, tilt);
+    state.lastPivotX = pivotOffset.x;
+    state.lastPivotY = pivotOffset.y;
 
     state.wrapper.classList.toggle("ginzzzu-portrait-detached", !!detached);
     setPortraitDragTarget(state, targetWrapper);
 
-    state.wrapper.style.setProperty("--ginzzzu-drag-x", `${Math.round(dx)}px`);
-    state.wrapper.style.setProperty("--ginzzzu-drag-y", `${Math.round(dy)}px`);
+    state.wrapper.style.setProperty("--ginzzzu-drag-x", `${(dx + pivotOffset.x).toFixed(2)}px`);
+    state.wrapper.style.setProperty("--ginzzzu-drag-y", `${(dy + pivotOffset.y).toFixed(2)}px`);
     state.wrapper.style.setProperty("--ginzzzu-drag-lift", `${lift.toFixed(2)}px`);
     state.wrapper.style.setProperty("--ginzzzu-drag-tilt", `${tilt.toFixed(2)}deg`);
     state.wrapper.style.setProperty("--ginzzzu-drag-scale", String(state.dragScale));
@@ -1288,6 +1294,8 @@ const FRAME = {
       sceneId: canvas?.scene?.id,
       dxRatio: (state.lastDx || 0) / width,
       dyRatio: (state.lastDy || 0) / height,
+      pivotDxRatio: (state.lastPivotX || 0) / width,
+      pivotDyRatio: (state.lastPivotY || 0) / height,
       dragScale: Number(state.dragScale) || 1,
       dragTiltOffset: getPortraitDragTiltOffset(state),
       detached: !!state.detached,
@@ -1419,6 +1427,10 @@ const FRAME = {
         const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
         const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
         setPortraitDragScaleMultiplier(state, data.dragScale);
+        state.pivotOffset = {
+          x: Number(data.pivotDxRatio || 0) * Math.max(1, state.startRect.width),
+          y: Number(data.pivotDyRatio || 0) * Math.max(1, state.startRect.height)
+        };
         if (Number.isFinite(Number(data.dragTiltOffset))) {
           state.dragTiltOffset = Number(data.dragTiltOffset);
         }
@@ -1441,6 +1453,10 @@ const FRAME = {
     const dx = Number(data.dxRatio || 0) * Math.max(1, state.startRect.width);
     const dy = Number(data.dyRatio || 0) * Math.max(1, state.startRect.height);
     setPortraitDragScaleMultiplier(state, data.dragScale);
+    state.pivotOffset = {
+      x: Number(data.pivotDxRatio || 0) * Math.max(1, state.startRect.width),
+      y: Number(data.pivotDyRatio || 0) * Math.max(1, state.startRect.height)
+    };
     if (Number.isFinite(Number(data.dragTiltOffset))) {
       state.dragTiltOffset = Number(data.dragTiltOffset);
     }
@@ -1920,6 +1936,20 @@ const FRAME = {
     updatePortraitDragScale(ev);
   }
 
+  function getPortraitDragTransformAnchor(wrapper, ev, rect) {
+    const style = getComputedStyle(wrapper);
+    const [originX, originY] = style.transformOrigin.split(" ").map(Number.parseFloat);
+    return getPortraitTransformAnchor({
+      point: { x: ev.clientX, y: ev.clientY },
+      rect,
+      width: Number.parseFloat(style.width) || wrapper.offsetWidth,
+      height: Number.parseFloat(style.height) || wrapper.offsetHeight,
+      origin: { x: originX, y: originY },
+      matrix: new DOMMatrixReadOnly(style.transform === "none" ? undefined : style.transform),
+      scale: Number.parseFloat(style.scale) || 1
+    });
+  }
+
   function _onPortraitPointerDown(ev) {
     if (ev.button !== 0 || isPortraitControlKeyActive(PORTRAIT_KEYBINDINGS.ACTION_MODIFIER, ev)) return;
     if (shouldIgnorePortraitDragTarget(ev.target)) return;
@@ -1954,6 +1984,7 @@ const FRAME = {
       lastDy: 0,
       dragScale: 1,
       startRect,
+      transformAnchor: getPortraitDragTransformAnchor(wrapper, ev, startRect),
       startCenterX: startRect.left + (startRect.width / 2),
       detachThreshold: Math.max(
         PORTRAIT_DRAG.minDetachPx,
@@ -2473,6 +2504,12 @@ function _onPortraitClick(ev) {
     return m;
   }
 
+  function applyPortraitVerticalOffset(wrapper, actor, viewportHeight = Math.max(
+    document.documentElement.clientHeight || 0, window.innerHeight || 0
+  )) {
+    wrapper.style.setProperty("--ginzzzu-config-offset-y", `${getPortraitVerticalOffsetPx(actor, viewportHeight)}px`);
+  }
+
   // Применить «жёсткую» геометрию рамки и общий зазор
   function applyGeometry(imgs, vw) {
     // вычисляем базовую ширину рамки из процента и ограничений
@@ -2583,6 +2620,7 @@ function _onPortraitClick(ev) {
     imgs.forEach((el, i) => {
       const wrapper = el.parentElement;
       if (!wrapper) return;
+      applyPortraitVerticalOffset(wrapper, game.actors?.get(el.dataset.actorId), viewportH);
       
       const finalHeightPx = (fitted ?? heightLayout).heightsPx[i];
       
@@ -3465,12 +3503,13 @@ Hooks.once("ready", () => {
       const emotionChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_EMOTION);
       const customEmotionsChanged = foundry.utils.hasProperty(changes, FLAG_CUSTOM_EMOTIONS);
       const heightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
+      const verticalOffsetChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_VERTICAL_OFFSET_PERCENT);
       const emotionHeightMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_EMOTION_HEIGHT_MULTIPLIER);
       const customImageChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_CUSTOM_IMAGE);
       const breathingMultiplierChanged = foundry.utils.hasProperty(changes, FLAG_PORTRAIT_BREATHING_MULTIPLIER);
       const baseImageChanged = actorUpdateTouchesPortraitBaseImage(changes);
 
-      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged && !emotionHeightMultiplierChanged && !customImageChanged && !breathingMultiplierChanged && !baseImageChanged) return;
+      if (!emotionChanged && !customEmotionsChanged && !heightMultiplierChanged && !verticalOffsetChanged && !emotionHeightMultiplierChanged && !customImageChanged && !breathingMultiplierChanged && !baseImageChanged) return;
 
       // Only touch the HUD after confirming this Actor update is relevant.
       // PF2e sheets can emit frequent, deeply nested updates while editing.
@@ -3482,6 +3521,10 @@ Hooks.once("ready", () => {
 
       const imgEl = wrapper.querySelector("img.ginzzzu-portrait");
       if (!imgEl) return;
+
+      if (verticalOffsetChanged || emotionChanged || customEmotionsChanged) {
+        applyPortraitVerticalOffset(wrapper, actor);
+      }
 
       const newImg = _getActorImage(actor);
       if (typeof newImg === "string") {

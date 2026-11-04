@@ -46,6 +46,8 @@
       "label": "Portrait display name",
       "note": "This name will be used in player UI and can differ from the actor's real name. Leave the field empty to use the actual name.",
       "portraitHeightMultiplier": "Portrait Height Multiplier",
+      "portraitVerticalOffsetPercent": "Additional vertical offset (%)",
+      "portraitVerticalOffsetPercentHint": "From −100 to +100% of window height. Positive values lift the portrait; negative values lower it. Added to the global offset in module settings. Default: 0.",
       "portraitHeightMultiplierHint": "Configured relative height (0 = 0%, 1 = 100%, 2 = 200%). In novel mode, grows upward from the floor; tall characters can extend above the screen. Shrink-to-fit may scale the entire row uniformly. Default: 1",
       "portraitBreathingMultiplier": "Breathing animation speed multiplier",
       "portraitBreathingMultiplierHint": "Per-character speed multiplier for the breathing animation. 1 = normal speed, 2 = twice as fast, 0 = no breathing for this portrait.",
@@ -70,6 +72,8 @@
       "emotionAnimation": "Animation",
       "emotionColor": "Color correction",
       "emotionHeightMultiplier": "Height Multiplier",
+      "emotionVerticalOffsetPercent": "Additional emotion vertical offset (%)",
+      "emotionVerticalOffsetPercentHint": "From −100 to +100% of window height. Positive values lift the portrait; negative values lower it. Applies only while this emotion is active and adds to the actor and global offsets. Default: 0.",
       "removeEmotion": "Remove",
       "moveEmotionUp": "Move up",
       "moveEmotionDown": "Move down",
@@ -84,7 +88,7 @@
       },
       "transformDrag": {
         "name": "Portrait drag: scale and rotate",
-        "hint": "Hold while dragging to scale with vertical movement and rotate with horizontal movement. Default: Alt."
+        "hint": "Hold while dragging to scale with vertical movement and rotate with horizontal movement around the point where you grabbed the portrait. Default: Alt."
       },
       "portraitActionModifier": {
         "name": "Portrait: action modifier",

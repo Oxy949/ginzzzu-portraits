@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolvePortraitOffsets } from "../scripts/core/portraitOffsets.js";
+import { getPortraitVerticalOffsetPx, resolvePortraitOffsets } from "../scripts/core/portraitOffsets.js";
+import { MODULE_ID } from "../scripts/core/constants.js";
 
 test("zero percentage offsets preserve the existing rail and sidebar layout", () => {
   const result = resolvePortraitOffsets({ width: 1920, height: 1080, sidebarWidth: 300, legacyBottomPx: 40 });
@@ -57,4 +58,37 @@ test("extreme or malformed settings keep geometry finite and never produce negat
   const bounded = resolvePortraitOffsets({ width: 1000, height: 500, leftPercent: -1000, bottomPercent: 1000 });
   assert.equal(bounded.left, -1000);
   assert.equal(bounded.bottom, 500);
+});
+
+test("global, actor and active emotion offsets add without clamping the total", () => {
+  const flags = { portraitVerticalOffsetPercent: 80, portraitEmotion: "custom_1",
+    customEmotions: [{ verticalOffsetPercent: -100 }, { verticalOffsetPercent: 60 }] };
+  const actor = { flags: { [MODULE_ID]: flags } };
+  const global = resolvePortraitOffsets({ width: 1600, height: 1000, bottomPercent: 20, legacyBottomPx: 30 });
+  assert.equal(getPortraitVerticalOffsetPx(actor, 1000), -1400);
+  assert.equal(global.bottom - getPortraitVerticalOffsetPx(actor, 1000), 1630);
+  flags.portraitEmotion = "custom_0";
+  assert.equal(getPortraitVerticalOffsetPx(actor, 1000), 200);
+  assert.equal(global.bottom - getPortraitVerticalOffsetPx(actor, 1000), 30);
+  for (const key of ["none", null, "joy", "custom_99", "custom_-1"]) {
+    flags.portraitEmotion = key;
+    assert.equal(getPortraitVerticalOffsetPx(actor, 1000), -800, `Stale emotion offset for ${key}`);
+  }
+});
+
+test("individual offsets resize with the viewport and default to zero for old data", () => {
+  assert.equal(getPortraitVerticalOffsetPx(null, 1000), 0);
+  const flags = { portraitEmotion: "custom_0", customEmotions: [{}] };
+  const actor = { flags: { [MODULE_ID]: flags } };
+  assert.equal(getPortraitVerticalOffsetPx(actor, 1000), 0);
+  flags.portraitVerticalOffsetPercent = -10;
+  flags.customEmotions[0].verticalOffsetPercent = -20;
+  assert.equal(getPortraitVerticalOffsetPx(actor, 1000), 300);
+  assert.equal(getPortraitVerticalOffsetPx(actor, 500), 150);
+  flags.portraitVerticalOffsetPercent = NaN;
+  flags.customEmotions[0].verticalOffsetPercent = "invalid";
+  assert.equal(getPortraitVerticalOffsetPx(actor, 1000), 0);
+  flags.portraitVerticalOffsetPercent = 999;
+  flags.customEmotions[0].verticalOffsetPercent = -999;
+  assert.equal(getPortraitVerticalOffsetPx(actor, 1000), 0);
 });

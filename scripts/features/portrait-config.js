@@ -1,6 +1,7 @@
 // features/portraitConfig.js
-import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_PORTRAIT_BREATHING_MULTIPLIER } from "../core/constants.js";
+import { MODULE_ID, FLAG_DISPLAY_NAME, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS, EMOTION_COLORS, FLAG_SHOW_STANDARD_EMOTIONS, FLAG_PORTRAIT_HEIGHT_MULTIPLIER, FLAG_PORTRAIT_VERTICAL_OFFSET_PERCENT, FLAG_PORTRAIT_CUSTOM_IMAGE, FLAG_PORTRAIT_BREATHING_MULTIPLIER } from "../core/constants.js";
 import { getCustomEmotions } from "./custom-emotions.js";
+import { normalizePortraitOffsetPercent } from "../core/portraitOffsets.js";
 
 const PORTRAIT_CONFIG_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config.hbs`;
 const PORTRAIT_EMOTION_TEMPLATE = `modules/${MODULE_ID}/templates/portrait-config-emotion-item.hbs`;
@@ -35,7 +36,10 @@ export async function configurePortrait(ev, actorSheet) {
   const showStandardEmotions = (showStandardRaw !== false); // undefined / true -> показываем
 
   // Текущие кастомные эмоции
-  const customEmotions = getCustomEmotions(actor) ?? [];
+  const customEmotions = (getCustomEmotions(actor) ?? []).map(emotion => ({
+    ...emotion,
+    verticalOffsetPercent: normalizePortraitOffsetPercent(emotion.verticalOffsetPercent)
+  }));
 
   // Варианты цветкора – сначала пробуем спросить у GinzzzuPortraitEmotions,
   // при неудаче откатываемся к своим пресетам.
@@ -59,6 +63,10 @@ export async function configurePortrait(ev, actorSheet) {
   const currentHeightMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_HEIGHT_MULTIPLIER);
   const currentHeightMultiplier = typeof currentHeightMultiplierRaw === "number" ? currentHeightMultiplierRaw : 1;
 
+  const currentVerticalOffsetPercent = normalizePortraitOffsetPercent(
+    foundry.utils.getProperty(actor, FLAG_PORTRAIT_VERTICAL_OFFSET_PERCENT)
+  );
+
   const currentBreathingMultiplierRaw = foundry.utils.getProperty(actor, FLAG_PORTRAIT_BREATHING_MULTIPLIER);
   const currentBreathingMultiplier = typeof currentBreathingMultiplierRaw === "number" ? currentBreathingMultiplierRaw : 1;
 
@@ -74,6 +82,8 @@ export async function configurePortrait(ev, actorSheet) {
     notes,
     portraitHeightMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplier"),
     portraitHeightMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitHeightMultiplierHint"),
+    portraitVerticalOffsetPercentLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitVerticalOffsetPercent"),
+    portraitVerticalOffsetPercentHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitVerticalOffsetPercentHint"),
     portraitBreathingMultiplierLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitBreathingMultiplier"),
     portraitBreathingMultiplierHint: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitBreathingMultiplierHint"),
     portraitCustomImageLabel: game.i18n.localize("GINZZZUPORTRAITS.PortraitConfig.portraitCustomImage"),
@@ -88,6 +98,7 @@ export async function configurePortrait(ev, actorSheet) {
     displayName: currentName,
     placeholder: actor.name ?? "",
     portraitHeightMultiplier: currentHeightMultiplier,
+    portraitVerticalOffsetPercent: currentVerticalOffsetPercent,
     portraitBreathingMultiplier: currentBreathingMultiplier,
     portraitCustomImage: currentCustomImage,
     showStandardEmotions,
@@ -157,6 +168,10 @@ export async function configurePortrait(ev, actorSheet) {
                 updates[FLAG_PORTRAIT_BREATHING_MULTIPLIER] = null;
               }
 
+              updates[FLAG_PORTRAIT_VERTICAL_OFFSET_PERCENT] = normalizePortraitOffsetPercent(
+                html.find('input[name="portraitVerticalOffsetPercent"]').val()
+              );
+
               // Save custom portrait image
               const customImageInput = html.find('input[name="portraitCustomImage"]').val();
               const customImageValue = String(customImageInput ?? "").trim();
@@ -180,6 +195,7 @@ export async function configurePortrait(ev, actorSheet) {
                 const animation      = String($elem.find('select.emotion-animation').val() ?? "none");
                 const colorIntensity = String($elem.find('select.emotion-color').val() ?? "none");
                 const heightMultiplier = Number($elem.find('input.emotion-height-multiplier').val() ?? 1);
+                const verticalOffsetPercent = normalizePortraitOffsetPercent($elem.find('input.emotion-vertical-offset').val());
 
                 // Принимаем эмоцию, если заполнено хоть что-то осмысленное
                 const hasAny =
@@ -189,7 +205,7 @@ export async function configurePortrait(ev, actorSheet) {
                   imagePath.length > 0;
 
                 if (hasAny) {
-                  emotions.push({ emoji, name, displayName, imagePath, animation, colorIntensity, heightMultiplier });
+                  emotions.push({ emoji, name, displayName, imagePath, animation, colorIntensity, heightMultiplier, verticalOffsetPercent });
                 }
               });
 
@@ -346,6 +362,18 @@ export async function configurePortrait(ev, actorSheet) {
         bindFilePickers(html);
         bindPortraitImagePicker(html);
 
+        // Delegation also covers emotion sliders added after the dialog opens.
+        html.on('input change', '.vertical-offset-section input[type="range"]', function() {
+          $(this).closest('.form-fields').find('.vertical-offset-value-display').val($(this).val());
+        });
+        html.on('input change blur', '.vertical-offset-value-display', function(event) {
+          const raw = String($(this).val()).trim();
+          if (event.type === 'input' && (raw === '' || !Number.isFinite(Number(raw)))) return;
+          const value = Math.round(normalizePortraitOffsetPercent(raw));
+          $(this).closest('.form-fields').find('input[type="range"]').val(value);
+          if (event.type !== 'input') $(this).val(value);
+        });
+
         // Синхронизация слайдера высоты портрета с отображением значения (двунаправленная)
         const portraitHeightSlider = html.find('input[name="portraitHeightMultiplier"][type="range"]');
         const portraitHeightDisplay = html.find('input.multiplier-value-display');
@@ -427,7 +455,8 @@ export async function configurePortrait(ev, actorSheet) {
             imagePath: "",
             animation: "none",
             colorIntensity: "none",
-            heightMultiplier: 1
+            heightMultiplier: 1,
+            verticalOffsetPercent: 0
           };
 
           const newEmotionHtml = await renderTemplate(PORTRAIT_EMOTION_TEMPLATE, {

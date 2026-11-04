@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 import test from "node:test";
 import { portraitImageChangesRowFit } from "../scripts/core/portraitRowFit.js";
+import * as constants from "../scripts/core/constants.js";
+import { getPortraitVerticalOffsetPx } from "../scripts/core/portraitOffsets.js";
 
 const source = await readFile(new URL("../scripts/features/portraits.js", import.meta.url), "utf8");
 // Execute the production functions with controlled DOM/animation boundaries.
@@ -17,6 +19,49 @@ function productionFunction(name, endMarker, globals) {
 function rect(left, top, width = 100, height = 200) {
   return { left, top, width, height, right: left + width, bottom: top + height };
 }
+
+test("actor and emotion offset changes update the HUD even when portrait art stays the same", () => {
+  const flags = { portraitVerticalOffsetPercent: 10, portraitEmotion: "custom_0",
+    customEmotions: [{ verticalOffsetPercent: 20 }, { verticalOffsetPercent: -30 }] };
+  const actor = { id: "a", flags: { [constants.MODULE_ID]: flags } };
+  const image = { src: "https://example.test/art.webp" };
+  const properties = new Map();
+  const wrapper = { querySelector: () => image, style: { setProperty: (key, value) => properties.set(key, value) } };
+  let updateActor, layouts = 0, imageChanges = 0;
+  const globals = {
+    ...constants, getPortraitVerticalOffsetPx,
+    document: { documentElement: { clientHeight: 1000 }, getElementById: () => ({ querySelector: () => wrapper }) },
+    window: { innerHeight: 1000 },
+    Hooks: { on: (_, callback) => { updateActor = callback; } },
+    foundry: { utils: { hasProperty: (changes, path) => Object.hasOwn(changes, path) } },
+    actorUpdateTouchesPortraitBaseImage: () => false,
+    _getActorImage: () => image.src,
+    relayoutDomHud: () => layouts++, _applyEmotionImageWithTransition: () => imageChanges++, console
+  };
+  globals.applyPortraitVerticalOffset = productionFunction("applyPortraitVerticalOffset", "  // Применить «жёсткую»", globals);
+  const start = source.indexOf('  Hooks.on("updateActor",', source.indexOf("// React to emotion / customEmotions changes"));
+  const end = source.indexOf("  // Приём socket-запросов", start);
+  vm.runInNewContext(source.slice(start, end), globals);
+  const offset = () => properties.get("--ginzzzu-config-offset-y");
+
+  updateActor(actor, { [constants.FLAG_PORTRAIT_VERTICAL_OFFSET_PERCENT]: 10 });
+  assert.equal(offset(), "-300px");
+  flags.portraitEmotion = "custom_1";
+  updateActor(actor, { [constants.FLAG_PORTRAIT_EMOTION]: "custom_1" });
+  assert.equal(offset(), "200px");
+  flags.customEmotions[1].verticalOffsetPercent = -50;
+  updateActor(actor, { [constants.FLAG_CUSTOM_EMOTIONS]: flags.customEmotions });
+  assert.equal(offset(), "400px");
+  flags.portraitEmotion = null;
+  updateActor(actor, { [constants.FLAG_PORTRAIT_EMOTION]: null });
+  assert.equal(offset(), "-100px");
+  globals.window.innerHeight = 500;
+  globals.document.documentElement.clientHeight = 500;
+  globals.applyPortraitVerticalOffset(wrapper, actor);
+  assert.equal(offset(), "-50px");
+  assert.equal(layouts, 0, "An individual offset unnecessarily relaid out the entire row");
+  assert.equal(imageChanges, 0, "An individual offset unnecessarily replaced the portrait image");
+});
 
 function setup({ duration = 320, autofit = true, ratio = 0.5, load, onFrame, onTransition } = {}) {
   const timers = new Map(); let sequence = 0, layouts = 0, loads = 0;

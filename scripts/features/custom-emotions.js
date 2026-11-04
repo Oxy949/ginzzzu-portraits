@@ -3,6 +3,7 @@
  * Handles reading, writing, and validating custom emotions for actors
  */
 import { MODULE_ID, FLAG_CUSTOM_EMOTIONS, EMOTION_MOTIONS } from "../core/constants.js";
+import { normalizePortraitOffsetPercent } from "../core/portraitOffsets.js";
 
 /**
  * Get all custom emotions for an actor
@@ -113,7 +114,8 @@ export function validateEmotion(emotion) {
     displayName: String(emotion.displayName || "").substring(0, 50).trim(),
     imagePath: String(emotion.imagePath || "").trim(),
     animation: String(emotion.animation || "none"),
-    colorIntensity: String(emotion.colorIntensity || "none")
+    colorIntensity: String(emotion.colorIntensity || "none"),
+    verticalOffsetPercent: normalizePortraitOffsetPercent(emotion.verticalOffsetPercent)
   };
 
   // Validate animation type

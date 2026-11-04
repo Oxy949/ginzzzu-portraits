@@ -112,5 +112,32 @@
         />
       </div>
     </div>
+
+    <div class="emotion-row">
+      <div class="form-group vertical-offset-section">
+        <label>{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionVerticalOffsetPercent"}}</label>
+        <div class="form-fields">
+          <input
+            type="range"
+            class="emotion-vertical-offset"
+            aria-label="{{localize 'GINZZZUPORTRAITS.PortraitConfig.emotionVerticalOffsetPercent'}}"
+            value="{{emotion.verticalOffsetPercent}}"
+            min="-100"
+            max="100"
+            step="1"
+          />
+          <input
+            type="number"
+            class="vertical-offset-value-display"
+            aria-label="{{localize 'GINZZZUPORTRAITS.PortraitConfig.emotionVerticalOffsetPercent'}}"
+            value="{{emotion.verticalOffsetPercent}}"
+            min="-100"
+            max="100"
+            step="1"
+          />
+        </div>
+        <p class="notes">{{localize "GINZZZUPORTRAITS.PortraitConfig.emotionVerticalOffsetPercentHint"}}</p>
+      </div>
+    </div>
   </div>
 </div>

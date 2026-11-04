@@ -84,6 +84,7 @@
 
 .ginzzzu-portrait-wrapper {
   position: relative;
+  top: var(--ginzzzu-config-offset-y, 0px);
   overflow: visible;
 
   /* Точка вращения и базовое значение флипа для совместной анимации */
