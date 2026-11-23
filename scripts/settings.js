@@ -242,6 +242,10 @@ const SETTINGS_GROUPS = [
     keys: [
       "visualNovelMode",
       "resizeToFit",
+      "portraitRespectAspectRatio",
+      "portraitSpacingPx",
+      "portraitStartCenterX",
+      "portraitStartCenterY",
       "adjustForSidebar",
       "gmForcePortraitHeight",
       "gmPortraitHeight",
@@ -593,6 +597,40 @@ Hooks.once("init", () => {
     default: true,
     requiresReload: false
   });
+
+  reg("portraitRespectAspectRatio", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitRespectAspectRatio.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitRespectAspectRatio.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: false
+  });
+
+  reg("portraitSpacingPx", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitSpacingPx.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitSpacingPx.hint"),
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 24,
+    range: { min: 0, max: 400, step: 1 },
+    requiresReload: false
+  });
+
+  for (const key of ["portraitStartCenterX", "portraitStartCenterY"]) {
+    reg(key, {
+      name: game.i18n.localize(`GINZZZUPORTRAITS.Settings.${key}.name`),
+      hint: game.i18n.localize(`GINZZZUPORTRAITS.Settings.${key}.hint`),
+      scope: "world",
+      config: true,
+      type: Number,
+      default: 50,
+      range: { min: 0, max: 100, step: 1 },
+      requiresReload: false
+    });
+  }
 
   reg("adjustForSidebar", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.adjustForSidebar.name"),

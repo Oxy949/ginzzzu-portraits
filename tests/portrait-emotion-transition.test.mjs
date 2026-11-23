@@ -95,7 +95,7 @@ function setup({ duration = 320, autofit = true, ratio = 0.5, load, onFrame, onT
   const wrapper = { dataset: { src: "old.webp" } }, map = new Map([["a", old]]);
   const globals = {
     MODULE_ID: "ginzzzu-portraits", portraitImageChangesRowFit,
-    game: { settings: { get: (_, key) => key === "resizeToFit" ? autofit : duration } },
+    game: { settings: { get: (_, key) => key === "resizeToFit" ? autofit : key === "portraitRespectAspectRatio" ? false : duration } },
     _ANIM: { easing: "ease-out" },
     _loadDecodedImageElement: async () => { loads++; return load ? load(prepared) : prepared; },
     _copyPortraitImageState(from, to, src) { to.dataset = { ...from.dataset, src }; },

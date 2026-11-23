@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolvePortraitRowFit } from "../scripts/core/portraitRowFit.js";
+import { resolvePortraitAspectRowFit, resolvePortraitRowFit } from "../scripts/core/portraitRowFit.js";
 import { resolvePortraitHeights } from "../scripts/core/portraitHeights.js";
 import { resolvePortraitOffsets } from "../scripts/core/portraitOffsets.js";
 
@@ -66,4 +66,31 @@ test("very crowded and fractional-pixel rows remain finite and fit every frame",
   assert.deepEqual(empty.heightsPx, []);
   const bad = resolvePortraitRowFit({ heightsPx: [NaN, -1], aspectRatios: [0, Infinity], availableWidth: 100 });
   assert.ok(bad.heightsPx.every(Number.isFinite));
+});
+
+test("aspect-aware layout preserves the configured gap and fits actual artwork", () => {
+  const result = resolvePortraitAspectRowFit({
+    heightsPx: [800, 800],
+    aspectRatios: [0.5, 2],
+    availableWidth: 800,
+    gap: 400,
+    devicePixelRatio: 1
+  });
+  assert.equal(result.gapPx, 200);
+  assert.ok(result.scale < 1);
+  assert.ok(result.widthsPx.reduce((sum, width) => sum + width, 0) + result.gapPx <= 800);
+  assert.ok(Math.abs(result.heightsPx[0] / result.heightsPx[1] - 1) < 0.01);
+});
+
+test("aspect-aware layout keeps configured sizes when autofit is disabled", () => {
+  const result = resolvePortraitAspectRowFit({
+    heightsPx: [300, 600],
+    aspectRatios: [0.5, 1],
+    availableWidth: 500,
+    gap: 24,
+    resizeToFit: false
+  });
+  assert.deepEqual(result.heightsPx, [300, 600]);
+  assert.deepEqual(result.widthsPx, [150, 600]);
+  assert.equal(result.gapPx, 24);
 });

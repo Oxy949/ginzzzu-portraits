@@ -5,6 +5,36 @@ export function portraitImageChangesRowFit(previous, next) {
   return newRatio > 0 && Math.abs(newRatio - oldRatio) > 0.000001;
 }
 
+export function resolvePortraitAspectRowFit({ heightsPx = [], aspectRatios = [], availableWidth,
+  gap = 24, devicePixelRatio = 1, resizeToFit = true }) {
+  const count = heightsPx.length;
+  const width = Number.isFinite(availableWidth) ? Math.max(0, availableWidth) : 0;
+  const dpr = Number.isFinite(devicePixelRatio) ? Math.max(0.25, Math.min(8, devicePixelRatio)) : 1;
+  const heights = heightsPx.map(height => Number.isFinite(height) ? Math.max(0, height) : 0);
+  const ratios = heights.map((_, index) => {
+    const ratio = aspectRatios[index];
+    return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+  });
+  const gapPx = count > 1
+    ? Math.min(Math.max(0, Number.isFinite(gap) ? gap : 24), width / (4 * (count - 1)))
+    : 0;
+  const artworkWidth = heights.reduce((total, height, index) => total + height * ratios[index], 0);
+  const availableArtworkWidth = Math.max(0, width - gapPx * Math.max(0, count - 1));
+  const scale = resizeToFit && artworkWidth > 0
+    ? Math.min(1, availableArtworkWidth / artworkWidth)
+    : 1;
+  const fittedHeights = heights.map(height => scale < 1
+    ? Math.floor(height * scale * dpr) / dpr
+    : height);
+
+  return {
+    scale,
+    gapPx,
+    heightsPx: fittedHeights,
+    widthsPx: fittedHeights.map((height, index) => height * ratios[index])
+  };
+}
+
 // Fit actual artwork into separate, equally wide frames. One shared scale
 // preserves relative character heights; height alone never triggers shrinking.
 export function resolvePortraitRowFit({ heightsPx = [], aspectRatios = [], availableWidth,

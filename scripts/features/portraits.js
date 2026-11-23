@@ -3,7 +3,7 @@ import { configurePortrait } from "./portrait-config.js";
 import { layoutPortraitNames } from "../core/portraitNameLayout.js";
 import { getPortraitVerticalOffsetPx, resolvePortraitOffsets } from "../core/portraitOffsets.js";
 import { getPortraitHeightMultiplier, resolvePortraitHeights } from "../core/portraitHeights.js";
-import { portraitImageChangesRowFit, resolvePortraitRowFit } from "../core/portraitRowFit.js";
+import { portraitImageChangesRowFit, resolvePortraitAspectRowFit, resolvePortraitRowFit } from "../core/portraitRowFit.js";
 import { getPortraitTransformAnchor, getPortraitTransformPivotOffset } from "../core/portraitTransformPivot.js";
 import {
   PORTRAIT_KEYBINDINGS,
@@ -184,7 +184,6 @@ const FRAME = {
   maxWidthPx: 520,
   targetBand: 0.98, // используем 98% ширины экрана (чтоб максимум места)
   gapBase: 24,
-  gapMin: 8,
 
   bottomPx: 4,      // ← отступ от нижней кромки ЭКРАНА (сделай 0–8px)
   sidePadPx: 8      // ← небольшой боковой запас, чтобы точно не «липло» к краю
@@ -2520,7 +2519,9 @@ function _onPortraitClick(ev) {
 
     const n = imgs.length || 0;
     let widthPx = wantWpx;
-    let gapPx = FRAME.gapBase;
+    const rawGap = Number(game.settings.get(MODULE_ID, "portraitSpacingPx"));
+    const configuredGap = Math.max(0, Math.min(400, Number.isFinite(rawGap) ? rawGap : FRAME.gapBase));
+    let gapPx = configuredGap;
 
     if (n <= 1) {
       gapPx = 0;
@@ -2531,12 +2532,9 @@ function _onPortraitClick(ev) {
       const maxOverlap = Math.max(0, Math.floor(widthPx)); // до 100% ширины
       const minGapAllowed = -maxOverlap;
 
-      if (idealGap >= FRAME.gapMin) {
-        // поместилось с нормальным/положительным gap
-        gapPx = Math.min(idealGap, FRAME.gapBase);
-      } else if (idealGap >= minGapAllowed) {
-        // поместилось, но потребовалось перекрытие (отрицательный gap)
-        gapPx = idealGap;
+      if (idealGap >= minGapAllowed) {
+        // Keep the configured gap when possible; otherwise compact or overlap.
+        gapPx = Math.min(idealGap, configuredGap);
       } else {
         // Даже при максимальном перекрытии не влазит -> уменьшаем widthPx так, чтобы влазило с максимально допустимым перекрытием
         const widthFit = Math.floor((bandW - (n - 1) * minGapAllowed) / n);
@@ -2558,6 +2556,16 @@ function _onPortraitClick(ev) {
     const visualNovelMode = !!game.settings.get(MODULE_ID, "visualNovelMode");
     root.classList.toggle("ginzzzu-portrait-novel-mode", visualNovelMode);
     rail.style.alignItems = visualNovelMode ? "flex-end" : "center";
+    const rawCenterX = Number(game.settings.get(MODULE_ID, "portraitStartCenterX"));
+    const rawCenterY = Number(game.settings.get(MODULE_ID, "portraitStartCenterY"));
+    const centerX = Math.max(0, Math.min(100, Number.isFinite(rawCenterX) ? rawCenterX : 50));
+    const centerY = Math.max(0, Math.min(100, Number.isFinite(rawCenterY) ? rawCenterY : 50));
+    const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    const centerOffsetX = ((centerX - 50) * vw) / 100;
+    const centerOffsetY = ((centerY - 50) * viewportHeight) / 100;
+    rail.style.transform = centerOffsetX || centerOffsetY
+      ? `translate(${centerOffsetX}px, ${centerOffsetY}px)`
+      : "";
 
     let porHeight = game.settings.get(MODULE_ID, "portraitHeight");
 
@@ -2581,18 +2589,33 @@ function _onPortraitClick(ev) {
       multipliers: imgs.map(image => getPortraitHeightMultiplier(game.actors?.get(image.dataset.actorId))),
       devicePixelRatio: globalThis.devicePixelRatio
     });
-    const fitted = resolvePortraitRowFit({
-      enabled: !!game.settings.get(MODULE_ID, "resizeToFit"),
-      heightsPx: heightLayout.heightsPx,
-      aspectRatios: imgs.map(image => image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 1),
-      availableWidth: bandW,
-      preferredSlotWidth: wantWpx,
-      gap: FRAME.gapBase,
-      devicePixelRatio: globalThis.devicePixelRatio
-    });
-    if (fitted) {
-      widthPx = fitted.slotWidthPx;
+    const aspectRatios = imgs.map(image => image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 1);
+    const aspectAware = !!game.settings.get(MODULE_ID, "portraitRespectAspectRatio");
+    let fitted = null;
+    if (aspectAware) {
+      fitted = resolvePortraitAspectRowFit({
+        heightsPx: heightLayout.heightsPx,
+        aspectRatios,
+        availableWidth: bandW,
+        gap: configuredGap,
+        devicePixelRatio: globalThis.devicePixelRatio,
+        resizeToFit: !!game.settings.get(MODULE_ID, "resizeToFit")
+      });
       gapPx = fitted.gapPx;
+    } else {
+      fitted = resolvePortraitRowFit({
+        enabled: !!game.settings.get(MODULE_ID, "resizeToFit"),
+        heightsPx: heightLayout.heightsPx,
+        aspectRatios,
+        availableWidth: bandW,
+        preferredSlotWidth: wantWpx,
+        gap: configuredGap,
+        devicePixelRatio: globalThis.devicePixelRatio
+      });
+      if (fitted) {
+        widthPx = fitted.slotWidthPx;
+        gapPx = fitted.gapPx;
+      }
     }
     const baseHeightPx = heightLayout.baseHeightPx * (fitted?.scale ?? 1);
     root.style.gap = `${Math.max(0, gapPx)}px`;
@@ -2628,7 +2651,9 @@ function _onPortraitClick(ev) {
       // Базовая и актуальная высоты выровнены по физическим пикселям экрана.
       // Компенсирующий offset: только положительный (если портрет больше — панель сдвигается вниз)
       const heightOffsetPx = snapToDevicePixel(Math.max(0, (finalHeightPx - baseHeightPx) / 2));
-      const snappedWidthPx = fitted ? widthPx : snapToDevicePixel(widthPx);
+      const snappedWidthPx = aspectAware
+        ? fitted.widthsPx[i]
+        : fitted ? widthPx : snapToDevicePixel(widthPx);
       
       wrapper.style.height    = `${finalHeightPx}px`;
       wrapper.style.maxHeight = `${finalHeightPx}px`;
@@ -3130,8 +3155,9 @@ function _onPortraitClick(ev) {
       if (wrapper.dataset[lockKey] !== token || !imgEl.isConnected) return;
 
       // Height changes already update the row in the Actor hook. Swapping art
-      // only needs another layout if autofit sees a different aspect ratio.
-      const needsRowFit = !!game.settings.get(MODULE_ID, "resizeToFit")
+      // needs another layout when sizing or aspect-aware spacing depends on its ratio.
+      const needsRowFit = (!!game.settings.get(MODULE_ID, "resizeToFit")
+        || !!game.settings.get(MODULE_ID, "portraitRespectAspectRatio"))
         && portraitImageChangesRowFit(imgEl, preparedImg);
 
       // If no transition requested, replace only after the new decoded element is ready.
@@ -3641,7 +3667,8 @@ Hooks.once("ready", () => {
   }
   window.addEventListener("resize", _onWindowResizeDebounced, { passive: true });
   const offsetSettingKeys = new Set([
-    "portraitLeftOffsetPercent", "portraitRightOffsetPercent", "portraitBottomOffsetPercent", "portraitBottomOffset", "resizeToFit"
+    "portraitLeftOffsetPercent", "portraitRightOffsetPercent", "portraitBottomOffsetPercent", "portraitBottomOffset",
+    "resizeToFit", "portraitRespectAspectRatio", "portraitSpacingPx", "portraitStartCenterX", "portraitStartCenterY"
   ].map(key => `${MODULE_ID}.${key}`));
   let offsetLayoutFrame = null;
   Hooks.on("updateSetting", setting => {

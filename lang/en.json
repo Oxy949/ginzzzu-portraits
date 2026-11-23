@@ -160,6 +160,22 @@
         "name": "Portraits: shrink to fit the row",
         "hint": "In either mode, uniformly reduces portrait size when artwork no longer fits into separate frames. Preserves relative character heights. Disable to keep fixed heights and allow overlap. Applies without a reload."
       },
+      "portraitRespectAspectRatio": {
+        "name": "Respect portrait aspect ratios",
+        "hint": "When enabled, automatic positioning uses each portrait's actual width in both modes so the spacing between images stays even. Disabled by default."
+      },
+      "portraitSpacingPx": {
+        "name": "Portrait spacing width (px)",
+        "hint": "Sets the equal distance between portraits; the gap may be reduced if the row does not fit. When aspect-ratio layout is disabled, portraits remain positioned in equal-width frames."
+      },
+      "portraitStartCenterX": {
+        "name": "Initial position center: X (%)",
+        "hint": "Horizontal shift from the standard row position as a percentage of screen width. 50% means no shift; each point above or below shifts the row by 1% of the screen width."
+      },
+      "portraitStartCenterY": {
+        "name": "Initial position center: Y (%)",
+        "hint": "Vertical shift from the mode's standard row position as a percentage of screen height. 50% means no shift; each point above or below shifts the row by 1% of the screen height."
+      },
       "adjustForSidebar": {
         "name": "Portraits: account for sidebar width",
         "hint": "If enabled, portrait layout will consider the sidebar width."
