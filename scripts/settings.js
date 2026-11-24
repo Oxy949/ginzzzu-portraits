@@ -490,7 +490,7 @@ Hooks.once("init", () => {
     config: true,
     type: Number,
     default: 0.8,
-    range: { min: 0, max: 1, step: 0.01 },
+    range: { min: 0, max: 2, step: 0.01 },
     requiresReload: true
   });
 
@@ -501,7 +501,7 @@ Hooks.once("init", () => {
     config: true,
     type: Number,
     default: 0.8,
-    range: { min: 0, max: 1, step: 0.01 },
+    range: { min: 0, max: 2, step: 0.01 },
     requiresReload: true
   });
 
@@ -546,7 +546,7 @@ Hooks.once("init", () => {
     config: true,
     type: Number,
     default: 50,              // по умолчанию середина
-    range: { min: 0, max: 100, step: 1 },
+    range: { min: -100, max: 200, step: 1 },
     requiresReload: true
   });
 
@@ -604,7 +604,7 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: Boolean,
-    default: false,
+    default: true,
     requiresReload: false
   });
 
