@@ -243,6 +243,7 @@ const SETTINGS_GROUPS = [
       "visualNovelMode",
       "resizeToFit",
       "portraitRespectAspectRatio",
+      "portraitAllowOverlap",
       "portraitSpacingPx",
       "portraitStartCenterX",
       "portraitStartCenterY",
@@ -601,6 +602,16 @@ Hooks.once("init", () => {
   reg("portraitRespectAspectRatio", {
     name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitRespectAspectRatio.name"),
     hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitRespectAspectRatio.hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: false
+  });
+
+  reg("portraitAllowOverlap", {
+    name: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitAllowOverlap.name"),
+    hint: game.i18n.localize("GINZZZUPORTRAITS.Settings.portraitAllowOverlap.hint"),
     scope: "world",
     config: true,
     type: Boolean,

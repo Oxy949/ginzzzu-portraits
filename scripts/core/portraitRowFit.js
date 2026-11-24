@@ -6,7 +6,7 @@ export function portraitImageChangesRowFit(previous, next) {
 }
 
 export function resolvePortraitAspectRowFit({ heightsPx = [], aspectRatios = [], availableWidth,
-  gap = 24, devicePixelRatio = 1, resizeToFit = true }) {
+  gap = 24, devicePixelRatio = 1, resizeToFit = true, allowOverlap = false }) {
   const count = heightsPx.length;
   const width = Number.isFinite(availableWidth) ? Math.max(0, availableWidth) : 0;
   const dpr = Number.isFinite(devicePixelRatio) ? Math.max(0.25, Math.min(8, devicePixelRatio)) : 1;
@@ -15,10 +15,14 @@ export function resolvePortraitAspectRowFit({ heightsPx = [], aspectRatios = [],
     const ratio = aspectRatios[index];
     return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
   });
-  const gapPx = count > 1
-    ? Math.min(Math.max(0, Number.isFinite(gap) ? gap : 24), width / (4 * (count - 1)))
-    : 0;
   const artworkWidth = heights.reduce((total, height, index) => total + height * ratios[index], 0);
+  const configuredGap = Math.max(0, Number.isFinite(gap) ? gap : 24);
+  const idealGap = count > 1 ? (width - artworkWidth) / (count - 1) : 0;
+  const gapPx = count <= 1
+    ? 0
+    : allowOverlap && !resizeToFit
+      ? Math.min(configuredGap, idealGap)
+      : Math.min(configuredGap, width / (4 * (count - 1)));
   const availableArtworkWidth = Math.max(0, width - gapPx * Math.max(0, count - 1));
   const scale = resizeToFit && artworkWidth > 0
     ? Math.min(1, availableArtworkWidth / artworkWidth)

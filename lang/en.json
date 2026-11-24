@@ -162,7 +162,11 @@
       },
       "portraitRespectAspectRatio": {
         "name": "Respect portrait aspect ratios",
-        "hint": "When enabled, automatic positioning uses each portrait's actual width in both modes so the spacing between images stays even. Disabled by default."
+        "hint": "When enabled, automatic positioning uses each portrait's actual width in both modes so the spacing between images stays even. Enabled by default."
+      },
+      "portraitAllowOverlap": {
+        "name": "Allow portrait overlap when space is limited",
+        "hint": "When enabled, portraits may overlap to fit the row if automatic resizing is disabled. Turn this off to keep gaps and prevent overlap; the row may extend beyond the available area. Enabled by default."
       },
       "portraitSpacingPx": {
         "name": "Portrait spacing width (px)",

@@ -94,3 +94,21 @@ test("aspect-aware layout keeps configured sizes when autofit is disabled", () =
   assert.deepEqual(result.widthsPx, [150, 600]);
   assert.equal(result.gapPx, 24);
 });
+
+test("aspect-aware layout only overlaps when explicitly allowed and autofit is disabled", () => {
+  const options = {
+    heightsPx: [400, 400],
+    aspectRatios: [0.5, 1.5],
+    availableWidth: 500,
+    gap: 24,
+    resizeToFit: false
+  };
+  const overlapping = resolvePortraitAspectRowFit({ ...options, allowOverlap: true });
+  assert.ok(overlapping.gapPx < 0);
+  assert.ok(Math.abs(overlapping.widthsPx.reduce((sum, width) => sum + width, 0)
+    + overlapping.gapPx - 500) < 1e-8);
+
+  const separated = resolvePortraitAspectRowFit({ ...options, allowOverlap: false });
+  assert.ok(separated.gapPx >= 0);
+  assert.deepEqual(separated.heightsPx, options.heightsPx);
+});

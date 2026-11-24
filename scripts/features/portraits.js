@@ -2591,6 +2591,7 @@ function _onPortraitClick(ev) {
     });
     const aspectRatios = imgs.map(image => image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 1);
     const aspectAware = !!game.settings.get(MODULE_ID, "portraitRespectAspectRatio");
+    const allowOverlap = game.settings.get(MODULE_ID, "portraitAllowOverlap") !== false;
     let fitted = null;
     if (aspectAware) {
       fitted = resolvePortraitAspectRowFit({
@@ -2599,7 +2600,8 @@ function _onPortraitClick(ev) {
         availableWidth: bandW,
         gap: configuredGap,
         devicePixelRatio: globalThis.devicePixelRatio,
-        resizeToFit: !!game.settings.get(MODULE_ID, "resizeToFit")
+        resizeToFit: !!game.settings.get(MODULE_ID, "resizeToFit"),
+        allowOverlap
       });
       gapPx = fitted.gapPx;
     } else {
@@ -2615,6 +2617,8 @@ function _onPortraitClick(ev) {
       if (fitted) {
         widthPx = fitted.slotWidthPx;
         gapPx = fitted.gapPx;
+      } else if (!allowOverlap) {
+        gapPx = Math.max(0, gapPx);
       }
     }
     const baseHeightPx = heightLayout.baseHeightPx * (fitted?.scale ?? 1);
@@ -3668,7 +3672,8 @@ Hooks.once("ready", () => {
   window.addEventListener("resize", _onWindowResizeDebounced, { passive: true });
   const offsetSettingKeys = new Set([
     "portraitLeftOffsetPercent", "portraitRightOffsetPercent", "portraitBottomOffsetPercent", "portraitBottomOffset",
-    "resizeToFit", "portraitRespectAspectRatio", "portraitSpacingPx", "portraitStartCenterX", "portraitStartCenterY"
+    "resizeToFit", "portraitRespectAspectRatio", "portraitAllowOverlap", "portraitSpacingPx",
+    "portraitStartCenterX", "portraitStartCenterY"
   ].map(key => `${MODULE_ID}.${key}`));
   let offsetLayoutFrame = null;
   Hooks.on("updateSetting", setting => {
